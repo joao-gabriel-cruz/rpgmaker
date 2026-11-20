@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/migrations"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/platform/database"
@@ -28,6 +29,10 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if len(os.Args) > 1 && os.Args[1] == "create-admin" {
+		return createAdmin(ctx, os.Args[2:])
+	}
+
 	pool, err := setupDatabase(ctx)
 	if err != nil {
 		return err
@@ -36,6 +41,7 @@ func run() error {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/health", health.Handler(pool))
+	auth.NewHandlers(auth.NewService(auth.NewStore(pool))).Register(mux)
 
 	addr := ":" + envOr("PORT", "8080")
 	return serve(ctx, &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second})
