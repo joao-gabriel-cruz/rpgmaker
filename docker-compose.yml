@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rpgmaker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rpgmaker}
+      POSTGRES_DB: ${POSTGRES_DB:-rpgmaker}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-rpgmaker}:${POSTGRES_PASSWORD:-rpgmaker}@db:5432/${POSTGRES_DB:-rpgmaker}?sslmode=disable
+      PORT: "8080"
+    ports:
+      - "${API_PORT:-8081}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
