@@ -1,0 +1,23 @@
+import { applyPatch } from './grid'
+import { TerrainEditor } from './TerrainEditor'
+import { useMapStorage } from './useMapStorage'
+
+const btn = 'rounded bg-zinc-800 px-2 py-1 hover:bg-zinc-700'
+
+export function MapDemo() {
+  const { grid, setGrid, msg, save, load } = useMapStorage()
+  return (
+    <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100">
+      <header className="flex items-center gap-2 border-b border-zinc-800 p-2 text-sm">
+        <strong>Demo do mapa 3D</strong>
+        <button className={btn} onClick={save}>Salvar</button>
+        <button className={btn} onClick={load}>Carregar</button>
+        <span className="text-zinc-400">{msg}</span>
+        <span className="ml-auto text-zinc-500">Clique: pintar · Botão direito: girar · Scroll: zoom</span>
+      </header>
+      <div className="min-h-0 flex-1">
+        <TerrainEditor grid={grid} onPatch={(p) => setGrid((g) => applyPatch(g, p))} />
+      </div>
+    </div>
+  )
+}
