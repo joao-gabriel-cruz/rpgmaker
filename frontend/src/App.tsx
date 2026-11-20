@@ -4,10 +4,12 @@ import { RequireAdmin, RequireAuth } from './features/auth/guards'
 import { HomePage } from './features/auth/HomePage'
 import { Layout } from './features/auth/Layout'
 import { LoginPage } from './features/auth/LoginPage'
+import { DiceDemo } from './features/dice3d/DiceDemo'
 import { MapDemo } from './features/map3d/MapDemo'
 
 export default function App() {
   if (location.search.includes('map-demo')) return <MapDemo />
+  if (location.search.includes('dice-demo')) return <DiceDemo />
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
