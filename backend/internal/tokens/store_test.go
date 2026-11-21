@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -92,13 +93,16 @@ func TestStoreAppearancePayload(t *testing.T) {
 	if string(tok.Appearance) != "null" && tok.Appearance != nil || tok.AssimilationLevel != nil {
 		t.Fatalf("empty sheet: %s %v", tok.Appearance, tok.AssimilationLevel)
 	}
-	sheet := `{"appearance":{"hair":{"style":"long"}},"tugOfWar":{"assimilationLevel":7}}`
+	sheet := `{"appearance":{"hair":{"style":"long"}},"tugOfWar":{"assimilationLevel":7},"conditions":["hidden"]}`
 	if _, err := pool.Exec(c, `UPDATE characters SET sheet = $2::jsonb WHERE id = $1`, chID, sheet); err != nil {
 		t.Fatal(err)
 	}
 	list, _ := s.List(c, campID, scID)
 	if len(list) != 1 || string(list[0].Appearance) != `{"hair": {"style": "long"}}` || list[0].AssimilationLevel == nil || *list[0].AssimilationLevel != 7 {
 		t.Fatalf("list: %+v", list)
+	}
+	if !strings.Contains(string(list[0].Status), `"conditions": ["hidden"]`) || strings.Contains(string(list[0].Status), "appearance") {
+		t.Fatalf("status: %s", list[0].Status)
 	}
 }
 

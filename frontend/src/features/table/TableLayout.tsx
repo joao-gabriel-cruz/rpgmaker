@@ -9,6 +9,7 @@ import { ToolRail } from './ToolRail'
 import { TopBar } from './TopBar'
 import { useTableCharacter } from '../hotbar/TableCharacterContext'
 import { useSidebarState } from './useSidebarState'
+import { usePresenceState } from '../ambience/PresenceContext'
 import { useTableShortcuts } from './useTableShortcuts'
 import { TableToolProvider, useTableTool } from './useTableTool'
 
@@ -23,6 +24,8 @@ export interface TableLayoutProps {
   overlay?: ReactNode
   /** Slot "drawer": side panel over the map (character sheet). */
   drawer?: ReactNode
+  /** Slot "presence": bottom-left over the map (speak, react). */
+  presence?: ReactNode
   /** Slot "toasts": fixed notices. */
   toasts?: ReactNode
 }
@@ -36,14 +39,23 @@ function useRollShortcuts() {
   return { openRoll, rollAgain }
 }
 
-function Frame({ campaign, scenes, map, hotbar, drawer, overlay, toasts }: TableLayoutProps) {
+// ' speaks and G reacts; both are absent outside the presence provider.
+function usePresenceShortcuts() {
+  const chat = usePresenceState()
+  const { setSpeakOpen, setReactOpen } = chat ?? {}
+  const speak = useCallback(() => setSpeakOpen?.(true), [setSpeakOpen])
+  const react = useCallback(() => setReactOpen?.(true), [setReactOpen])
+  return chat ? { speak, react } : {}
+}
+
+function Frame({ campaign, scenes, map, hotbar, drawer, overlay, presence, toasts }: TableLayoutProps) {
   const isGm = campaign.role === 'gm'
   const { setTool } = useTableTool()
   const sidebar = useSidebarState()
   const [dialog, setDialog] = useState<Dialog>(null)
   const closeDialog = useCallback(() => setDialog(null), [])
   const openHelp = useCallback(() => setDialog('help'), [])
-  useTableShortcuts({ isGm, setTool, setSidebarOpen: sidebar.setOpen, openHelp, ...useRollShortcuts() })
+  useTableShortcuts({ isGm, setTool, setSidebarOpen: sidebar.setOpen, openHelp, ...useRollShortcuts(), ...usePresenceShortcuts() })
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-zinc-950 text-zinc-100">
       <TopBar campaign={campaign} scenes={scenes} onOpenHelp={openHelp} onOpenSettings={() => setDialog('settings')} />
@@ -54,6 +66,7 @@ function Frame({ campaign, scenes, map, hotbar, drawer, overlay, toasts }: Table
           <OptionsPanel />
           <div data-slot="overlay" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">{overlay}</div>
           <div data-slot="drawer" className="pointer-events-none absolute bottom-[6.75rem] right-3 top-3 z-10 flex">{drawer}</div>
+          <div data-slot="presence" className="pointer-events-none absolute bottom-[6.25rem] left-3 z-10">{presence}</div>
           <div data-slot="hotbar" className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">{hotbar}</div>
         </main>
         <Sidebar campaignId={campaign.id} isGm={isGm} sidebar={sidebar} />

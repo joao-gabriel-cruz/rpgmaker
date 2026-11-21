@@ -1,10 +1,10 @@
 import {
-  BrickWall, CloudFog, MousePointer2, Mountain, Pencil, Radio, Ruler, TreePine, UsersRound,
+  BrickWall, CloudFog, CloudSun, MousePointer2, Mountain, Pencil, Radio, Ruler, TreePine, UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import type { DrawMode } from '../drawings/drawings'
 
-export type TableToolId = 'move' | 'ping' | 'ruler' | 'draw' | 'terrain' | 'objects' | 'wall' | 'fog' | 'tokens'
+export type TableToolId = 'move' | 'ping' | 'ruler' | 'draw' | 'terrain' | 'objects' | 'wall' | 'fog' | 'tokens' | 'ambience'
 
 export interface TableToolDef {
   id: TableToolId
@@ -24,6 +24,7 @@ export const TABLE_TOOLS: TableToolDef[] = [
   { id: 'objects', label: 'Objetos', hint: 'Posicione objetos no mapa', key: 'o', gmOnly: true, icon: TreePine },
   { id: 'wall', label: 'Muro', hint: 'Desenhe muros em linha', key: 'm', gmOnly: true, icon: BrickWall },
   { id: 'fog', label: 'Névoa', hint: 'Revele ou esconda áreas', key: 'f', gmOnly: true, icon: CloudFog },
+  { id: 'ambience', label: 'Ambiente', hint: 'Hora do dia, clima e condições', key: 'a', gmOnly: true, icon: CloudSun },
   { id: 'tokens', label: 'Tokens', hint: 'Coloque personagens na cena', key: 'k', gmOnly: true, icon: UsersRound },
 ]
 
@@ -39,4 +40,4 @@ export const isEditorTool = (t: TableToolId) => t === 'terrain' || t === 'object
 export const drawModeOf = (t: TableToolId): DrawMode => (t === 'ruler' ? 'ruler' : t === 'draw' ? 'draw' : 'none')
 
 /** Tools that show something in the floating options panel. */
-export const hasOptions = (t: TableToolId) => t === 'draw' || t === 'fog' || t === 'tokens' || isEditorTool(t)
+export const hasOptions = (t: TableToolId) => t === 'draw' || t === 'fog' || t === 'tokens' || t === 'ambience' || isEditorTool(t)

@@ -10,6 +10,10 @@ export interface ShortcutActions {
   openRoll?: () => void
   /** Enter: repeat the last roll. */
   rollAgain?: () => void
+  /** ' (apostrophe): speak in character. */
+  speak?: () => void
+  /** G: open the reaction wheel. */
+  react?: () => void
 }
 
 const isTyping = (t: EventTarget | null) =>
@@ -29,22 +33,24 @@ export function runShortcut(key: string, a: ShortcutActions): boolean {
   else if (key === '?') a.openHelp()
   else if (key === ' ' && a.openRoll) a.openRoll()
   else if (key === 'Enter' && a.rollAgain) a.rollAgain()
+  else if (key === "'" && a.speak) a.speak()
+  else if (key.toLowerCase() === 'g' && a.react) a.react()
   else return false
   return true
 }
 
 /** Global one-key shortcuts; ignored while typing in a field or with Ctrl/Cmd/Alt held. */
 export function useTableShortcuts(actions: ShortcutActions) {
-  const { isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain } = actions
+  const { isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain, speak, react } = actions
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key.length === 1 && e.shiftKey && e.key !== '?') return
       const activation = e.key === ' ' || e.key === 'Enter'
       if (activation && isActivatable(e.target)) return
-      if (runShortcut(e.key, { isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain }) && activation) e.preventDefault()
+      if (runShortcut(e.key, { isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain, speak, react }) && (activation || e.key === "'")) e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain])
+  }, [isGm, setTool, setSidebarOpen, openHelp, openRoll, rollAgain, speak, react])
 }

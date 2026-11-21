@@ -16,12 +16,14 @@ type Store struct{ pool *pgxpool.Pool }
 func NewStore(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
 
 const selectCols = `SELECT t.id, t.scene_id, t.character_id, t.x, t.z, t.props, c.name, c.portrait_url, c.owner_id,
-	c.sheet->'appearance', CASE WHEN jsonb_typeof(c.sheet#>'{tugOfWar,assimilationLevel}') = 'number' THEN LEAST(GREATEST((c.sheet#>>'{tugOfWar,assimilationLevel}')::numeric, 0), 10)::int END
+	c.sheet->'appearance', CASE WHEN jsonb_typeof(c.sheet#>'{tugOfWar,assimilationLevel}') = 'number' THEN LEAST(GREATEST((c.sheet#>>'{tugOfWar,assimilationLevel}')::numeric, 0), 10)::int END,
+	jsonb_strip_nulls(jsonb_build_object('conditions', c.sheet->'conditions', 'inventory', c.sheet->'inventory',
+		'health', c.sheet->'health', 'tugOfWar', c.sheet->'tugOfWar', 'instincts', c.sheet->'instincts'))
 	FROM tokens t JOIN characters c ON c.id = t.character_id JOIN scenes s ON s.id = t.scene_id`
 
 func scan(row pgx.Row) (Token, error) {
 	var t Token
-	err := row.Scan(&t.ID, &t.SceneID, &t.CharacterID, &t.X, &t.Z, &t.Props, &t.Name, &t.PortraitURL, &t.OwnerID, &t.Appearance, &t.AssimilationLevel)
+	err := row.Scan(&t.ID, &t.SceneID, &t.CharacterID, &t.X, &t.Z, &t.Props, &t.Name, &t.PortraitURL, &t.OwnerID, &t.Appearance, &t.AssimilationLevel, &t.Status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Token{}, ErrNotFound
 	}

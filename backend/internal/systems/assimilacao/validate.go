@@ -1,6 +1,9 @@
 package assimilacao
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // Inventory limits.
 const (
@@ -59,6 +62,7 @@ func structuralMisc(s Sheet) []Issue {
 		out = append(out, issue(true, "inventory_backpack_full", "inventory.backpack", "A mochila comporta no máximo %d itens.", BackpackSlots))
 	}
 	out = append(out, itemIssues(s)...)
+	out = append(out, conditionIssues(s)...)
 	for i, a := range s.Assimilations {
 		if !validSuit(a.Suit) {
 			out = append(out, issue(true, "suit_invalid", fmt.Sprintf("assimilations[%d].suit", i), "Naipe inválido."))
@@ -152,6 +156,21 @@ func itemIssues(s Sheet) []Issue {
 				out = append(out, issue(true, "item_field_too_long", fmt.Sprintf("inventory.%s[%d]", place, i), "Os dados do item são longos demais."))
 			}
 		}
+	}
+	return out
+}
+
+// Conditions are the manual status effects a sheet may carry (shown on the token and cards).
+var Conditions = []string{"wounded", "debilitated", "susceptible", "scared", "hidden", "infected", "unconscious"}
+
+func conditionIssues(s Sheet) []Issue {
+	var out []Issue
+	seen := map[string]bool{}
+	for i, c := range s.Conditions {
+		if !slices.Contains(Conditions, c) || seen[c] {
+			out = append(out, issue(true, "condition_invalid", fmt.Sprintf("conditions[%d]", i), "Condição inválida."))
+		}
+		seen[c] = true
 	}
 	return out
 }

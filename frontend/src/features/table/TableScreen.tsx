@@ -1,3 +1,6 @@
+import { PresenceDock } from '../ambience/PresenceDock'
+import { PresenceProvider } from '../ambience/PresenceContext'
+import { SoundProvider } from '../sound/SoundContext'
 import type { Campaign } from '../campaigns/campaigns'
 import { ConflictProvider } from '../conflict/ConflictContext'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
@@ -19,6 +22,7 @@ function TableContent({ campaign }: { campaign: Campaign }) {
       hotbar={<HotbarSlot campaignId={campaign.id} isGm={isGm} />}
       drawer={<DrawerSlot campaign={campaign} />}
       overlay={<OverlaySlot />}
+      presence={<PresenceDock campaignId={campaign.id} isGm={isGm} />}
       toasts={<ToastSlot />} />
   )
 }
@@ -28,7 +32,9 @@ export function TableScreen({ campaign }: { campaign: Campaign }) {
   return (
     <CampaignSocketProvider campaignId={campaign.id}>
       <ConflictProvider campaignId={campaign.id} isGm={campaign.role === 'gm'}>
-        <TableCharacterProvider><TableContent campaign={campaign} /></TableCharacterProvider>
+        <SoundProvider><PresenceProvider>
+          <TableCharacterProvider><TableContent campaign={campaign} /></TableCharacterProvider>
+        </PresenceProvider></SoundProvider>
       </ConflictProvider>
     </CampaignSocketProvider>
   )

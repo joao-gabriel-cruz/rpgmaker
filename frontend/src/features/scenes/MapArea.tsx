@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Atmosphere } from '../ambience/Atmosphere'
+import { OverlayProjector } from '../ambience/OverlayProjector'
+import { createOverlayRegistry, type OverlayRegistry } from '../ambience/overlayRegistry'
+import { TokenOverlayLayer } from '../ambience/TokenOverlayLayer'
+import { usePresenceState } from '../ambience/PresenceContext'
+import { useSceneAmbience } from '../ambience/useSceneAmbience'
+import { useSceneSounds } from '../sound/useSceneSounds'
 import { useSceneTokensBridge, useTableCharacter } from '../hotbar/TableCharacterContext'
 import { MapOptions } from '../table/options/MapOptions'
 import { OptionsPortal } from '../table/OptionsPortal'
@@ -19,6 +26,7 @@ import { useDrawings } from '../drawings/useDrawings'
 import { LootLayer } from '../items/LootLayer'
 import { useSceneLoot, type SceneLoot } from '../items/loot'
 import { TokenLayer } from '../tokens/TokenLayer'
+import type { Token } from '../tokens/tokens'
 import { TokensError } from '../tokens/TokensPanel'
 import { useSceneTokens } from '../tokens/useSceneTokens'
 import { useShownTokens, useVision } from '../vision/useVision'
@@ -81,12 +89,16 @@ interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
   userId: string
   isGm: boolean
   camera: CameraHandle
+  overlays: OverlayRegistry
   onSelect: (characterId: string) => void
 }
 
 // The in-canvas layers; the rail tool decides which of them react to the pointer.
-function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera, onSelect }: LayersProps) {
+function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect }: LayersProps) {
   const { tool, placing, setPlacing } = useTableTool()
+  const presence = usePresenceState()
+  const openWheel = presence?.openWheel
+  const onHold = useMemo(() => (openWheel ? (t: { characterId: string }, at: { x: number; y: number }) => openWheel({ characterId: t.characterId, ...at }) : undefined), [openWheel])
   const place = useCallback((c: { x: number; z: number }) => {
     if (placing) tokens.place(placing, c)
     setPlacing(null)
@@ -94,7 +106,8 @@ function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camer
   return (
     <>
       <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
-        dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} onSelect={onSelect} />
+        dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} onSelect={onSelect} onHold={onHold} />
+      <OverlayProjector grid={grid} tokens={tokens.tokens} registry={overlays} />
       <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />
       <CameraBridge handleRef={camera} />
       <DrawingLayer grid={grid} draw={draw} />
@@ -126,6 +139,14 @@ function usePublishTokens(tokens: Tools['tokens']) {
   }, [tokens, setTokens])
 }
 
+// Sky, weather, lights and sound beds of the scene; the Mestre editing terrain sees plain daylight.
+function useAmbienceLayer(campaignId: string, sceneId: string, state: MapState, tokens: Token[], neutral: boolean) {
+  const ambience = useSceneAmbience(campaignId, sceneId)
+  useSceneSounds(ambience.ambience, state.objects.some((o) => o.prefab === 'campfire'))
+  const environment = <Atmosphere ambience={ambience.ambience} grid={state.grid} tokens={tokens} objects={state.objects} neutral={neutral} />
+  return { ambience, environment }
+}
+
 function SceneWithTokens(p: WithTokens) {
   const { campaignId, sceneId, isGm, state, command, draft } = p
   const { tool, editor, setEditor, showGrid, setDraftActive, selectedObjectId, setSelectedObjectId } = useTableTool()
@@ -133,16 +154,19 @@ function SceneWithTokens(p: WithTokens) {
   const { vision, fog, tokens, draw } = useMapTools(p, userId)
   const history = useEditing(p)
   const camera = useRef<CameraHandle['current']>(null) as CameraHandle
+  const [overlays] = useState(createOverlayRegistry)
   usePublishDraft(draft, setDraftActive)
   usePublishTokens(tokens)
   const { select } = useTableCharacter()
   const loot = useSceneLoot(campaignId, sceneId)
-  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera, onSelect: select }} />
+  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect: select }} />
   const mine = tokens.tokens.find((t) => t.ownerId === userId)
+  const { ambience, environment } = useAmbienceLayer(campaignId, sceneId, state, tokens.tokens, isEditorTool(tool))
   const opts = { campaignId, sceneId, isGm, grid: state.grid, objects: state.objects, onObjectPatch: history.editObjects,
-    history, draw, vision, tokens, draft, onCommand: command }
+    history, draw, vision, tokens, draft, ambience, onCommand: command }
   return (
     <>
+      <TokenOverlayLayer tokens={tokens.tokens} registry={overlays} />
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><TokensError tokens={tokens} /></div>
       <OptionsPortal>
         <MapOptions {...opts} />
@@ -152,8 +176,8 @@ function SceneWithTokens(p: WithTokens) {
       {isGm
         ? <TerrainEditor grid={state.grid} onPatch={history.paint} objects={state.objects} onObjectPatch={history.editObjects}
             control={{ state: editor, onChange: setEditor, showGrid, selection: [selectedObjectId, setSelectedObjectId] }}
-            enabled={isEditorTool(tool)}>{layer}</TerrainEditor>
-        : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
+            enabled={isEditorTool(tool)} environment={environment}>{layer}</TerrainEditor>
+        : <TerrainView grid={state.grid} objects={state.objects} environment={environment}>{layer}</TerrainView>}
     </>
   )
 }

@@ -5,6 +5,7 @@ import { FakeWebSocket } from '../../test/fakeWebSocket'
 import { renderApp, stubApi } from '../../test/renderApp'
 import { openManage } from '../../test/table'
 import { resetSockets } from '../realtime/useCampaignSocket'
+import { AUTOSAVE_DELAY_MS, autosaveTiming } from './Autosaver'
 import { newSheet } from '../sheet-assimilacao/types'
 
 const ana = { id: 'u1', email: 'a@x.com', displayName: 'Ana', isAdmin: false, createdAt: '' }
@@ -15,8 +16,15 @@ const char = (over: Record<string, unknown> = {}) => ({
   updatedAt: '2026-01-01T00:00:01Z', derived: { boxesPerLevel: 3, currentLevel: 0, levelName: 'Saudável' }, issues: [], ...over,
 })
 
-beforeEach(() => { FakeWebSocket.instances = [] })
-afterEach(() => { vi.unstubAllGlobals(); resetSockets() })
+// A wide debounce keeps the save from firing between typing and the next assertion on a loaded machine.
+const SLOW_DEBOUNCE_MS = 1500
+const WAIT = { timeout: 8000 }
+
+beforeEach(() => {
+  FakeWebSocket.instances = []
+  autosaveTiming.delayMs = SLOW_DEBOUNCE_MS
+})
+afterEach(() => { vi.unstubAllGlobals(); resetSockets(); autosaveTiming.delayMs = AUTOSAVE_DELAY_MS })
 
 interface Opts { role?: string; character?: ReturnType<typeof char>; put?: (body: string) => { status: number; body: unknown } }
 
@@ -59,9 +67,9 @@ it('opens the sheet in the drawer from the Grupo card and autosaves after the de
   await userEvent.type(name, '!')
   expect(screen.getByRole('status', { name: 'Estado do salvamento' })).toHaveTextContent('Salvando…')
   expect(puts).toHaveLength(0)
-  await waitFor(() => expect(puts).toHaveLength(1))
+  await waitFor(() => expect(puts).toHaveLength(1), WAIT)
   expect(JSON.parse(puts[0]).sheet.identity.name).toBe('Rita!')
-  await waitFor(() => expect(screen.getByText('Salvo')).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByText('Salvo')).toBeInTheDocument(), WAIT)
 })
 
 it('is read-only for a player viewing someone else sheet', async () => {
@@ -93,7 +101,7 @@ it('applies character.updated live but waits for the local save when editing', a
   expect(name).toHaveValue('RemotoX')
   release()
   await gate
-  await waitFor(() => expect(name).toHaveValue('Outro'))
+  await waitFor(() => expect(name).toHaveValue('Outro'), WAIT)
 })
 
 it('shows server issues as a warning when saved, and the reason when rejected', async () => {

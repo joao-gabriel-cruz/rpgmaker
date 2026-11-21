@@ -68,6 +68,8 @@ export interface Sheet {
   notes: string
   /** Optional 3D miniature description (validated by the server). */
   appearance?: Appearance
+  /** Manual conditions (ids from ambience/conditions); validated by the server. */
+  conditions?: string[]
 }
 
 export interface SheetIssue {

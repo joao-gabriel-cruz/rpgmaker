@@ -1,6 +1,6 @@
-import { Backpack, Dices, Home, Swords, UsersRound, Zap, type LucideIcon } from 'lucide-react'
+import { Backpack, Dices, Home, MessageSquareText, Swords, UsersRound, Zap, type LucideIcon } from 'lucide-react'
 
-export type SidebarTabId = 'group' | 'rolls' | 'conflict' | 'refuge' | 'effects' | 'items'
+export type SidebarTabId = 'group' | 'rolls' | 'conflict' | 'refuge' | 'effects' | 'items' | 'speech'
 
 export interface SidebarTabDef {
   id: SidebarTabId
@@ -12,6 +12,7 @@ export interface SidebarTabDef {
 export const SIDEBAR_TABS: SidebarTabDef[] = [
   { id: 'group', label: 'Grupo', icon: UsersRound, gmOnly: false },
   { id: 'rolls', label: 'Rolagens', icon: Dices, gmOnly: false },
+  { id: 'speech', label: 'Falas', icon: MessageSquareText, gmOnly: false },
   { id: 'conflict', label: 'Conflito', icon: Swords, gmOnly: false },
   { id: 'refuge', label: 'Refúgio', icon: Home, gmOnly: false },
   { id: 'effects', label: 'Efeitos', icon: Zap, gmOnly: true },
