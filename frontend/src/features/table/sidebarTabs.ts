@@ -1,6 +1,6 @@
-import { Dices, Home, Swords, UsersRound, Zap, type LucideIcon } from 'lucide-react'
+import { Backpack, Dices, Home, Swords, UsersRound, Zap, type LucideIcon } from 'lucide-react'
 
-export type SidebarTabId = 'group' | 'rolls' | 'conflict' | 'refuge' | 'effects'
+export type SidebarTabId = 'group' | 'rolls' | 'conflict' | 'refuge' | 'effects' | 'items'
 
 export interface SidebarTabDef {
   id: SidebarTabId
@@ -15,6 +15,7 @@ export const SIDEBAR_TABS: SidebarTabDef[] = [
   { id: 'conflict', label: 'Conflito', icon: Swords, gmOnly: false },
   { id: 'refuge', label: 'Refúgio', icon: Home, gmOnly: false },
   { id: 'effects', label: 'Efeitos', icon: Zap, gmOnly: true },
+  { id: 'items', label: 'Itens', icon: Backpack, gmOnly: true },
 ]
 
 export const tabsFor = (isGm: boolean) => SIDEBAR_TABS.filter((t) => isGm || !t.gmOnly)

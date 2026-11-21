@@ -76,6 +76,8 @@ func (s *Service) apply(ctx context.Context, campaignID string, gm realtime.Send
 		err = s.addDamage(ctx, m, view, sg.Amount)
 	case EffectDifficulty:
 		err = s.addDifficulty(ctx, m, gm, view.ID, sg.Amount)
+	case EffectHeal:
+		err = s.addDamage(ctx, m, view, -sg.Amount)
 	}
 	if err != nil || view.OwnerID == nil {
 		return "", err
@@ -104,7 +106,7 @@ func (s *Service) addDamage(ctx context.Context, m campaigns.Member, view charac
 	return err
 }
 
-// withDamage adds to health.damage keeping every other sheet field verbatim.
+// withDamage adds to health.damage (never below zero) keeping every other sheet field verbatim.
 func withDamage(sheet json.RawMessage, amount int) (json.RawMessage, error) {
 	doc := map[string]json.RawMessage{}
 	if err := json.Unmarshal(sheet, &doc); err != nil {
@@ -120,7 +122,7 @@ func withDamage(sheet json.RawMessage, amount int) (json.RawMessage, error) {
 	if raw, ok := health["damage"]; ok {
 		_ = json.Unmarshal(raw, &cur)
 	}
-	health["damage"], _ = json.Marshal(cur + amount)
+	health["damage"], _ = json.Marshal(max(cur+amount, 0))
 	doc["health"], _ = json.Marshal(health)
 	return json.Marshal(doc)
 }

@@ -82,3 +82,17 @@ func TestStoreMoveIsTransactional(t *testing.T) {
 		t.Errorf("update = %+v %v", r, err)
 	}
 }
+
+func TestStoreAddItemAndResource(t *testing.T) {
+	st, _, campID, _ := seedDB(t)
+	r, err := st.AddItem(ctx, campID, json.RawMessage(`{"name":"Pé de cabra","itemId":"x"}`))
+	if err != nil || len(r.Items) != 1 || !strings.Contains(string(r.Items[0]), "itemId") {
+		t.Fatalf("add item = %+v %v", r, err)
+	}
+	if r, err = st.AddResource(ctx, campID, "wood", 3); err != nil || r.Wood != 3 {
+		t.Fatalf("add resource = %+v %v", r, err)
+	}
+	if _, err = st.AddResource(ctx, campID, "gold; drop", 1); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("bad resource = %v", err)
+	}
+}

@@ -161,3 +161,25 @@ func TestInvalidAppearanceRejected(t *testing.T) {
 		t.Errorf("sheet without appearance = %v", err)
 	}
 }
+
+func TestEditSheetKeepsFieldsAndAnnounces(t *testing.T) {
+	s, _, ev := newSvc(`{}`)
+	v, _ := s.Create(ctx, ana, CreateInput{Name: "Rita"})
+	before := len(ev.got)
+	out, err := s.EditSheet(ctx, cid, v.ID, func(sh json.RawMessage) (json.RawMessage, error) {
+		return json.RawMessage(strings.Replace(string(sh), `"notes":""`, `"notes":"x"`, 1)), nil
+	})
+	if err != nil || !strings.Contains(string(out.Sheet), `"notes":"x"`) || out.Name != "Rita" {
+		t.Fatalf("edit = %+v %v", out, err)
+	}
+	if len(ev.got) != before+1 || ev.got[before].typ != "character.updated" {
+		t.Errorf("events = %+v", ev.got)
+	}
+	if _, err := s.EditSheet(ctx, cid, "nope", nil); !errors.Is(err, ErrNotFound) {
+		t.Errorf("bad id = %v", err)
+	}
+	boom := errors.New("boom")
+	if _, err := s.EditSheet(ctx, cid, v.ID, func(json.RawMessage) (json.RawMessage, error) { return nil, boom }); !errors.Is(err, boom) {
+		t.Errorf("fn error = %v", err)
+	}
+}

@@ -20,6 +20,8 @@ type Repository interface {
 	Get(ctx context.Context, campaignID string) (Refuge, error)
 	Update(ctx context.Context, campaignID string, d Details) (Refuge, error)
 	Move(ctx context.Context, campaignID, charID string, fn MoveFunc) (Refuge, error)
+	AddItem(ctx context.Context, campaignID string, item json.RawMessage) (Refuge, error)
+	AddResource(ctx context.Context, campaignID, resource string, amount int) (Refuge, error)
 }
 
 // Characters announces a changed character (character.updated) through the characters service.
@@ -100,5 +102,28 @@ func (s *Service) move(ctx context.Context, m campaigns.Member, charID string, f
 		return Refuge{}, err
 	}
 	s.events.Broadcast(m.CampaignID, realtime.ToAll, EventUpdated, map[string]Refuge{"refuge": r})
+	return r, nil
+}
+
+// AddItem appends an item (sheet item format, kept verbatim) to the shared inventory.
+func (s *Service) AddItem(ctx context.Context, campaignID string, item json.RawMessage) (Refuge, error) {
+	r, err := s.repo.AddItem(ctx, campaignID, item)
+	if err != nil {
+		return Refuge{}, err
+	}
+	s.events.Broadcast(campaignID, realtime.ToAll, EventUpdated, map[string]Refuge{"refuge": r})
+	return r, nil
+}
+
+// AddResource raises water, food or wood by amount (> 0).
+func (s *Service) AddResource(ctx context.Context, campaignID, resource string, amount int) (Refuge, error) {
+	if amount <= 0 {
+		return Refuge{}, ErrInvalid
+	}
+	r, err := s.repo.AddResource(ctx, campaignID, resource, amount)
+	if err != nil {
+		return Refuge{}, err
+	}
+	s.events.Broadcast(campaignID, realtime.ToAll, EventUpdated, map[string]Refuge{"refuge": r})
 	return r, nil
 }

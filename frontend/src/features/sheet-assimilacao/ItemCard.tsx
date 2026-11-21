@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Item } from './types'
+import { ItemIcon } from '../items/ItemIcon'
+import { effectLines, type ItemEffects } from '../items/items'
 import { btnCls, inputCls } from './ui'
 
 interface Props {
@@ -11,6 +13,8 @@ interface Props {
   onMove: () => void
   onRemove: () => void
   onDeposit?: () => void
+  /** Set for consumables the viewer may use: shows the "Usar" button. */
+  onUse?: () => void
 }
 
 const STATS = [['quality', 'Qualidade'], ['scarcity', 'Escassez'], ['pressure', 'Pressão']] as const
@@ -37,13 +41,31 @@ function Traits({ item, readOnly, onChange }: Pick<Props, 'item' | 'readOnly' | 
   )
 }
 
-export function ItemCard({ item, readOnly, moveLabel, canMove, onChange, onMove, onRemove, onDeposit }: Props) {
+function Compendium({ item }: { item: Item }) {
+  if (!item.icon && !item.description) return null
+  const lines = effectLines(item.effects as ItemEffects | undefined)
+  return (
+    <div className="mb-2 flex items-start gap-2 text-xs text-zinc-300">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded" style={{ background: `${item.color ?? '#34d399'}33` }}>
+        <ItemIcon name={item.icon} color={item.color} size={18} />
+      </span>
+      <div>
+        {item.description && <p>{item.description}</p>}
+        {lines.map((l) => <p key={l} className="text-emerald-300">{l}</p>)}
+      </div>
+    </div>
+  )
+}
+
+export function ItemCard({ item, readOnly, moveLabel, canMove, onChange, onMove, onRemove, onDeposit, onUse }: Props) {
   return (
     <li className="rounded border border-zinc-700 bg-zinc-950 p-2">
+      <Compendium item={item} />
       <div className="flex gap-2">
         <input className={`${inputCls} flex-1`} aria-label="Nome do item" placeholder="Nome do item" value={item.name} disabled={readOnly} onChange={(e) => onChange({ ...item, name: e.target.value })} />
         <button className={btnCls} disabled={readOnly || !canMove} title={canMove ? undefined : 'Destino cheio'} onClick={onMove}>{moveLabel}</button>
         {onDeposit && <button className={btnCls} aria-label={`Guardar ${item.name || 'item'} no Refúgio`} onClick={onDeposit}>Guardar no Refúgio</button>}
+        {onUse && <button className={btnCls} aria-label={`Usar ${item.name || 'item'}`} onClick={onUse}>Usar</button>}
         <button className={btnCls} disabled={readOnly} aria-label={`Remover item ${item.name}`} onClick={onRemove}>Remover</button>
       </div>
       <div className="mt-2 flex gap-3 text-xs text-zinc-400">

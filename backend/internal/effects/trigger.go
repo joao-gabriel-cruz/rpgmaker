@@ -111,10 +111,17 @@ func (s *Service) suggest(ctx context.Context, campaignID string, tok tokens.Tok
 }
 
 func (s *Service) emit(ctx context.Context, in Suggestion) {
+	if _, err := s.Suggest(ctx, in); err != nil {
+		slog.Error("effects: save suggestion failed", "err", err)
+	}
+}
+
+// Suggest stores a pending suggestion and tells the Mestre; SceneID may be empty (e.g. using an item).
+func (s *Service) Suggest(ctx context.Context, in Suggestion) (Suggestion, error) {
 	sg, err := s.store.Insert(ctx, in)
 	if err != nil {
-		slog.Error("effects: save suggestion failed", "err", err)
-		return
+		return Suggestion{}, err
 	}
 	s.events.Broadcast(sg.CampaignID, realtime.ToGM, EventSuggested, map[string]Suggestion{"suggestion": sg})
+	return sg, nil
 }

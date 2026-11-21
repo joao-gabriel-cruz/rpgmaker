@@ -58,6 +58,7 @@ func structuralMisc(s Sheet) []Issue {
 	if len(s.Inventory.Backpack) > BackpackSlots {
 		out = append(out, issue(true, "inventory_backpack_full", "inventory.backpack", "A mochila comporta no máximo %d itens.", BackpackSlots))
 	}
+	out = append(out, itemIssues(s)...)
 	for i, a := range s.Assimilations {
 		if !validSuit(a.Suit) {
 			out = append(out, issue(true, "suit_invalid", fmt.Sprintf("assimilations[%d].suit", i), "Naipe inválido."))
@@ -139,6 +140,18 @@ func creationMisc(s Sheet) []Issue {
 	}
 	if len(s.Identity.CollectivePurposes) != 2 {
 		out = append(out, issue(false, "collective_purposes", "identity.collectivePurposes", "São necessários exatamente 2 propósitos coletivos."))
+	}
+	return out
+}
+
+func itemIssues(s Sheet) []Issue {
+	var out []Issue
+	for place, items := range map[string][]Item{"body": s.Inventory.Body, "backpack": s.Inventory.Backpack} {
+		for i, it := range items {
+			if len([]rune(it.Description)) > 500 || len(it.Icon) > 40 || len(it.Color) > 20 || len(it.Kind) > 20 || len(it.ItemID) > 40 {
+				out = append(out, issue(true, "item_field_too_long", fmt.Sprintf("inventory.%s[%d]", place, i), "Os dados do item são longos demais."))
+			}
+		}
 	}
 	return out
 }

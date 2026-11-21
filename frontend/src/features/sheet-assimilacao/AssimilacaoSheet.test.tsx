@@ -75,3 +75,20 @@ it('deposit button appears only with onDepositItem and reports place and index',
   click(screen.getByLabelText('Guardar Corda no Refúgio'))
   expect(onDeposit).toHaveBeenCalledWith('backpack', 1)
 })
+
+it('compendium items show icon and description, and only consumables get Usar', () => {
+  const s = newSheet()
+  s.inventory.backpack = [
+    { ...newItem(), name: 'Bandagem', kind: 'consumable', icon: 'bandage', description: 'Pano limpo', effects: { heal: 2 } },
+    { ...newItem(), name: 'Pé de cabra', kind: 'tool', icon: 'wrench' },
+  ]
+  const onUse = vi.fn()
+  const { rerender } = render(<AssimilacaoSheet sheet={s} onChange={() => {}} />)
+  expect(screen.getByText('Pano limpo')).toBeInTheDocument()
+  expect(screen.getByText('Cura 2')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Usar Bandagem' })).toBeNull()
+  rerender(<AssimilacaoSheet sheet={s} onChange={() => {}} onUseItem={onUse} />)
+  expect(screen.queryByRole('button', { name: 'Usar Pé de cabra' })).toBeNull()
+  click(screen.getByRole('button', { name: 'Usar Bandagem' }))
+  expect(onUse).toHaveBeenCalledWith('backpack', 0)
+})

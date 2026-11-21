@@ -67,7 +67,7 @@ func (s *PgStore) DeleteRules(ctx context.Context, campaignID, kind, key string)
 	return err
 }
 
-const suggestionCols = `id, campaign_id, character_id, character_name, scene_id, x, z, source, trigger, effect, amount, message, created_at`
+const suggestionCols = `id, campaign_id, character_id, character_name, COALESCE(scene_id::text, ''), x, z, source, trigger, effect, amount, message, created_at`
 
 func scan(row pgx.Row) (Suggestion, error) {
 	var s Suggestion
@@ -83,7 +83,7 @@ func scan(row pgx.Row) (Suggestion, error) {
 func (s *PgStore) Insert(ctx context.Context, in Suggestion) (Suggestion, error) {
 	return scan(s.pool.QueryRow(ctx, `INSERT INTO effect_suggestions
 		(campaign_id, character_id, character_name, scene_id, x, z, source, trigger, effect, amount, message)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING `+suggestionCols,
+		VALUES ($1,$2,$3,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,$11) RETURNING `+suggestionCols,
 		in.CampaignID, in.CharacterID, in.CharacterName, in.SceneID, in.X, in.Z, in.Source, in.Trigger,
 		in.Effect, in.Amount, in.Message))
 }

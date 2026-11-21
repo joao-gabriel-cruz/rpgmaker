@@ -17,6 +17,8 @@ export interface AssimilacaoSheetProps {
   onRollRequest?: (req: RollRequest) => void
   /** When set, each inventory item gets a "Guardar no Refúgio" button. */
   onDepositItem?: (place: 'body' | 'backpack', index: number) => void
+  /** When set, consumables in the inventory get a "Usar" button. */
+  onUseItem?: (place: 'body' | 'backpack', index: number) => void
 }
 
 function RollBar({ selection, onRoll }: { selection: Partial<RollRequest>; onRoll: () => void }) {
@@ -29,7 +31,7 @@ function RollBar({ selection, onRoll }: { selection: Partial<RollRequest>; onRol
   )
 }
 
-export function AssimilacaoSheet({ sheet, onChange, readOnly = false, issues, onRollRequest, onDepositItem }: AssimilacaoSheetProps) {
+export function AssimilacaoSheet({ sheet, onChange, readOnly = false, issues, onRollRequest, onDepositItem, onUseItem }: AssimilacaoSheetProps) {
   const [selection, setSelection] = useState<Partial<RollRequest>>({})
   const common = { sheet, onChange, readOnly, issues: issues ?? validateSheet(sheet) }
   const rollable = !readOnly && !!onRollRequest
@@ -49,7 +51,7 @@ export function AssimilacaoSheet({ sheet, onChange, readOnly = false, issues, on
         <TugOfWarSection {...common} />
         <HealthSection {...common} />
       </div>
-      <div className="lg:col-span-2"><InventorySection {...common} onDeposit={readOnly ? undefined : onDepositItem} /></div>
+      <div className="lg:col-span-2"><InventorySection {...common} onDeposit={readOnly ? undefined : onDepositItem} onUse={onUseItem} /></div>
       <CharacteristicsSection {...common} />
       <div className="space-y-4">
         <AssimilationsSection {...common} />

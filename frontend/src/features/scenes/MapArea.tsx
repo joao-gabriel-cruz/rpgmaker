@@ -11,6 +11,8 @@ import { useLiveScene } from './useLiveScene'
 import type { SceneControls } from './useSceneControls'
 import { DrawingLayer } from '../drawings/DrawingLayer'
 import { useDrawings } from '../drawings/useDrawings'
+import { LootLayer } from '../items/LootLayer'
+import { useSceneLoot, type SceneLoot } from '../items/loot'
 import { TokenLayer } from '../tokens/TokenLayer'
 import { TokensError, TokensPanel } from '../tokens/TokensPanel'
 import { useSceneTokens, type SceneTokens } from '../tokens/useSceneTokens'
@@ -69,17 +71,20 @@ type Tools = ReturnType<typeof useMapTools>
 
 interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
   grid: MapState['grid']
+  objects: MapState['objects']
+  loot: SceneLoot
   userId: string
   isGm: boolean
 }
 
 // The in-canvas layers; the rail tool decides which of them react to the pointer.
-function MapLayers({ grid, tokens, userId, isGm, draw, fog }: LayersProps) {
+function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog }: LayersProps) {
   const { tool } = useTableTool()
   return (
     <>
       <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
         dragEnabled={tool === 'move' || tool === 'tokens'} />
+      <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />
       <DrawingLayer grid={grid} draw={draw} />
       <VisionLayers grid={grid} vision={fog} isGm={isGm} />
     </>
@@ -95,7 +100,8 @@ function SceneWithTokens(p: WithTokens) {
     setDraftActive(draft)
     return () => setDraftActive(false)
   }, [draft, setDraftActive])
-  const layer = <MapLayers {...{ grid: state.grid, tokens, userId, isGm, draw, fog }} />
+  const loot = useSceneLoot(campaignId, sceneId)
+  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog }} />
   return (
     <>
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><TokensError tokens={tokens} /></div>
