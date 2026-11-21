@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import type { Mesh, MeshBasicMaterial } from 'three'
 import type { MapGrid } from '../map3d/grid'
-import { getCell } from '../map3d/grid'
+import { getCell, surfaceHeight } from '../map3d/grid'
 import type { PingMarker } from './tokens'
 
 function Ring({ ping, y }: { ping: PingMarker; y: number }) {
@@ -27,7 +27,7 @@ export function PingMarkers({ grid, pings }: { grid: MapGrid; pings: readonly Pi
   return (
     <>
       {pings.map((p) => (
-        <Ring key={p.id} ping={p} y={getCell(grid, Math.floor(p.x), Math.floor(p.z))?.height ?? 1} />
+        <Ring key={p.id} ping={p} y={surfaceHeight(getCell(grid, Math.floor(p.x), Math.floor(p.z))?.height ?? 1)} />
       ))}
     </>
   )

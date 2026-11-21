@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/auth'
 import type { Campaign } from '../campaigns/campaigns'
+import { AppearanceEditor } from '../miniature/AppearanceEditor'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { useRealtime } from '../realtime/realtimeContext'
 import { RollTray } from '../rolls/RollTray'
@@ -45,11 +46,37 @@ function Banners({ status, error, hasIssues }: { status: SaveStatus; error: stri
   return null
 }
 
+function SheetBody({ campaign, character, canEdit, sync }: {
+  campaign: Campaign
+  character: CharacterView
+  canEdit: boolean
+  sync: ReturnType<typeof useCharacterSync>
+}) {
+  const { send } = useRealtime()
+  const [depositError, setDepositError] = useState('')
+  const { sheet, issues, onChange } = sync
+  return (
+    <>
+      {depositError && <p role="alert" className="rounded bg-red-950 px-3 py-2 text-sm text-red-300">{depositError}</p>}
+      <AppearanceEditor appearance={sheet.appearance} readOnly={!canEdit} assimilationLevel={sheet.tugOfWar?.assimilationLevel}
+        onChange={(appearance) => onChange({ ...sheet, appearance })} />
+      {character.kind === 'npc'
+        ? <NpcSheet sheet={asNpc(sheet)} onChange={(n) => onChange(asSheet(n))} readOnly={!canEdit} issues={toSheetIssues(issues)} />
+        : <RollableSheet campaignId={campaign.id} characterId={character.id} isGm={campaign.role === 'gm'}
+          sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)}
+          onDepositItem={(from, index) => {
+            setDepositError('')
+            send('refuge.item.deposit', { characterId: character.id, from, index }).catch((e: Error) => setDepositError(e.message))
+          }} />}
+    </>
+  )
+}
+
 function Editor({ campaign, character, canEdit }: { campaign: Campaign; character: CharacterView; canEdit: boolean }) {
   const navigate = useNavigate()
-  const { subscribe, send } = useRealtime()
-  const [depositError, setDepositError] = useState('')
-  const { sheet, issues, status, error, onChange } = useCharacterSync(campaign.id, character, canEdit)
+  const { subscribe } = useRealtime()
+  const sync = useCharacterSync(campaign.id, character, canEdit)
+  const { issues, status, error } = sync
   const remove = useMutation({
     mutationFn: () => deleteCharacter(campaign.id, character.id),
     onSuccess: () => navigate(`/campaigns/${campaign.id}`),
@@ -62,15 +89,7 @@ function Editor({ campaign, character, canEdit }: { campaign: Campaign; characte
     <section className="flex flex-col gap-4">
       <Toolbar campaign={campaign} character={character} canEdit={canEdit} status={status} onRemove={() => remove.mutate()} />
       {canEdit && <Banners status={status} error={error} hasIssues={issues.length > 0} />}
-      {depositError && <p role="alert" className="rounded bg-red-950 px-3 py-2 text-sm text-red-300">{depositError}</p>}
-      {character.kind === 'npc'
-        ? <NpcSheet sheet={asNpc(sheet)} onChange={(n) => onChange(asSheet(n))} readOnly={!canEdit} issues={toSheetIssues(issues)} />
-        : <RollableSheet campaignId={campaign.id} characterId={character.id} isGm={campaign.role === 'gm'}
-          sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)}
-          onDepositItem={(from, index) => {
-            setDepositError('')
-            send('refuge.item.deposit', { characterId: character.id, from, index }).catch((e: Error) => setDepositError(e.message))
-          }} />}
+      <SheetBody campaign={campaign} character={character} canEdit={canEdit} sync={sync} />
       <RollTray />
     </section>
   )

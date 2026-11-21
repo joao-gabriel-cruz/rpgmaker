@@ -1,3 +1,4 @@
+import type { Appearance } from '../miniature/appearance'
 export type Generation = 'pre_collapse' | 'during_collapse' | 'post_collapse'
 export type Suit = 'hearts' | 'diamonds' | 'spades' | 'clubs'
 
@@ -57,6 +58,8 @@ export interface Sheet {
   xp: { total: number }
   assimilations: SheetAssimilation[]
   notes: string
+  /** Optional 3D miniature description (validated by the server). */
+  appearance?: Appearance
 }
 
 export interface SheetIssue {

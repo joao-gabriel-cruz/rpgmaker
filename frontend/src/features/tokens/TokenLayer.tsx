@@ -1,11 +1,11 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useState } from 'react'
 import { Vector2 } from 'three'
-import { getCell, type Coord, type MapGrid } from '../map3d/grid'
+import { getCell, surfaceHeight, type Coord, type MapGrid } from '../map3d/grid'
 import { CameraRig } from './CameraRig'
 import { PingMarkers } from './PingMarkers'
 import { pickCell, pickPoint } from './pickCell'
-import { Standee } from './Standee'
+import { TokenFigure } from './TokenFigure'
 import { canMoveToken, type Token } from './tokens'
 import type { SceneTokens } from './useSceneTokens'
 
@@ -76,7 +76,7 @@ function useAltPing(grid: MapGrid, ping: (x: number, z: number) => void) {
   }, [dom, camera, grid, ndc, ping])
 }
 
-/** In-canvas part of the tokens feature: standees, drag preview, pings and camera moves. */
+/** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
 export function TokenLayer({ grid, tokens, userId, isGm }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
@@ -91,8 +91,8 @@ export function TokenLayer({ grid, tokens, userId, isGm }: Props) {
     <>
       {tokens.tokens.map((t) => {
         const at = drag?.id === t.id ? drag.at : t
-        const y = getCell(grid, at.x, at.z)?.height ?? 1
-        return <Standee key={t.id} token={t} x={at.x} z={at.z} y={y} dragging={drag?.id === t.id} onPointerDown={down(t)} />
+        const y = surfaceHeight(getCell(grid, at.x, at.z)?.height ?? 1)
+        return <TokenFigure key={t.id} token={t} x={at.x} z={at.z} y={y} dragging={drag?.id === t.id} onPointerDown={down(t)} />
       })}
       {drag && <DropMarker grid={grid} at={drag.at} />}
       <PingMarkers grid={grid} pings={tokens.pings} />
@@ -102,7 +102,7 @@ export function TokenLayer({ grid, tokens, userId, isGm }: Props) {
 }
 
 function DropMarker({ grid, at }: { grid: MapGrid; at: Coord }) {
-  const y = getCell(grid, at.x, at.z)?.height ?? 1
+  const y = surfaceHeight(getCell(grid, at.x, at.z)?.height ?? 1)
   return (
     <mesh position={[at.x + 0.5, y + 0.06, at.z + 0.5]} raycast={() => null}>
       <boxGeometry args={[1, 0.08, 1]} />

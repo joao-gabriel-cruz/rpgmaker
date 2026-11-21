@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import type { MapGrid } from '../map3d/grid'
 import { useRealtime } from '../realtime/realtimeContext'
 import {
-  applyMoved, applyPlaced, applyRemoved, loadTokens, spawnCandidates,
-  type CameraTarget, type PingMarker, type Token,
+  applyCharacter, applyMoved, applyPlaced, applyRemoved, loadTokens, spawnCandidates,
+  type CameraTarget, type CharacterEvent, type PingMarker, type Token,
 } from './tokens'
 
 const PING_MS = 3000
@@ -51,6 +51,7 @@ function useTokenEvents(subscribe: Subscribe, sceneId: string, reload: () => voi
       subscribe('vision.updated', reload),
       subscribe('token.placed', (p) => setTokens((l) => applyPlaced(l, sceneId, (p as { token: Token }).token))),
       subscribe('token.removed', (p) => setTokens((l) => applyRemoved(l, (p as { tokenId: string }).tokenId))),
+      subscribe('character.updated', (p) => setTokens((l) => applyCharacter(l, p as CharacterEvent))),
       subscribe('token.moved', (p) => {
         const e = p as { tokenId: string; x: number; z: number }
         // A token we do not know yet just walked into sight.

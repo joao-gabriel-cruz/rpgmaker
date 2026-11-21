@@ -140,3 +140,24 @@ func TestPlayersOnlySeePCs(t *testing.T) {
 		t.Errorf("npc for gm = %v", err)
 	}
 }
+
+func TestInvalidAppearanceRejected(t *testing.T) {
+	s, repo, ev := newSvc(`{}`)
+	v, _ := s.Create(ctx, ana, CreateInput{})
+	bad := json.RawMessage(`{"identity":{"name":"X"},"appearance":{"hair":{"style":"afro","color":"red"}}}`)
+	_, err := s.Save(ctx, ana, v.ID, bad)
+	var rej *RejectedError
+	if !errors.As(err, &rej) || len(rej.Issues) != 2 {
+		t.Fatalf("bad appearance = %v", err)
+	}
+	if strings.Contains(string(repo.byID[v.ID].Sheet), "afro") || len(ev.got) != 1 {
+		t.Error("rejected appearance was stored or broadcast")
+	}
+	good := json.RawMessage(`{"identity":{"name":"X"},"appearance":{"hair":{"style":"long","color":"#112233"}}}`)
+	if _, err := s.Save(ctx, ana, v.ID, good); err != nil {
+		t.Errorf("good appearance = %v", err)
+	}
+	if _, err := s.Save(ctx, ana, v.ID, json.RawMessage(`{"identity":{"name":"X"}}`)); err != nil {
+		t.Errorf("sheet without appearance = %v", err)
+	}
+}
