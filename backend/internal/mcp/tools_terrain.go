@@ -35,6 +35,9 @@ func validatePaint(in paintInput) error {
 	if in.Terrain == "" && in.Height == nil && in.HeightDelta == nil {
 		return newUserError("informe terrain, height ou heightDelta")
 	}
+	if in.Height != nil && in.HeightDelta != nil {
+		return newUserError("use height ou heightDelta, não os dois")
+	}
 	if in.Terrain != "" {
 		if _, ok := maps.TerrainByID(in.Terrain); !ok {
 			return newUserError(fmt.Sprintf("terreno desconhecido %q; veja get_catalog", in.Terrain))

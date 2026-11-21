@@ -90,3 +90,15 @@ func TestPaintRefusesDraft(t *testing.T) {
 		t.Fatalf("err=%v text=%q", isErr, text)
 	}
 }
+
+func TestPaintRejectsHeightWithDelta(t *testing.T) {
+	r := liveRig(1)
+	text, isErr := callTool(t, r.t, r.j, "paint_terrain", map[string]any{
+		"shape":       map[string]any{"kind": "cells", "cells": []map[string]int{{"x": 1, "z": 1}}},
+		"height":      5,
+		"heightDelta": 2,
+	})
+	if !isErr || !strings.Contains(text, "use height ou heightDelta, não os dois") || len(r.sc.painted) != 0 {
+		t.Fatalf("err=%v text=%q", isErr, text)
+	}
+}
