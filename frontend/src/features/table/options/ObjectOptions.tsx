@@ -2,6 +2,7 @@ import { RotateCw, Search } from 'lucide-react'
 import { createElement, useState } from 'react'
 import type { MapGrid } from '../../map3d/grid'
 import { CATEGORY_LABELS, type Category, type PrefabMeta } from '../../map3d/objects/catalogData'
+import { AWNING_OPTIONS, WALL_HEIGHT_OPTIONS } from '../../map3d/objects/toolProps'
 import type { MapObject, ObjectPatch } from '../../map3d/objects/model'
 import { nextRotation } from '../../map3d/objects/model'
 import type { ObjectToolId, ToolState } from '../../map3d/tools'
@@ -73,6 +74,16 @@ function PlaceControls({ editor, setEditor }: Pick<ObjectOptionsProps, 'editor' 
         <RotateCw size={14} strokeWidth={1.5} aria-hidden />Girar {editor.rotation}°
         <kbd className="rounded bg-zinc-900 px-1 font-mono text-[10px] text-zinc-400">Shift+R</kbd>
       </button>
+      {editor.prefab === 'market_stall' && (
+        <Segmented label="Cor do toldo" value={editor.color ?? 'red'} className="w-full"
+          options={AWNING_OPTIONS.map((o) => ({ id: o.id, label: o.label, text: o.short }))}
+          onChange={(color) => setEditor({ ...editor, color })} />
+      )}
+      {editor.prefab === 'ruined_wall' && (
+        <Segmented label="Altura do muro" value={String(editor.wallHeight ?? 1)} className="w-full"
+          options={WALL_HEIGHT_OPTIONS.map((o) => ({ id: o.id, label: o.label, text: o.short }))}
+          onChange={(h) => setEditor({ ...editor, wallHeight: h === '2' ? 2 : 1 })} />
+      )}
       {editor.prefab === 'tree' && (
         <Segmented label="Tipo de árvore" value={editor.variant} className="flex-1"
           options={[{ id: 'pine', label: 'Pinheiro', text: 'Pinheiro' }, { id: 'round', label: 'Frondosa', text: 'Frondosa' }]}

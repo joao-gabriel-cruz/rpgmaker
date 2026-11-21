@@ -72,3 +72,64 @@ func TestPathBlocked(t *testing.T) {
 		t.Error("path beside the wall is free")
 	}
 }
+
+func bridgeGrid(t *testing.T) *Grid {
+	g := flat(t, 5, 3)
+	for z := 0; z < 3; z++ {
+		set(g, 0, z, "grass", 4)
+		set(g, 4, z, "grass", 4)
+		for x := 1; x <= 3; x++ {
+			set(g, x, z, "water", 0)
+		}
+	}
+	set(g, 2, 2, "lava", 0)
+	return g
+}
+
+func TestBridgeCrossesGap(t *testing.T) {
+	g := bridgeGrid(t)
+	bridge := []Object{
+		{ID: "b1", Prefab: "bridge", X: 1, Z: 1},
+		{ID: "b2", Prefab: "bridge", X: 2, Z: 1},
+		{ID: "b3", Prefab: "bridge", X: 3, Z: 1},
+	}
+	if ok, _ := CanEnter(g, nil, Coord{0, 1}, Coord{1, 1}, 0); ok {
+		t.Fatal("drop of 4 must block without a bridge")
+	}
+	if PathBlocked(g, bridge, Coord{0, 1}, Coord{4, 1}) {
+		t.Fatal("bridge must allow crossing the gap")
+	}
+	if !PathBlocked(g, bridge, Coord{0, 0}, Coord{4, 0}) {
+		t.Fatal("cells beside the bridge keep blocking")
+	}
+	if ok, _ := CanEnter(g, bridge, Coord{1, 1}, Coord{1, 0}, 0); ok {
+		t.Fatal("stepping off the bridge into the gap stays blocked")
+	}
+}
+
+func TestBridgeOverBlockingTerrainAndRules(t *testing.T) {
+	g := flat(t, 3, 1)
+	set(g, 1, 0, "stone", 1)
+	br := []Object{{ID: "b", Prefab: "bridge", X: 1, Z: 0}}
+	if ok, _ := CanEnter(g, nil, Coord{0, 0}, Coord{1, 0}, 0); ok {
+		t.Fatal("stone blocks without bridge")
+	}
+	if ok, _ := CanEnter(g, br, Coord{0, 0}, Coord{1, 0}, 0); !ok {
+		t.Fatal("bridge makes the cell walkable")
+	}
+	if r := RuleFor(br[0]); r.BlocksMovement || r.BlocksVision {
+		t.Fatal("bridge never blocks")
+	}
+}
+
+func TestBridgeDeckProp(t *testing.T) {
+	g := bridgeGrid(t)
+	b := []Object{{ID: "b", Prefab: "bridge", X: 1, Z: 1, Props: map[string]any{"deck": float64(1)}}}
+	if ok, _ := CanEnter(g, b, Coord{0, 1}, Coord{1, 1}, 0); ok {
+		t.Fatal("deck 1 is 3 below the bank: too steep")
+	}
+	b[0].Props["deck"] = float64(3)
+	if ok, _ := CanEnter(g, b, Coord{0, 1}, Coord{1, 1}, 0); !ok {
+		t.Fatal("deck 3 is one below the bank")
+	}
+}

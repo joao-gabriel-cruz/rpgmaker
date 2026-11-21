@@ -2,7 +2,9 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { HoverCursor } from './HoverCursor'
 import type { Coord, MapGrid, MapPatch } from './grid'
 import type { MapObject, ObjectPatch } from './objects/model'
+import { PREFAB_META_BY_ID } from './objects/catalogData'
 import { ObjectGhost, SelectionBox } from './objects/ObjectGhost'
+import { toolProps } from './objects/toolProps'
 import { ObjectPanel } from './objects/ObjectPanel'
 import { useObjectTools, type Selection } from './objects/useObjectTools'
 import { TerrainScene } from './TerrainScene'
@@ -38,16 +40,16 @@ const noop = () => {}
 
 type Obj = ReturnType<typeof useObjectTools>
 
-function ObjectOverlay({ grid, state, hover, obj }: { grid: MapGrid; state: ToolState; hover: Coord | null; obj: Obj }) {
+function ObjectOverlay({ grid, objects, state, hover, obj }: { grid: MapGrid; objects: readonly MapObject[]; state: ToolState; hover: Coord | null; obj: Obj }) {
   const ghost: MapObject | null =
     hover && state.tool === 'object'
-      ? { id: 'ghost', prefab: state.prefab, x: hover.x, z: hover.z, rotation: state.rotation, props: { variant: state.variant } }
+      ? { id: 'ghost', prefab: state.prefab, x: hover.x, z: hover.z, rotation: state.rotation, props: { ...PREFAB_META_BY_ID[state.prefab]?.defaultProps, variant: state.variant, ...toolProps(state) } }
       : null
   return (
     <>
-      {ghost && <ObjectGhost grid={grid} obj={ghost} />}
+      {ghost && <ObjectGhost grid={grid} objects={objects} obj={ghost} />}
       {obj.wallPreview.map((w) => <ObjectGhost key={w.id} grid={grid} obj={w} />)}
-      {obj.selected && state.tool === 'select' && <SelectionBox grid={grid} obj={obj.selected} />}
+      {obj.selected && state.tool === 'select' && <SelectionBox grid={grid} objects={objects} obj={obj.selected} />}
     </>
   )
 }
@@ -99,7 +101,7 @@ export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPat
       <div className="relative flex-1">
         <TerrainScene grid={grid} showGrid={showGrid} editable={enabled} objects={objects} environment={environment} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
           {at && (!objectMode || state.tool === 'wall') && <HoverCursor grid={grid} at={at} size={size} />}
-          {enabled && <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />}
+          {enabled && <ObjectOverlay grid={grid} objects={objects} state={state} hover={hover} obj={obj} />}
           {children}
         </TerrainScene>
         {!control && enabled && obj.selected && state.tool === 'select' && (

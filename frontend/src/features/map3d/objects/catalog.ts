@@ -1,7 +1,10 @@
 import { PREFAB_META, type PrefabMeta } from './catalogData'
 import { BigRock, Bush, Tree } from './nature'
 import { Volcano } from './Volcano'
+import { Bridge } from './bridgeModel'
+import { Barrel, Bench, MarketStall, Sandbags, Sign, Tent, Well } from './camp'
 import { Campfire, Car, Crate } from './props'
+import { Bunting, LampPost, RuinedWall } from './street'
 import { Barricade, Door, Fence, Post, Wall, Watchtower } from './structures'
 import type { PrefabComponent } from './types'
 
@@ -23,6 +26,17 @@ const COMPONENTS: Record<string, PrefabComponent> = {
   car: Car,
   crate: Crate,
   campfire: Campfire,
+  tent: Tent,
+  barrel: Barrel,
+  bench: Bench,
+  market_stall: MarketStall,
+  lamp_post: LampPost,
+  sandbags: Sandbags,
+  ruined_wall: RuinedWall,
+  well: Well,
+  sign: Sign,
+  bridge: Bridge,
+  bunting: Bunting,
 }
 
 export const CATALOG: Prefab[] = PREFAB_META.map((m) => ({ ...m, Component: COMPONENTS[m.id] }))

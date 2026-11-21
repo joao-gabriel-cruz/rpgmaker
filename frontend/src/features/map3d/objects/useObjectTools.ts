@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Coord, MapGrid } from '../grid'
 import type { ToolState } from '../tools'
 import { addObject, isEmptyPatch, removeObject, type MapObject, type ObjectPatch } from './model'
+import { toolProps } from './toolProps'
 import { drawWall } from './walls'
 
 interface Wall {
@@ -42,7 +43,7 @@ export function useObjectTools(
             x: at.x,
             z: at.z,
             rotation: state.rotation,
-            props: state.prefab === 'tree' ? { variant: state.variant } : undefined,
+            props: toolProps(state),
           }).patch)
       }
       if (state.tool === 'wall') setWall({ from: at, to: at })

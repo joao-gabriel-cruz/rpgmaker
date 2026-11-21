@@ -34,9 +34,21 @@ var prefabs = map[string]PrefabRule{
 	"post":       {true, false, 1, 1, 2},
 	"fence":      {true, false, 1, 1, 1},
 	"door":       {true, true, 1, 1, 3},
+
+	"tent":         {true, false, 2, 2, 2},
+	"barrel":       {false, false, 1, 1, 1},
+	"bench":        {true, false, 2, 1, 1},
+	"market_stall": {false, false, 2, 2, 2},
+	"lamp_post":    {false, false, 1, 1, 3},
+	"sandbags":     {true, false, 1, 1, 1},
+	"ruined_wall":  {true, true, 1, 1, 2},
+	"well":         {true, false, 1, 1, 1},
+	"sign":         {false, false, 1, 1, 1},
+	"bridge":       {false, false, 1, 1, 1},
+	"bunting":      {false, false, 2, 1, 2},
 }
 
-// RuleFor returns the effective rule; unknown prefabs never block. An open door blocks nothing.
+// RuleFor returns the effective rule; unknown prefabs never block. An open door blocks nothing; a ruined wall is 1 or 2 high (prop height).
 func RuleFor(o Object) PrefabRule {
 	r, ok := prefabs[o.Prefab]
 	if !ok {
@@ -45,6 +57,12 @@ func RuleFor(o Object) PrefabRule {
 	if o.Prefab == "door" {
 		if open, _ := o.Props["open"].(bool); open {
 			r.BlocksMovement, r.BlocksVision = false, false
+		}
+	}
+	if o.Prefab == "ruined_wall" {
+		r.Height = 1
+		if h, ok := propInt(o.Props, "height"); ok && h >= 2 {
+			r.Height = 2
 		}
 	}
 	return r

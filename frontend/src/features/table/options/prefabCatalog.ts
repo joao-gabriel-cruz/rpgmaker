@@ -1,5 +1,6 @@
 import {
-  BrickWall, Box, Car, Castle, Construction, DoorClosed, Fence, Flame, Lamp, Mountain, Package, Sprout, TreePine, Trees,
+  Armchair, BrickWall, BrickWallFire, Box, Bridge, Car, Castle, Construction, Container, Cylinder, DoorClosed, Fence, Flag, Flame, Lamp,
+  LampFloor, Mountain, Package, Signpost, Sprout, Store, Tent, Torus, TreePine, Trees,
   type LucideIcon,
 } from 'lucide-react'
 import { PREFAB_META, type Category, type PrefabMeta } from '../../map3d/objects/catalogData'
@@ -8,6 +9,8 @@ import { PREFAB_META, type Category, type PrefabMeta } from '../../map3d/objects
 export const PREFAB_ICONS: Record<string, LucideIcon> = {
   wall: BrickWall, barricade: Construction, fence: Fence, door: DoorClosed, watchtower: Castle, post: Lamp,
   tree: TreePine, bush: Sprout, rock: Box, volcano: Mountain, car: Car, crate: Package, campfire: Flame,
+  tent: Tent, barrel: Cylinder, bench: Armchair, market_stall: Store, lamp_post: LampFloor, sandbags: Container,
+  ruined_wall: BrickWallFire, well: Torus, sign: Signpost, bridge: Bridge, bunting: Flag,
 }
 
 export const prefabIcon = (id: string): LucideIcon => PREFAB_ICONS[id] ?? Trees

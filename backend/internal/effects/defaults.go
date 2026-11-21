@@ -20,6 +20,9 @@ var labels = map[string]string{
 	"prefab:rock": "Rocha", "prefab:car": "Carro", "prefab:crate": "Caixote", "prefab:campfire": "Fogueira",
 	"prefab:volcano": "Vulcão", "prefab:watchtower": "Torre de vigia", "prefab:post": "Poste",
 	"prefab:fence": "Cerca", "prefab:door": "Porta",
+	"prefab:tent": "Barraca", "prefab:barrel": "Barril", "prefab:bench": "Banco", "prefab:market_stall": "Barraca de feira",
+	"prefab:lamp_post": "Poste de luz", "prefab:sandbags": "Sacos de areia", "prefab:ruined_wall": "Muro quebrado",
+	"prefab:well": "Poço", "prefab:sign": "Placa", "prefab:bridge": "Ponte", "prefab:bunting": "Bandeirolas",
 }
 
 func id(kind, key string) string { return kind + ":" + key }

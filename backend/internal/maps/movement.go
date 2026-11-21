@@ -17,7 +17,8 @@ func canEnter(ix *index, from, to Coord, maxStep int) (bool, string) {
 	if !ok {
 		return false, "Destino fora do mapa."
 	}
-	if t, _ := TerrainByID(dst.Terrain); t.BlocksMovement {
+	dstBridge, srcBridge := ix.deck[to.Z*g.Width+to.X], ix.deck[from.Z*g.Width+from.X]
+	if t, _ := TerrainByID(dst.Terrain); t.BlocksMovement && dstBridge < 0 {
 		return false, "O terreno bloqueia o movimento."
 	}
 	if ix.moveBlock[to.Z*g.Width+to.X] {
@@ -27,10 +28,18 @@ func canEnter(ix *index, from, to Coord, maxStep int) (bool, string) {
 	if !ok {
 		return false, "Origem fora do mapa."
 	}
-	if abs(dst.Height-src.Height) > maxStep {
+	if abs(standHeight(dst, dstBridge)-standHeight(src, srcBridge)) > maxStep {
 		return false, "A diferença de altura é grande demais."
 	}
 	return true, ""
+}
+
+// standHeight is the cell height, or the deck height when a bridge spans the cell.
+func standHeight(c Cell, deck int) int {
+	if deck >= 0 {
+		return deck
+	}
+	return c.Height
 }
 
 // PathBlocked walks the straight line from->to cell by cell and reports whether any step is illegal.
