@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/migrations"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/platform/database"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 )
 
@@ -48,7 +50,10 @@ func run() error {
 	authHandlers.Register(mux)
 	reg := systems.Default()
 	systems.Register(mux, reg, authHandlers.RequireAuth)
-	campaigns.NewHandlers(campaigns.NewService(campaigns.NewStore(pool), authSvc, reg), authHandlers.RequireAuth).Register(mux)
+	campaignHandlers := campaigns.NewHandlers(campaigns.NewService(campaigns.NewStore(pool), authSvc, reg), authHandlers.RequireAuth)
+	campaignHandlers.Register(mux)
+	hub := realtime.NewHub(realtime.Options{OriginPatterns: splitList(os.Getenv("WS_ALLOWED_ORIGINS"))})
+	hub.Register(mux, campaignHandlers.RequireMember)
 
 	addr := ":" + envOr("PORT", "8080")
 	return serve(ctx, &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second})
@@ -94,4 +99,14 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func splitList(v string) []string {
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

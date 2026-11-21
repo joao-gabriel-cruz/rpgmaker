@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/auth'
+import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
+import { OnlinePanel } from '../realtime/OnlinePanel'
 import { InvitePanel } from './InvitePanel'
 import { removeMember, roleLabel, type Campaign, type MemberInfo } from './campaigns'
 
@@ -51,6 +53,11 @@ export function CampaignPage() {
       </p>
     )
   }
+  return <CampaignView campaign={campaign} />
+}
+
+function CampaignView({ campaign }: { campaign: Campaign }) {
+  const { id } = campaign
   const isGm = campaign.role === 'gm'
   return (
     <section className="flex flex-col gap-6">
@@ -58,6 +65,9 @@ export function CampaignPage() {
         <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
         <p className="text-sm text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
       </div>
+      <CampaignSocketProvider campaignId={id}>
+        <OnlinePanel />
+      </CampaignSocketProvider>
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">Membros</h2>
         <Members campaignId={id} isGm={isGm} />

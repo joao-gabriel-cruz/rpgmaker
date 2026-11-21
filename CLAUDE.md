@@ -28,6 +28,15 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
 - Tempo real: WebSocket por campanha em `GET /api/campaigns/{id}/ws`; servidor autoritativo;
   mensagens `{type, payload, reqId?}`; comandos validados no servidor; eventos filtrados por
   destinatário.
+- API do tempo real (`internal/realtime`, um `*Hub` criado em `main` e injetado nos domínios):
+  - Comando (cliente→servidor): `hub.Handle("token.move", func(ctx, cmd realtime.Command) error, realtime.GMOnly)`;
+    `Command{CampaignID, Sender{UserID,Name,Role}, Type, Payload json.RawMessage, ReqID}`. Guards:
+    `GMOnly`, `AnyMember` (padrão) ou `func(Sender) error`. Erro `realtime.UserError("msg PT-BR")` vai ao
+    remetente como evento `error {reqId,message}`; outros erros viram mensagem genérica. Sucesso → `ack {reqId}`.
+  - Evento (servidor→clientes), de handlers WS ou HTTP: `hub.Broadcast(campaignID, filter, "type", payload)`,
+    nunca bloqueia. Filtros: `ToAll`, `ToGM`, `ToUser(id)`, `Except(id)`, `Or(...)` ou qualquer `func(Sender) bool`.
+  - Presença: evento `presence.updated {users:[{userId,displayName,role}]}`; `hub.Online(campaignID)`. `ping` → `pong`.
+  - Registre handlers no wiring (`main`), antes de servir; tipo duplicado dá panic.
 - RNG de dados: `crypto/rand`.
 - Testes: `go test ./...`; testes de store/integração podem usar o Postgres do compose via
   `TEST_DATABASE_URL` e devem ser pulados (`t.Skip`) quando a variável não existir.
@@ -35,7 +44,7 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
 ## Frontend (React + TS + Tailwind, `frontend/`)
 - Pastas por feature em `src/features/<feature>/`; utilitários compartilhados em `src/lib/`.
 - Roteamento: `react-router`. Dados do servidor: `@tanstack/react-query` + cliente `src/lib/api.ts`
-  (fetch com `credentials: 'include'`). Tempo real: hook `useCampaignSocket`.
+  (fetch com `credentials: 'include'`). Tempo real (`src/features/realtime/`): `useCampaignSocket(campaignId)` → `{status, send(type,payload): Promise<void>, subscribe(type,handler): unsubscribe}` (socket único por campanha, reconexão com backoff); `<CampaignSocketProvider>` + `useRealtime()` para telas filhas; `usePresence()`.
 - 3D: `three` + `@react-three/fiber` + `@react-three/drei`.
 - Tema escuro (zinc/emerald), desktop-first.
 - Testes: Vitest + Testing Library.
