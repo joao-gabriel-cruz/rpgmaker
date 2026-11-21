@@ -61,6 +61,7 @@ function Controls({ grid, editable }: { grid: MapGrid; editable?: boolean }) {
     : { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }
   return (
     <OrbitControls
+      makeDefault
       target={[grid.width / 2, 1, grid.depth / 2]}
       maxPolarAngle={Math.PI * 0.49}
       mouseButtons={buttons}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { HoverCursor } from './HoverCursor'
 import type { Coord, MapGrid, MapPatch } from './grid'
 import type { MapObject, ObjectPatch } from './objects/model'
@@ -16,6 +16,7 @@ interface Props {
   onPatch: (patch: MapPatch) => void
   objects?: readonly MapObject[]
   onObjectPatch?: (patch: ObjectPatch) => void
+  children?: ReactNode
 }
 
 const NO_OBJECTS: readonly MapObject[] = []
@@ -54,7 +55,7 @@ function combineHandlers(objectMode: boolean, paint: Paint, obj: Obj) {
   }
 }
 
-export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop }: Props) {
+export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, children }: Props) {
   const [state, setState] = useState<ToolState>(DEFAULT_TOOL_STATE)
   const [showGrid, setShowGrid] = useState(true)
   const { hover, ...paint } = usePainting(grid, state, onPatch)
@@ -73,6 +74,7 @@ export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPat
         <TerrainScene grid={grid} showGrid={showGrid} editable objects={objects} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
           {hover && (!objectMode || state.tool === 'wall') && <HoverCursor grid={grid} at={hover} size={size} />}
           <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />
+          {children}
         </TerrainScene>
         {obj.selected && state.tool === 'select' && (
           <ObjectPanel obj={obj.selected} objects={objects} grid={grid} emit={onObjectPatch} onDone={obj.clearSelection} />
