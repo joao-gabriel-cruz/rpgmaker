@@ -16,6 +16,8 @@ interface Props {
   onPatch: (patch: MapPatch) => void
   objects?: readonly MapObject[]
   onObjectPatch?: (patch: ObjectPatch) => void
+  /** Replaces the default sky and lights (passed to TerrainScene). */
+  environment?: ReactNode
   children?: ReactNode
   /** Table mode: tool state lives outside (rail + options panel) and the inline toolbar is hidden. */
   control?: EditorControl
@@ -79,7 +81,7 @@ function useEditorState(control?: EditorControl) {
   return { state, setState: onChange ?? setOwn, update, showGrid: control?.showGrid ?? ownGrid, toggleGrid: () => setOwnGrid((v) => !v) }
 }
 
-export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, children, control, enabled = true }: Props) {
+export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, environment, children, control, enabled = true }: Props) {
   const { state, setState, update, showGrid, toggleGrid } = useEditorState(control)
   const { hover, ...paint } = usePainting(grid, state, onPatch)
   const obj = useObjectTools(grid, objects, state, onObjectPatch, control?.selection)
@@ -95,7 +97,7 @@ export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPat
     <div className="flex h-full w-full">
       {!control && <Toolbar state={state} onChange={setState} showGrid={showGrid} onToggleGrid={toggleGrid} />}
       <div className="relative flex-1">
-        <TerrainScene grid={grid} showGrid={showGrid} editable={enabled} objects={objects} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
+        <TerrainScene grid={grid} showGrid={showGrid} editable={enabled} objects={objects} environment={environment} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
           {at && (!objectMode || state.tool === 'wall') && <HoverCursor grid={grid} at={at} size={size} />}
           {enabled && <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />}
           {children}

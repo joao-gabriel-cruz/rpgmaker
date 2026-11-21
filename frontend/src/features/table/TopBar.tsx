@@ -2,6 +2,7 @@ import { ArrowLeft, Keyboard, Settings } from 'lucide-react'
 import { Link } from 'react-router'
 import type { Campaign } from '../campaigns/campaigns'
 import { roleLabel } from '../campaigns/campaigns'
+import { SoundControl } from '../sound/SoundControl'
 import { RoundTracker } from '../rounds/RoundTracker'
 import type { SceneControls } from '../scenes/useSceneControls'
 import { SessionBar } from '../sessions/SessionBar'
@@ -36,6 +37,7 @@ export function TopBar({ campaign, scenes, onOpenSettings, onOpenHelp }: Props) 
       <RoundTracker campaignId={campaign.id} isGm={isGm} />
       <div className="ml-auto flex items-center gap-2">
         <PresenceAvatars />
+        <SoundControl />
         <button type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)" onClick={onOpenHelp} className={`${ICON_BTN} h-9 w-9`}>
           <Keyboard size={18} strokeWidth={1.5} aria-hidden />
         </button>

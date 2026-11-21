@@ -20,6 +20,8 @@ interface Props extends PointerHandlers {
   editable?: boolean
   objects?: readonly MapObject[]
   onObjectPick?: (id: string) => void
+  /** Replaces the default sky and lights (e.g. <Atmosphere>); omitted keeps the plain daylight. */
+  environment?: ReactNode
   children?: ReactNode
 }
 
@@ -55,6 +57,16 @@ function Ground({ grid }: { grid: MapGrid }) {
   )
 }
 
+function DaylightRig({ cx, cz }: { cx: number; cz: number }) {
+  return (
+    <>
+      <color attach="background" args={['#18181b']} />
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[cx + 30, 60, cz + 20]} intensity={1.6} />
+    </>
+  )
+}
+
 function Controls({ grid, editable }: { grid: MapGrid; editable?: boolean }) {
   const buttons = editable
     ? { RIGHT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY }
@@ -69,7 +81,7 @@ function Controls({ grid, editable }: { grid: MapGrid; editable?: boolean }) {
   )
 }
 
-export function TerrainScene({ grid, showGrid, editable, objects, onObjectPick, children, onCellDown, onCellMove, onUp }: Props) {
+export function TerrainScene({ grid, showGrid, editable, objects, onObjectPick, environment, children, onCellDown, onCellMove, onUp }: Props) {
   const cx = grid.width / 2
   const cz = grid.depth / 2
   const span = Math.max(grid.width, grid.depth)
@@ -81,9 +93,7 @@ export function TerrainScene({ grid, showGrid, editable, objects, onObjectPick, 
       onPointerUp={onUp}
       onPointerLeave={onUp}
     >
-      <color attach="background" args={['#18181b']} />
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[cx + 30, 60, cz + 20]} intensity={1.6} />
+      {environment ?? <DaylightRig cx={cx} cz={cz} />}
       <group onPointerDown={editable ? down : undefined} onPointerMove={editable ? move : undefined}>
         <TerrainBlocks grid={grid} />
         <Ground grid={grid} />

@@ -112,6 +112,7 @@ type Sheet struct {
 	XP              XP               `json:"xp"`
 	Assimilations   []Assimilation   `json:"assimilations"`
 	Notes           string           `json:"notes"`
+	Conditions      []string         `json:"conditions,omitempty"`
 }
 
 // NewSheet returns a fresh sheet with initial values.

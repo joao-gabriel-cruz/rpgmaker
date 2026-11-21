@@ -1,3 +1,5 @@
+import { AmbienceOptions } from '../../ambience/AmbienceOptions'
+import type { SceneAmbience } from '../../ambience/useSceneAmbience'
 import { DrawingOptions } from '../../drawings/DrawingOptions'
 import type { SceneDrawings } from '../../drawings/useDrawings'
 import type { MapGrid } from '../../map3d/grid'
@@ -26,6 +28,7 @@ export interface MapOptionsProps {
   vision: Vision
   tokens: SceneTokens
   draft: boolean
+  ambience: SceneAmbience
   onCommand: (type: string, extra?: object) => void
 }
 
@@ -48,6 +51,7 @@ export function MapOptions(p: MapOptionsProps) {
       )}
       {p.isGm && tool === 'wall' && <WallOptions history={p.history} />}
       {p.isGm && tool === 'fog' && <FogOptions vision={p.vision} />}
+      {p.isGm && tool === 'ambience' && <AmbienceOptions campaignId={p.campaignId} scene={p.ambience} />}
       {p.isGm && tool === 'tokens' && <TokensOptions campaignId={p.campaignId} tokens={p.tokens} />}
       {p.isGm && draftOpen && <DraftOptions campaignId={p.campaignId} sceneId={p.sceneId} draft={p.draft} onCommand={p.onCommand} />}
     </div>

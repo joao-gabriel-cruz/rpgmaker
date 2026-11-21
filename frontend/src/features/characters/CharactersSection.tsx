@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
+import { ConditionIcons } from '../ambience/ConditionIcons'
+import { conditionsOf } from '../ambience/conditions'
 import { HealthBar, Portrait, StateBadges, TugBar } from '../hotbar/HotbarStatus'
 import { useTableCharacter, useTableCharacterOptional } from '../hotbar/TableCharacterContext'
 import { charactersKey, createCharacter, useCharacters, type CharacterView } from './characters'
@@ -31,7 +33,7 @@ function Card({ campaignId, c, showOwner }: { campaignId: string; c: CharacterVi
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{c.name}</span>
             {showOwner && <span className="block truncate text-xs text-zinc-400">{c.ownerName || 'Sem dono'}</span>}
-            <span className="flex gap-1"><StateBadges v={v} /></span>
+            <span className="flex flex-wrap items-center gap-1"><StateBadges v={v} /><ConditionIcons ids={conditionsOf(c.sheet)} status={c.sheet} /></span>
           </span>
         </span>
         <HealthBar v={v} />

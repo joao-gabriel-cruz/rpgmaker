@@ -2,6 +2,8 @@ import { Dices, FileText, MapPin, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CharacterView } from '../characters/characters'
 import { useRealtime } from '../realtime/realtimeContext'
+import { ConditionIcons } from '../ambience/ConditionIcons'
+import { conditionsOf } from '../ambience/conditions'
 import { RollComposer, type RollPayload } from '../rolls/RollComposer'
 import { APTITUDE_LABELS, INSTINCT_LABELS } from '../sheet-assimilacao/labels'
 import { SURFACE } from '../table/surface'
@@ -79,7 +81,7 @@ function Identity({ options, active, isGm }: { options: CharacterView[]; active?
         {options.length > 1 || isGm
           ? <Selector options={options} value={active?.id ?? ''} onChange={tc.select} />
           : <span className="truncate text-sm font-semibold">{active?.name}</span>}
-        {v && <span className="flex gap-1"><StateBadges v={v} /></span>}
+        {v && <span className="flex flex-wrap items-center gap-1"><StateBadges v={v} />{active && <ConditionIcons ids={conditionsOf(active.sheet)} status={active.sheet} />}</span>}
       </div>
       {v && <HealthBar v={v} />}
       {v && <TugBar v={v} />}

@@ -31,6 +31,9 @@ type Token struct {
 	Appearance json.RawMessage `json:"appearance"`
 	// AssimilationLevel comes from sheet.tugOfWar; null for sheets without it (NPCs).
 	AssimilationLevel *int `json:"assimilationLevel"`
+	// Status is the slice of the sheet the table reads for conditions and light (conditions, inventory,
+	// health, tugOfWar, instincts); missing keys are omitted.
+	Status json.RawMessage `json:"status"`
 }
 
 // Char is the character data the rules need.

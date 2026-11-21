@@ -2,6 +2,7 @@ import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useState } from 'react'
 import { Vector2 } from 'three'
 import { getCell, surfaceHeight, type Coord, type MapGrid } from '../map3d/grid'
+import { useHold, type HoldPoint } from '../ambience/useTokenHold'
 import { CameraRig } from './CameraRig'
 import { PingMarkers } from './PingMarkers'
 import { pickCell, pickPoint } from './pickCell'
@@ -22,6 +23,8 @@ interface Props {
   onPlaceAt?: ((c: Coord) => void) | null
   /** A token was clicked with the Move/Tokens tool: the table selects its character. */
   onSelect?: (characterId: string) => void
+  /** The viewer held the pointer on a token they may move (opens the reaction wheel). */
+  onHold?: (t: Token, at: HoldPoint) => void
 }
 
 interface Drag {
@@ -108,18 +111,20 @@ function usePlaceClick(grid: MapGrid, onPlaceAt: ((c: Coord) => void) | null | u
 }
 
 /** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
-export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt, onSelect }: Props) {
+export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt, onSelect, onHold }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
   const { drag, start } = useDrag(grid, onDrop)
   useAltPing(grid, ping, pingTool)
   usePlaceClick(grid, onPlaceAt)
+  const hold = useHold(onHold)
   const down = (t: Token) => (e: ThreeEvent<PointerEvent>) => {
     if (!dragEnabled || pingTool || onPlaceAt || e.button !== 0 || e.altKey) return
     onSelect?.(t.characterId)
     if (!canMoveToken(t, userId, isGm)) return
     e.stopPropagation()
     start(t)
+    hold(t, { x: e.clientX, y: e.clientY })
   }
   return (
     <>

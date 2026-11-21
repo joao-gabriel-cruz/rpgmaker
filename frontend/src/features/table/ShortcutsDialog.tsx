@@ -7,6 +7,8 @@ const EXTRA: [string, string][] = [
   ['Espaço', 'Abrir o compositor de rolagem do personagem ativo'],
   ['Enter', 'Rolar de novo a última combinação (fora de botões e campos)'],
   ['← ↑ → ↓', 'No compositor: navegar entre Instintos e Aptidões (Enter rola, Esc fecha)'],
+  ["'", 'Falar em personagem: abre o campo de fala (Enter envia, 140 caracteres)'],
+  ['G', 'Reagir com emoji (roda de reações); também segurando o clique no seu token'],
   ['Esc', 'Voltar para Mover'],
   ['[', 'Recolher a barra lateral'],
   [']', 'Expandir a barra lateral'],

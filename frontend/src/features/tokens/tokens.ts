@@ -1,5 +1,6 @@
 import { api } from '../../lib/api'
 import type { Appearance } from '../miniature/appearance'
+import type { SheetStatus } from '../ambience/conditions'
 import { getCell, inBounds, type MapGrid } from '../map3d/grid'
 
 export interface Token {
@@ -14,6 +15,8 @@ export interface Token {
   /** Miniature description; absent or null keeps the portrait standee. */
   appearance?: Appearance | null
   assimilationLevel?: number | null
+  /** Sheet slice for condition icons and light (see backend tokens.Status). */
+  status?: SheetStatus | null
 }
 
 export interface PingMarker {
@@ -49,7 +52,7 @@ export interface CharacterEvent {
   id: string
   name?: string
   portraitUrl?: string | null
-  sheet?: { appearance?: Appearance | null; tugOfWar?: { assimilationLevel?: number } }
+  sheet?: SheetStatus & { appearance?: Appearance | null; tugOfWar?: { assimilationLevel?: number; determinationPoints?: number } }
 }
 
 export const applyCharacter = (list: Token[], c: CharacterEvent): Token[] =>
@@ -59,7 +62,10 @@ export const applyCharacter = (list: Token[], c: CharacterEvent): Token[] =>
     portraitUrl: c.portraitUrl === undefined ? t.portraitUrl : c.portraitUrl,
     appearance: c.sheet?.appearance ?? null,
     assimilationLevel: c.sheet?.tugOfWar?.assimilationLevel ?? null,
+    status: c.sheet ? statusOf(c.sheet) : t.status,
   })
+
+const statusOf = ({ conditions, inventory, health, tugOfWar, instincts }: SheetStatus): SheetStatus => ({ conditions, inventory, health, tugOfWar, instincts })
 
 /** Whether the viewer may drag this token: the Mestre moves all, players only their own. */
 export const canMoveToken = (t: Token, userId: string, isGm: boolean) => isGm || t.ownerId === userId

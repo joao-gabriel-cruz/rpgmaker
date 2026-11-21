@@ -3,6 +3,9 @@ import type { CharacterView } from './characters'
 
 export const AUTOSAVE_DELAY_MS = 600
 
+/** Debounce in use; tests widen it so a slow machine cannot fire the save mid-assertion. */
+export const autosaveTiming = { delayMs: AUTOSAVE_DELAY_MS }
+
 export interface AutosaverHooks {
   save: (sheet: Sheet) => Promise<CharacterView>
   /** A newer server version should replace the local sheet. */
@@ -72,7 +75,7 @@ export class Autosaver {
 
   private schedule() {
     clearTimeout(this.timer)
-    this.timer = setTimeout(() => void this.flush(), AUTOSAVE_DELAY_MS)
+    this.timer = setTimeout(() => void this.flush(), autosaveTiming.delayMs)
   }
 
   private applyPending() {

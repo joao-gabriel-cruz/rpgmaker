@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/ambience"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
@@ -70,6 +71,7 @@ func wireTable(d deps) {
 	wireConflict(d)
 	wireEffects(d)
 	wireItems(d)
+	wireAmbience(d)
 }
 
 func wireRounds(d deps) {
@@ -154,4 +156,10 @@ func wireItems(d deps) {
 	svc := items.NewService(items.NewStore(d.pool), chars, rf, d.effects, tokenSvc, sceneSvc, d.hub)
 	items.RegisterHTTP(d.mux, svc, d.campaigns)
 	items.RegisterCommands(d.hub, svc)
+}
+
+func wireAmbience(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	ambience.Register(d.mux, d.hub, ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub), d.campaigns)
 }
