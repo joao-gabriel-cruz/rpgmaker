@@ -36,12 +36,13 @@ func (n *recNotifier) last() sent { return n.sent[len(n.sent)-1] }
 
 // fakeScenes keeps one scene per id and records the calls it receives.
 type fakeScenes struct {
-	scenes   map[string]*scenes.Scene
-	painted  []maps.Patch
-	objects  []scenes.ObjectPatch
-	origins  []string
-	hit      []string
-	paintErr error
+	scenes    map[string]*scenes.Scene
+	painted   []maps.Patch
+	objects   []scenes.ObjectPatch
+	origins   []string
+	hit       []string
+	paintErr  error
+	activated []string
 }
 
 func newFakeScenes(ids ...string) *fakeScenes {
@@ -91,19 +92,48 @@ func (f *fakeScenes) EditObjects(_ context.Context, _, sceneID, origin string, p
 	return nil
 }
 
-func (f *fakeScenes) Create(context.Context, string, string, int, int) (scenes.Scene, error) {
-	return scenes.Scene{}, nil
+func (f *fakeScenes) Create(_ context.Context, _, name string, w, d int) (scenes.Scene, error) {
+	g, err := maps.NewGrid(w, d)
+	if err != nil {
+		return scenes.Scene{}, err
+	}
+	sc := scenes.Scene{ID: "new1", Name: name, Width: w, Depth: d, Grid: g.Serialize()}
+	f.scenes[sc.ID] = &sc
+	return sc, nil
 }
 
-func (f *fakeScenes) Activate(context.Context, string, string) error { return nil }
+func (f *fakeScenes) Activate(_ context.Context, _, id string) error {
+	if _, ok := f.scenes[id]; !ok {
+		return scenes.ErrNotFound
+	}
+	for k, sc := range f.scenes {
+		sc.IsActive = k == id
+	}
+	f.activated = append(f.activated, id)
+	return nil
+}
+
+type placement struct {
+	Scene, Char string
+	X, Z        int
+}
 
 type fakeTokens struct {
-	moves []TokenPos
-	list  []tokens.Token
+	moves    []TokenPos
+	list     []tokens.Token
+	placed   []placement
+	placeErr map[string]error
 }
 
-func (f *fakeTokens) List(context.Context, campaigns.Member, string) ([]tokens.Token, error) {
-	return f.list, nil
+// List returns tokens of the scene; tokens without a SceneID belong to every scene.
+func (f *fakeTokens) List(_ context.Context, _ campaigns.Member, sceneID string) ([]tokens.Token, error) {
+	var out []tokens.Token
+	for _, tk := range f.list {
+		if tk.SceneID == "" || tk.SceneID == sceneID {
+			out = append(out, tk)
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeTokens) Move(_ context.Context, _ realtime.Sender, _, id string, x, z int, force bool) error {
@@ -113,7 +143,12 @@ func (f *fakeTokens) Move(_ context.Context, _ realtime.Sender, _, id string, x,
 	return nil
 }
 
-func (f *fakeTokens) Place(context.Context, realtime.Sender, string, string, string, int, int) error {
+func (f *fakeTokens) Place(_ context.Context, _ realtime.Sender, _, sceneID, charID string, x, z int) error {
+	if err := f.placeErr[charID]; err != nil {
+		return err
+	}
+	f.placed = append(f.placed, placement{sceneID, charID, x, z})
+	f.list = append(f.list, tokens.Token{SceneID: sceneID, CharacterID: charID, X: x, Z: z})
 	return nil
 }
 
