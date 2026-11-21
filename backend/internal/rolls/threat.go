@@ -65,7 +65,24 @@ func (s *Service) Threat(ctx context.Context, campaignID string, sender realtime
 		total = total.Add(assimilacao.FaceSymbols(d.Kind, d.Face))
 	}
 	result, _ := json.Marshal(assimilacao.Result{Symbols: total, Kept: []int{}})
-	err := s.store(ctx, campaignID, sender, Record{Visibility: VisPublic, Kind: KindThreat, Status: StatusFinal, Result: result},
+	_, err := s.store(ctx, campaignID, sender, Record{Visibility: VisPublic, Kind: KindThreat, Status: StatusFinal, Result: result},
 		threatSpec{Name: name, Pool: pool}, roll.Dice, nil)
 	return total, err
+}
+
+// maxPoolDice caps each die kind of a Mestre pool.
+const maxPoolDice = 20
+
+// Pool rolls a free pool of d6/d10/d12 for the Mestre without a character (every die counts).
+func (s *Service) Pool(ctx context.Context, campaignID string, sender realtime.Sender, pool ThreatPool) error {
+	for _, n := range []int{pool.D6, pool.D10, pool.D12} {
+		if n < 0 || n > maxPoolDice {
+			return ruleErr("Use de 0 a 20 dados de cada tipo.")
+		}
+	}
+	if pool.D6+pool.D10+pool.D12 == 0 {
+		return ruleErr("Monte a parada com pelo menos um dado.")
+	}
+	_, err := s.Threat(ctx, campaignID, sender, "Parada do Mestre", pool)
+	return err
 }

@@ -21,7 +21,7 @@ export const aptitudeValue = (sheet: Sheet, key: AptitudeKey): number =>
 export const instinctDieKind = (m: Modifiers) => (m.assimilated && m.secondInstinct ? 'd12' : 'd6')
 
 /** Mirrors the server's BuildRoll/keptCount to show "2 d6 + 1 d10 · manter 2" before rolling. */
-export function poolPreview(sheet: Sheet, sel: PoolSelection, m: Modifiers, isGm: boolean): PoolPreview {
+export function poolPreview(sheet: Sheet, sel: PoolSelection, m: Modifiers, isGm: boolean, bonusKept = 0): PoolPreview {
   const assimilated = !!(m.assimilated && m.secondInstinct)
   const parts: PoolPreview['parts'] = []
   if (sel.instinct) parts.push({ count: sheet.instincts[sel.instinct], kind: instinctDieKind(m) })
@@ -29,7 +29,7 @@ export function poolPreview(sheet: Sheet, sel: PoolSelection, m: Modifiers, isGm
   if (sel.aptitude) parts.push({ count: aptitudeValue(sheet, sel.aptitude), kind: 'd10' })
   const shown = parts.filter((p) => p.count > 0)
   const pool = shown.reduce((n, p) => n + p.count, 0)
-  const bonus = [m.effort, m.useOccupation, m.useMarkingEvent].filter(Boolean).length
+  const bonus = [m.effort, m.useOccupation, m.useMarkingEvent].filter(Boolean).length + bonusKept
   const kept = Math.min(Math.max(1 + bonus, assimilated ? 2 : 0), pool)
   const difficulty = isGm ? m.difficultyD12 : 0
   const dice = shown.map((p) => `${p.count} ${p.kind}`).join(' + ') || 'sem dados'

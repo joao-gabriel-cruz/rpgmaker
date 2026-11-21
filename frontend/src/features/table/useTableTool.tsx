@@ -35,6 +35,9 @@ export function useTableTool(): TableToolApi {
   return api
 }
 
+/** Same as `useTableTool`, null outside the table. */
+export const useTableToolOptional = () => useContext(Ctx)
+
 // Keeps the editor's own tool coherent with the rail tool (terrain brushes vs. object tools).
 function editorToolFor(rail: TableToolId, current: ToolState['tool']): ToolState['tool'] {
   if (rail === 'wall') return 'wall'

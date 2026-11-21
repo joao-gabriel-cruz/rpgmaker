@@ -19,7 +19,7 @@ type Registrar interface {
 	Handle(typ string, fn realtime.HandlerFunc, guards ...realtime.Guard)
 }
 
-// RegisterCommands wires roll.request, roll.keep and roll.generic.
+// RegisterCommands wires roll.request, roll.keep, roll.generic and the Mestre's roll.pool.
 func RegisterCommands(r Registrar, svc *Service) {
 	handle(r, "roll.request", func(ctx context.Context, cmd realtime.Command, in RequestInput) error {
 		return svc.Request(ctx, cmd.CampaignID, cmd.Sender, in)
@@ -35,6 +35,13 @@ func RegisterCommands(r Registrar, svc *Service) {
 		D12         int    `json:"d12"`
 	}) error {
 		return svc.SetDifficulty(ctx, cmd.CampaignID, cmd.Sender, in.CharacterID, in.D12)
+	}), realtime.GMOnly)
+	r.Handle("roll.pool", handler(func(ctx context.Context, cmd realtime.Command, in struct {
+		D6  int `json:"d6"`
+		D10 int `json:"d10"`
+		D12 int `json:"d12"`
+	}) error {
+		return svc.Pool(ctx, cmd.CampaignID, cmd.Sender, ThreatPool{D6: in.D6, D10: in.D10, D12: in.D12})
 	}), realtime.GMOnly)
 	handle(r, "roll.generic", func(ctx context.Context, cmd realtime.Command, in struct {
 		Expression string `json:"expression"`

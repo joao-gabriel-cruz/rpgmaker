@@ -29,7 +29,7 @@ type State struct {
 func requestOf(in RequestInput) assimilacao.RollRequest {
 	return assimilacao.RollRequest{
 		Instinct: in.Instinct, Aptitude: in.Aptitude, SecondInstinct: in.SecondInstinct, Effort: in.Effort,
-		UseOccupation: in.UseOccupation, UseMarkingEvent: in.UseMarkingEvent, DifficultyD12: in.DifficultyD12,
+		UseOccupation: in.UseOccupation, UseMarkingEvent: in.UseMarkingEvent, DifficultyD12: in.DifficultyD12, BonusKept: in.BonusKept,
 	}
 }
 

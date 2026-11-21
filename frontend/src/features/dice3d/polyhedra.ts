@@ -73,6 +73,33 @@ function dodecahedron(): DieFace[] {
   return facesByNormals(verts, normals)
 }
 
+function tetrahedron(): DieFace[] {
+  const verts = [new Vector3(1, 1, 1), new Vector3(1, -1, -1), new Vector3(-1, 1, -1), new Vector3(-1, -1, 1)]
+  return facesByNormals(verts, verts.map((v) => v.clone().negate()))
+}
+
+function octahedron(): DieFace[] {
+  const verts: Vector3[] = []
+  for (const s of signs()) verts.push(new Vector3(s, 0, 0), new Vector3(0, s, 0), new Vector3(0, 0, s))
+  const normals: Vector3[] = []
+  for (const x of signs()) for (const y of signs()) for (const z of signs()) normals.push(new Vector3(x, y, z))
+  return facesByNormals(verts, normals)
+}
+
+function icosahedron(): DieFace[] {
+  const verts: Vector3[] = []
+  for (const a of signs()) for (const b of signs()) {
+    verts.push(new Vector3(0, a, b * PHI), new Vector3(a, b * PHI, 0), new Vector3(b * PHI, 0, a))
+  }
+  const inv = 1 / PHI
+  const normals: Vector3[] = []
+  for (const x of signs()) for (const y of signs()) for (const z of signs()) normals.push(new Vector3(x, y, z))
+  for (const a of signs()) for (const b of signs()) {
+    normals.push(new Vector3(0, a * PHI, b * inv), new Vector3(a * PHI, b * inv, 0), new Vector3(a * inv, 0, b * PHI))
+  }
+  return facesByNormals(verts, normals)
+}
+
 // Pentagonal trapezohedron; apex height H makes each kite exactly planar.
 function trapezohedron(): DieFace[] {
   const a = 0.12
@@ -109,7 +136,7 @@ const cache = new Map<DieKind, DieShape>()
 export function shapeFor(kind: DieKind): DieShape {
   let shape = cache.get(kind)
   if (!shape) {
-    const build = { d6: cube, d10: trapezohedron, d12: dodecahedron }[kind]
+    const build = { d4: tetrahedron, d6: cube, d8: octahedron, d10: trapezohedron, d12: dodecahedron, d20: icosahedron }[kind]
     shape = normalize(build())
     cache.set(kind, shape)
   }

@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import { useRealtime } from '../realtime/realtimeContext'
 import { modifiersText } from './modifiers'
 import { poolLabel, type FinalizedEvent, type RollEntry } from './rolls'
 import { AssignToObjective } from '../conflict/AssignToObjective'
+import { QuickRolls } from './QuickRolls'
 import { SymbolCounts } from './SymbolCounts'
 
 function useRollLog(campaignId: string, isGm: boolean) {
@@ -54,33 +55,13 @@ function Entry({ e }: { e: RollEntry }) {
   )
 }
 
-function CommandBox() {
-  const { send } = useRealtime()
-  const [text, setText] = useState('')
-  const [error, setError] = useState('')
-  const submit = (ev: FormEvent) => {
-    ev.preventDefault()
-    const m = /^\/r\s+(.+)$/i.exec(text.trim())
-    if (!m) return setError('Comando desconhecido. Use /r 2d6+3')
-    setError('')
-    send('roll.generic', { expression: m[1] }).then(() => setText('')).catch((e: Error) => setError(e.message))
-  }
-  return (
-    <form onSubmit={submit} className="flex flex-col gap-1">
-      <input aria-label="Comando de rolagem" value={text} onChange={(e) => setText(e.target.value)} placeholder="/r 2d6+3"
-        className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm" />
-      {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
-    </form>
-  )
-}
-
-/** Side panel with the recent rolls (visibility-filtered by the server) and the /r command. */
+/** Side panel with the recent rolls (visibility-filtered by the server) and the button-driven quick rolls. */
 export function RollLog({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   const entries = useRollLog(campaignId, isGm)
   return (
     <aside aria-label="Log de rolagens" className="flex min-h-0 flex-col gap-2">
       <h2 className="text-lg font-semibold">Rolagens</h2>
-      <CommandBox />
+      <QuickRolls campaignId={campaignId} isGm={isGm} />
       <ul className="flex flex-col gap-2">
         {entries.map((e) => <Entry key={e.rollId} e={e} />)}
         {entries.length === 0 && <li className="text-sm text-zinc-400">Nenhuma rolagem ainda.</li>}

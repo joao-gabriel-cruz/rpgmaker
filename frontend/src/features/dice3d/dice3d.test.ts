@@ -6,7 +6,7 @@ import { createRng, rngFor } from './prng'
 import { planRoll } from './rollPlan'
 import { layoutSymbols } from './symbolIcons'
 
-const KINDS: DieKind[] = ['d6', 'd10', 'd12']
+const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20']
 
 describe('faces model', () => {
   it('has the spec table for d12', () => {
@@ -38,8 +38,16 @@ describe('faces model', () => {
   })
 })
 
+describe('numbered dice', () => {
+  it('d4, d8 and d20 carry no Assimilação symbols', () => {
+    expect(facesFor('d20')).toHaveLength(20)
+    expect(facesFor('d8').every((f) => f.length === 0)).toBe(true)
+    expect(countSymbols([{ kind: 'd20', face: 20 }, { kind: 'd4', face: 3 }])).toEqual({ success: 0, adaptation: 0, pressure: 0 })
+  })
+})
+
 describe('geometry', () => {
-  it.each([['d6', 4], ['d10', 4], ['d12', 5]] as const)('%s faces are planar polygons', (kind, verts) => {
+  it.each([['d4', 3], ['d6', 4], ['d8', 3], ['d10', 4], ['d12', 5], ['d20', 3]] as const)('%s faces are planar polygons', (kind, verts) => {
     const shape = shapeFor(kind)
     expect(shape.faces).toHaveLength(facesFor(kind).length)
     for (const f of shape.faces) {

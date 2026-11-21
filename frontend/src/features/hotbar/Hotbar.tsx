@@ -1,6 +1,8 @@
 import { Dices, FileText, MapPin, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CharacterView } from '../characters/characters'
+import { ActionBar } from '../actions/ActionBar'
+import { ActionComposer, AimHint } from '../actions/ActionComposer'
 import { useRealtime } from '../realtime/realtimeContext'
 import { ConditionIcons } from '../ambience/ConditionIcons'
 import { conditionsOf } from '../ambience/conditions'
@@ -106,6 +108,11 @@ export function Hotbar({ campaignId, isGm }: { campaignId: string; isGm: boolean
             preset={a.prev && { instinct: a.prev.instinct, aptitude: a.prev.aptitude }} onClose={() => tc.setComposerOpen(false)} />
         </div>
       )}
+      {canRoll && (
+        <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2"><ActionComposer campaignId={campaignId} isGm={isGm} /></div>
+      )}
+      {canRoll && <div className="px-3 pt-2"><ActionBar campaignId={campaignId} isGm={isGm} /></div>}
+      <AimHint />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl px-3 py-2">
         <Identity options={options} active={active} isGm={isGm} />
         {active && <Buttons active={active} canRoll={canRoll} a={a} canPlace={canPlace} />}

@@ -1,8 +1,9 @@
-import { ArrowLeft, Keyboard, Settings } from 'lucide-react'
+import { ArrowLeft, Clapperboard, Keyboard, Settings } from 'lucide-react'
 import { Link } from 'react-router'
 import type { Campaign } from '../campaigns/campaigns'
 import { roleLabel } from '../campaigns/campaigns'
 import { SoundControl } from '../sound/SoundControl'
+import { spotlight, useSpotlight } from '../fx/spotlight'
 import { RoundTracker } from '../rounds/RoundTracker'
 import type { SceneControls } from '../scenes/useSceneControls'
 import { SessionBar } from '../sessions/SessionBar'
@@ -15,6 +16,16 @@ interface Props {
   scenes: SceneControls
   onOpenSettings: () => void
   onOpenHelp: () => void
+}
+
+function SpotlightToggle() {
+  const on = useSpotlight()
+  return (
+    <button type="button" aria-label="Holofote de turno" aria-pressed={on} title="Holofote: a câmera de todos acompanha quem age"
+      onClick={() => spotlight.set(!on)} className={`${ICON_BTN} h-9 w-9 ${on ? 'bg-emerald-900/60 text-emerald-300' : ''}`}>
+      <Clapperboard size={18} strokeWidth={1.5} aria-hidden />
+    </button>
+  )
 }
 
 const Divider = () => <span aria-hidden className="h-5 w-px bg-zinc-800" />
@@ -41,6 +52,7 @@ export function TopBar({ campaign, scenes, onOpenSettings, onOpenHelp }: Props) 
         <button type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)" onClick={onOpenHelp} className={`${ICON_BTN} h-9 w-9`}>
           <Keyboard size={18} strokeWidth={1.5} aria-hidden />
         </button>
+        {isGm && <SpotlightToggle />}
         {isGm && (
           <button type="button" aria-label="Gerenciar campanha" title="Membros, configurações e regras" onClick={onOpenSettings} className={`${ICON_BTN} h-9 w-9`}>
             <Settings size={18} strokeWidth={1.5} aria-hidden />

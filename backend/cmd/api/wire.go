@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/actions"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/ambience"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
@@ -36,6 +37,7 @@ type deps struct {
 	systems     *systems.Registry
 	vision      *vision.Service
 	effects     *effects.Service
+	rolls       *rolls.Service // the instance that handles roll.keep, so hooks on it fire
 }
 
 func buildMux(pool *pgxpool.Pool) *http.ServeMux {
@@ -59,6 +61,7 @@ func buildMux(pool *pgxpool.Pool) *http.ServeMux {
 func wireTable(d deps) {
 	d.vision = vision.NewService(vision.NewStore(d.pool), scenes.NewService(scenes.NewStore(d.pool), d.hub), d.hub)
 	d.effects = newEffects(d)
+	d.rolls = newRolls(d)
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
@@ -72,6 +75,7 @@ func wireTable(d deps) {
 	wireEffects(d)
 	wireItems(d)
 	wireAmbience(d)
+	wireActions(d)
 }
 
 func wireRounds(d deps) {
@@ -91,11 +95,14 @@ func wireCharacters(d deps) {
 	characters.NewHandlers(svc, d.campaigns.RequireMember).Register(d.mux)
 }
 
-func wireRolls(d deps) {
+func newRolls(d deps) *rolls.Service {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
-	svc := rolls.NewService(rolls.NewStore(d.pool), chars, sessions.NewService(sessions.NewStore(d.pool), d.hub), d.hub)
-	rolls.RegisterCommands(d.hub, svc)
-	rolls.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
+	return rolls.NewService(rolls.NewStore(d.pool), chars, sessions.NewService(sessions.NewStore(d.pool), d.hub), d.hub)
+}
+
+func wireRolls(d deps) {
+	rolls.RegisterCommands(d.hub, d.rolls)
+	rolls.RegisterHTTP(d.mux, d.rolls, d.campaigns.RequireMember)
 }
 
 func wireSessions(d deps) {
@@ -162,4 +169,16 @@ func wireAmbience(d deps) {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
 	ambience.Register(d.mux, d.hub, ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub), d.campaigns)
+}
+
+func wireActions(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	rf := refuge.NewService(refuge.NewStore(d.pool), chars, d.hub)
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	tokenSvc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.vision.Tap())
+	lootSvc := items.NewService(items.NewStore(d.pool), chars, rf, d.effects, tokenSvc, sceneSvc, d.hub)
+	svc := actions.NewService(actions.NewStore(d.pool), sceneSvc, tokens.NewStore(d.pool), chars, d.rolls, lootSvc, d.effects, d.hub)
+	d.rolls.OnFinalized(svc.Finalized)
+	actions.RegisterHTTP(d.mux, svc, d.campaigns)
+	actions.RegisterCommands(d.hub, svc)
 }

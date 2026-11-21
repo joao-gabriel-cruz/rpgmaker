@@ -23,6 +23,8 @@ import { useLiveScene } from './useLiveScene'
 import type { SceneControls } from './useSceneControls'
 import { DrawingLayer } from '../drawings/DrawingLayer'
 import { useDrawings } from '../drawings/useDrawings'
+import { AimLayer } from '../actions/AimLayer'
+import { FxLayer } from '../fx/FxLayer'
 import { LootLayer } from '../items/LootLayer'
 import { useSceneLoot, type SceneLoot } from '../items/loot'
 import { TokenLayer } from '../tokens/TokenLayer'
@@ -83,6 +85,7 @@ function useMapTools({ campaignId, sceneId, isGm, state }: WithTokens, userId: s
 type Tools = ReturnType<typeof useMapTools>
 
 interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
+  campaignId: string
   grid: MapState['grid']
   objects: MapState['objects']
   loot: SceneLoot
@@ -94,7 +97,7 @@ interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
 }
 
 // The in-canvas layers; the rail tool decides which of them react to the pointer.
-function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect }: LayersProps) {
+function MapLayers({ campaignId, grid, objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect }: LayersProps) {
   const { tool, placing, setPlacing } = useTableTool()
   const presence = usePresenceState()
   const openWheel = presence?.openWheel
@@ -109,6 +112,8 @@ function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camer
         dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} onSelect={onSelect} onHold={onHold} />
       <OverlayProjector grid={grid} tokens={tokens.tokens} registry={overlays} />
       <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />
+      <AimLayer grid={grid} objects={objects} tokens={tokens.tokens} />
+      <FxLayer campaignId={campaignId} grid={grid} tokens={tokens.tokens} />
       <CameraBridge handleRef={camera} />
       <DrawingLayer grid={grid} draw={draw} />
       <VisionLayers grid={grid} vision={fog} isGm={isGm} />
@@ -159,7 +164,7 @@ function SceneWithTokens(p: WithTokens) {
   usePublishTokens(tokens)
   const { select } = useTableCharacter()
   const loot = useSceneLoot(campaignId, sceneId)
-  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect: select }} />
+  const layer = <MapLayers {...{ campaignId, grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera, overlays, onSelect: select }} />
   const mine = tokens.tokens.find((t) => t.ownerId === userId)
   const { ambience, environment } = useAmbienceLayer(campaignId, sceneId, state, tokens.tokens, isEditorTool(tool))
   const opts = { campaignId, sceneId, isGm, grid: state.grid, objects: state.objects, onObjectPatch: history.editObjects,
