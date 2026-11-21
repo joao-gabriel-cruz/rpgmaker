@@ -37,6 +37,8 @@ func NewHandler(l *Links, t Table, j *Journal) http.Handler {
 func newServer(t Table, j *Journal, s Session) *sdk.Server {
 	srv := sdk.NewServer(&sdk.Implementation{Name: "rpgmaker-mesa", Version: "1"}, nil)
 	registerReadTools(srv, t, j, s)
+	registerTerrainTools(srv, t, j, s)
+	registerObjectTools(srv, t, j, s)
 	return srv
 }
 

@@ -97,10 +97,13 @@ func (f *fakeScenes) Create(context.Context, string, string, int, int) (scenes.S
 
 func (f *fakeScenes) Activate(context.Context, string, string) error { return nil }
 
-type fakeTokens struct{ moves []TokenPos }
+type fakeTokens struct {
+	moves []TokenPos
+	list  []tokens.Token
+}
 
 func (f *fakeTokens) List(context.Context, campaigns.Member, string) ([]tokens.Token, error) {
-	return nil, nil
+	return f.list, nil
 }
 
 func (f *fakeTokens) Move(_ context.Context, _ realtime.Sender, _, id string, x, z int, force bool) error {

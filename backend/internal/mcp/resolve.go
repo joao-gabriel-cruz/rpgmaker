@@ -43,10 +43,9 @@ func tableView(ctx context.Context, t Table, s Session, sc scenes.Scene) (TableV
 	if err != nil {
 		return TableView{}, fmt.Errorf("get ambience: %w", err)
 	}
-	m := campaigns.Member{CampaignID: s.CampaignID, UserID: s.Sender.UserID, Role: campaigns.RoleGM}
-	list, err := t.Tokens.List(ctx, m, sc.ID)
+	list, err := sceneTokens(ctx, t, s, sc.ID)
 	if err != nil {
-		return TableView{}, fmt.Errorf("list tokens: %w", err)
+		return TableView{}, err
 	}
 	infos := make([]TokenInfo, 0, len(list))
 	for _, tk := range list {
@@ -61,4 +60,14 @@ func tokenInfo(tk tokens.Token) TokenInfo {
 	}
 	_ = json.Unmarshal(tk.Status, &st)
 	return TokenInfo{ID: tk.ID, Name: tk.Name, X: tk.X, Z: tk.Z, Player: tk.OwnerID != nil, Conditions: st.Conditions}
+}
+
+// sceneTokens lists the scene's tokens as the Mestre sees them.
+func sceneTokens(ctx context.Context, t Table, s Session, sceneID string) ([]tokens.Token, error) {
+	m := campaigns.Member{CampaignID: s.CampaignID, UserID: s.Sender.UserID, Role: campaigns.RoleGM}
+	list, err := t.Tokens.List(ctx, m, sceneID)
+	if err != nil {
+		return nil, fmt.Errorf("list tokens: %w", err)
+	}
+	return list, nil
 }
