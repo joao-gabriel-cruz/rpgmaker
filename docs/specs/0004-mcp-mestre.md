@@ -163,7 +163,7 @@ Cada ferramenta de escrita devolve um resumo curto do que mudou ("14 células �
   meio da sessão.
 - Limites por chamada: até 4096 células em `paint_terrain` e 200 objetos em `place_objects`, além dos
   limites que o serviço de cenas já aplica.
-- O mapa em texto do `get_table` vai inteiro (até 64×64 = 4096 caracteres).
+- O mapa em texto do `get_table` vai inteiro (até 128×128 = 16384 caracteres, desde que a main passou a aceitar cenas de 128).
 - **Segredo nos logs:** a API não registra o caminho de `/api/mcp/...`, e o nginx da imagem web desliga
   o access log nessa rota. O log do Caddy da VPS fica fora do repo. É um risco aceito, mitigado pela
   revogação do link.

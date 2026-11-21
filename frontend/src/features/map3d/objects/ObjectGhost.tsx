@@ -20,17 +20,17 @@ function makeTranslucent(root: Group) {
 }
 
 // Translucent preview of an object that is not (yet) part of the map.
-export function ObjectGhost({ obj, grid }: { obj: MapObject; grid: MapGrid }) {
+export function ObjectGhost({ obj, grid, objects }: { obj: MapObject; grid: MapGrid; objects?: readonly MapObject[] }) {
   const ref = useRef<Group>(null)
   useLayoutEffect(() => {
     if (ref.current) makeTranslucent(ref.current)
   }, [obj.prefab])
-  const p = placement(grid, obj)
+  const p = placement(grid, obj, objects)
   const ok = fitsInGrid(grid, obj)
   return (
     <>
       <group ref={ref} key={obj.prefab}>
-        <ObjectInstance obj={obj} grid={grid} />
+        <ObjectInstance obj={obj} grid={grid} objects={objects} />
       </group>
       <mesh position={[p.cx, p.y + 0.04, p.cz]} raycast={() => null}>
         <boxGeometry args={[p.w, 0.08, p.d]} />
@@ -41,8 +41,8 @@ export function ObjectGhost({ obj, grid }: { obj: MapObject; grid: MapGrid }) {
 }
 
 // Wireframe box around the selected object.
-export function SelectionBox({ obj, grid }: { obj: MapObject; grid: MapGrid }) {
-  const p = placement(grid, obj)
+export function SelectionBox({ obj, grid, objects }: { obj: MapObject; grid: MapGrid; objects?: readonly MapObject[] }) {
+  const p = placement(grid, obj, objects)
   const { w, d } = footprint(obj.prefab, obj.rotation)
   const h = PREFAB_META_BY_ID[obj.prefab]?.height ?? 1
   return (

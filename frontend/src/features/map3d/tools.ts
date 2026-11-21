@@ -13,6 +13,10 @@ export interface ToolState {
   prefab: string
   variant: 'pine' | 'round'
   rotation: Rotation
+  /** Awning color of the market stall (AWNING_COLORS key). */
+  color?: string
+  /** Height of a ruined wall in blocks. */
+  wallHeight?: 1 | 2
 }
 
 interface ToolDef<T extends ToolId> {

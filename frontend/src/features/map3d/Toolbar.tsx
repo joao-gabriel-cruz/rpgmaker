@@ -89,6 +89,10 @@ export function Toolbar({ state, onChange, showGrid, onToggleGrid }: Props) {
             variant={state.variant}
             onChange={(prefab) => set({ prefab })}
             onVariant={(variant) => set({ variant })}
+            color={state.color}
+            onColor={(color) => set({ color })}
+            wallHeight={state.wallHeight}
+            onWallHeight={(wallHeight) => set({ wallHeight })}
           />
         </Section>
       )}

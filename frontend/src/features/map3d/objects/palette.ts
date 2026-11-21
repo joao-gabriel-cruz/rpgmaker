@@ -14,6 +14,20 @@ export const C = {
   fire: '#ff8a1f',
   lava: '#e8531c',
   ash: '#4a3b34',
+  canvas: '#a89f80',
+  sand: '#b9a57a',
+  oldRust: '#7a3f25',
 }
 
 export type V3 = [number, number, number]
+
+// Stall awning colors selectable through the `color` prop (a hex value is accepted too).
+export const AWNING_COLORS: Record<string, string> = {
+  red: '#b8453a', blue: '#3f6fa8', green: '#4f8f5a', yellow: '#d4a72c', orange: '#d9772b', purple: '#7b4f9a',
+}
+export const DEFAULT_AWNING = 'red'
+
+export function awningColor(value: unknown): string {
+  if (typeof value !== 'string') return AWNING_COLORS[DEFAULT_AWNING]
+  return AWNING_COLORS[value] ?? (/^#[0-9a-f]{6}$/i.test(value) ? value : AWNING_COLORS[DEFAULT_AWNING])
+}

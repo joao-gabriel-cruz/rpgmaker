@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createGrid, serializeGrid } from '../map3d/grid'
 import { SceneSelector } from './SceneSelector'
-import { applyRemoteObjects, applyRemotePaint } from './remote'
+import { applyRemoteObjects, applyRemotePaint, chunkPatch } from './remote'
 import type { MapState, SceneSummary } from './scenes'
 
 afterEach(() => vi.restoreAllMocks())
@@ -14,17 +14,15 @@ const scenes: SceneSummary[] = [
 ]
 
 function setup() {
-  const h = { onSelect: vi.fn(), onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), onActivate: vi.fn() }
+  const h = { onSelect: vi.fn(), onNew: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), onActivate: vi.fn() }
   render(<SceneSelector scenes={scenes} selectedId="a" {...h} />)
   return h
 }
 
-it('creates a scene with name and size', async () => {
+it('asks to open the new scene dialog', async () => {
   const h = setup()
-  await userEvent.type(screen.getByLabelText('Nome da cena'), 'Porto')
-  await userEvent.selectOptions(screen.getByLabelText('Tamanho da cena'), '48')
-  await userEvent.click(screen.getByRole('button', { name: 'Criar cena' }))
-  expect(h.onCreate).toHaveBeenCalledWith('Porto', 48)
+  await userEvent.click(screen.getByRole('button', { name: 'Nova cena' }))
+  expect(h.onNew).toHaveBeenCalled()
 })
 
 it('marks the active scene and activates, selects, renames and deletes others', async () => {
@@ -63,4 +61,11 @@ it('applies remote object patches, defaulting props', () => {
 
 it('keeps the serialized grid format used by the server', () => {
   expect(serializeGrid(createGrid(16, 16)).data).toHaveLength(16 * 16 * 2)
+})
+
+it('splits a big paint patch into messages under the socket limit', () => {
+  const cells = Array.from({ length: 2500 }, (_, i) => ({ x: i % 50, z: Math.floor(i / 50), terrain: 'grass' as const, height: 1 }))
+  const chunks = chunkPatch({ cells })
+  expect(chunks.map((c) => c.cells.length)).toEqual([1000, 1000, 500])
+  expect(chunkPatch({ cells: [] })).toHaveLength(1)
 })

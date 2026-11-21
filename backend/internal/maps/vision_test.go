@@ -95,3 +95,16 @@ func BenchmarkVisible64Radius20(b *testing.B) {
 		Visible(g, objs, Coord{32, 32}, 1.5, 20)
 	}
 }
+
+// BenchmarkVisible128 measures one viewer (radius 20) on the largest scene with scattered blockers.
+func BenchmarkVisible128(b *testing.B) {
+	g, _ := NewGrid(128, 128)
+	var objs []Object
+	for i := 0; i < 1500; i++ {
+		objs = append(objs, Object{ID: "o", Prefab: "tree", X: (i * 37) % 128, Z: (i * 61) % 128})
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Visible(g, objs, Coord{64, 64}, 1.5, 20)
+	}
+}

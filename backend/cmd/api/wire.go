@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/effects"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/items"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maptemplates"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/mcp"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
@@ -38,8 +40,8 @@ type deps struct {
 	systems     *systems.Registry
 	vision      *vision.Service
 	effects     *effects.Service
-	rolls       *rolls.Service // the instance that handles roll.keep, so hooks on it fire
-	scenes      *scenes.Service
+	rolls       *rolls.Service  // the instance that handles roll.keep, so hooks on it fire
+	scenes      *scenes.Service // the instance behind the scene routes, so template hooks on it fire
 	tokens      *tokens.Service
 	ambience    *ambience.Service
 }
@@ -64,9 +66,9 @@ func buildMux(pool *pgxpool.Pool) *http.ServeMux {
 // wireTable registers every game-table module; each module gets its own wireX function below.
 func wireTable(d deps) {
 	d.vision = vision.NewService(vision.NewStore(d.pool), scenes.NewService(scenes.NewStore(d.pool), d.hub), d.hub)
+	d.scenes = scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
 	d.effects = newEffects(d)
 	d.rolls = newRolls(d)
-	d.scenes = scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
 	d.tokens = newTokens(d)
 	d.ambience = newAmbience(d)
 	wireRounds(d)
@@ -95,6 +97,7 @@ func wireRounds(d deps) {
 func wireScenes(d deps) {
 	scenes.NewHandlers(d.scenes, d.campaigns).Register(d.mux)
 	scenes.RegisterCommands(d.hub, d.scenes)
+	maptemplates.RegisterHTTP(d.mux, d.campaigns.RequireGM)
 }
 
 func wireCharacters(d deps) {
@@ -179,7 +182,11 @@ func wireItems(d deps) {
 func newAmbience(d deps) *ambience.Service {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
-	return ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub)
+	svc := ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub)
+	d.scenes.OnTemplateAmbience(func(ctx context.Context, campaignID, sceneID, timeOfDay, weather string) error {
+		return svc.Set(ctx, campaignID, ambience.Ambience{SceneID: sceneID, TimeOfDay: timeOfDay, Weather: weather})
+	})
+	return svc
 }
 
 func wireAmbience(d deps) {

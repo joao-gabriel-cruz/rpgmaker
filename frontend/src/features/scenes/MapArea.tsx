@@ -109,7 +109,7 @@ function MapLayers({ campaignId, grid, objects, loot, tokens, userId, isGm, draw
   }, [placing, tokens, setPlacing])
   return (
     <>
-      <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
+      <TokenLayer grid={grid} objects={objects} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
         dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} onSelect={onSelect} onHold={onHold} />
       <OverlayProjector grid={grid} tokens={tokens.tokens} registry={overlays} />
       <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />

@@ -51,7 +51,7 @@ it('gives the gm the scene selector and the editor', async () => {
   camp.role = 'gm'
   renderApp('/campaigns/c1')
   await userEvent.click(await screen.findByRole('button', { name: 'Cenas' }))
-  expect(await screen.findByRole('button', { name: 'Criar cena' })).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Nova cena' })).toBeInTheDocument()
   expect(await screen.findByTestId('editor')).toBeInTheDocument()
   camp.role = 'player'
 })

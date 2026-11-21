@@ -13,13 +13,13 @@ import (
 // Allowed scene side length, in cells.
 const (
 	MinSize = 16
-	MaxSize = 64
+	MaxSize = 128
 )
 
 // Limits protecting the server from oversized scenes and requests.
 const (
 	maxNameLen = 80
-	maxObjects = 2000
+	maxObjects = 4000
 )
 
 // Errors returned by the service.
@@ -28,6 +28,8 @@ var (
 	ErrInvalidName  = errors.New("scenes: invalid name")
 	ErrInvalidSize  = errors.New("scenes: invalid size")
 	ErrInvalidPatch = errors.New("scenes: invalid patch")
+
+	ErrUnknownTemplate = errors.New("scenes: unknown template")
 
 	ErrTooManySnapshots = errors.New("scenes: too many snapshots")
 )

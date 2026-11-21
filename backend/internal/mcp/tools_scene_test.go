@@ -50,7 +50,7 @@ func TestCreateSceneFloorDoesNotPaintAndValidates(t *testing.T) {
 	for _, in := range []map[string]any{
 		{"name": " ", "width": 16, "depth": 16},
 		{"name": "x", "width": 8, "depth": 16},
-		{"name": "x", "width": 16, "depth": 65},
+		{"name": "x", "width": 16, "depth": 129},
 		{"name": "x", "width": 16, "depth": 16, "baseTerrain": "mud"},
 	} {
 		if text, isErr := callTool(t, r.t, r.j, "create_scene", in); !isErr || text == "" {

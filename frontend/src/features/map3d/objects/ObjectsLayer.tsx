@@ -16,7 +16,7 @@ export function ObjectsLayer({ grid, objects, onPick }: Props) {
   return (
     <group>
       <WallInstances walls={walls} grid={grid} onPick={onPick} />
-      {objects.map((o) => o.prefab !== 'wall' && <ObjectInstance key={o.id} obj={o} grid={grid} onPick={onPick} />)}
+      {objects.map((o) => o.prefab !== 'wall' && <ObjectInstance key={o.id} obj={o} grid={grid} objects={objects} onPick={onPick} />)}
     </group>
   )
 }

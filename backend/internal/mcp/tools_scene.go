@@ -16,14 +16,14 @@ import (
 
 const (
 	maxSceneNameLen = 80
-	minSceneSide    = 16
-	maxSceneSide    = 64
+	minSceneSide    = scenes.MinSize
+	maxSceneSide    = scenes.MaxSize
 )
 
 type createSceneInput struct {
 	Name        string `json:"name" jsonschema:"scene name, up to 80 characters"`
-	Width       int    `json:"width" jsonschema:"cells along x, 16-64"`
-	Depth       int    `json:"depth" jsonschema:"cells along z, 16-64"`
+	Width       int    `json:"width" jsonschema:"cells along x, 16-128"`
+	Depth       int    `json:"depth" jsonschema:"cells along z, 16-128"`
 	BaseTerrain string `json:"baseTerrain,omitempty" jsonschema:"terrain id for every cell, default floor"`
 }
 
@@ -55,7 +55,7 @@ func validateCreateScene(in createSceneInput) error {
 	}
 	for _, side := range []int{in.Width, in.Depth} {
 		if side < minSceneSide || side > maxSceneSide {
-			return newUserError("largura e profundidade devem ficar entre 16 e 64")
+			return newUserError("largura e profundidade devem ficar entre 16 e 128")
 		}
 	}
 	if in.BaseTerrain != "" {

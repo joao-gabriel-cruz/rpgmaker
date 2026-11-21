@@ -1,4 +1,4 @@
-import { applyPatch } from '../map3d/grid'
+import { applyPatch, type MapPatch } from '../map3d/grid'
 import { applyObjectPatch } from '../map3d/objects/model'
 import type { MapState, ObjectsEvent, PaintEvent } from './scenes'
 
@@ -14,4 +14,13 @@ export function applyRemoteObjects(state: MapState, sceneId: string, ev: Objects
   const fix = (o: (typeof add)[number]) => ({ ...o, props: o.props ?? {} })
   const patch = { add: add.map(fix), remove, update: update.map(fix) }
   return { ...state, objects: applyObjectPatch(state.objects, patch) }
+}
+
+/** Max cells per map.paint message: the socket read limit is 64 KB, so big strokes are split. */
+export const PAINT_CHUNK = 1000
+
+export function chunkPatch(patch: MapPatch): MapPatch[] {
+  const out: MapPatch[] = []
+  for (let i = 0; i < patch.cells.length; i += PAINT_CHUNK) out.push({ cells: patch.cells.slice(i, i + PAINT_CHUNK) })
+  return out.length ? out : [patch]
 }

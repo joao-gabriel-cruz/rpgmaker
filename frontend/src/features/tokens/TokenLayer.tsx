@@ -1,7 +1,9 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useState } from 'react'
 import { Vector2 } from 'three'
-import { getCell, surfaceHeight, type Coord, type MapGrid } from '../map3d/grid'
+import type { Coord, MapGrid } from '../map3d/grid'
+import { standHeight } from '../map3d/objects/bridge'
+import type { MapObject } from '../map3d/objects/model'
 import { useHold, type HoldPoint } from '../ambience/useTokenHold'
 import { CameraRig } from './CameraRig'
 import { PingMarkers } from './PingMarkers'
@@ -12,6 +14,8 @@ import type { SceneTokens } from './useSceneTokens'
 
 interface Props {
   grid: MapGrid
+  /** Scene objects: a bridge lifts the token to its deck. */
+  objects?: readonly MapObject[]
   tokens: SceneTokens
   userId: string
   isGm: boolean
@@ -111,7 +115,7 @@ function usePlaceClick(grid: MapGrid, onPlaceAt: ((c: Coord) => void) | null | u
 }
 
 /** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
-export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt, onSelect, onHold }: Props) {
+export function TokenLayer({ grid, objects, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt, onSelect, onHold }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
   const { drag, start } = useDrag(grid, onDrop)
@@ -130,18 +134,18 @@ export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragE
     <>
       {tokens.tokens.map((t) => {
         const at = drag?.id === t.id ? drag.at : t
-        const y = surfaceHeight(getCell(grid, at.x, at.z)?.height ?? 1)
+        const y = standHeight(grid, objects, at.x, at.z)
         return <TokenFigure key={t.id} token={t} x={at.x} z={at.z} y={y} dragging={drag?.id === t.id} onPointerDown={down(t)} />
       })}
-      {drag && <DropMarker grid={grid} at={drag.at} />}
+      {drag && <DropMarker grid={grid} objects={objects} at={drag.at} />}
       <PingMarkers grid={grid} pings={tokens.pings} />
       <CameraRig target={tokens.camera} view={tokens.view} />
     </>
   )
 }
 
-function DropMarker({ grid, at }: { grid: MapGrid; at: Coord }) {
-  const y = surfaceHeight(getCell(grid, at.x, at.z)?.height ?? 1)
+function DropMarker({ grid, objects, at }: { grid: MapGrid; objects?: readonly MapObject[]; at: Coord }) {
+  const y = standHeight(grid, objects, at.x, at.z)
   return (
     <mesh position={[at.x + 0.5, y + 0.06, at.z + 0.5]} raycast={() => null}>
       <boxGeometry args={[1, 0.08, 1]} />
