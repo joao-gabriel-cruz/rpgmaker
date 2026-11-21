@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func (f *fakeRepo) Replace(_ context.Context, c, u, hash string) (Link, error) {
 		f.revoked[old] = true
 	}
 	f.n++
-	l := Link{ID: string(rune('a' + f.n)), CampaignID: c, UserID: u, CreatedAt: time.Now()}
+	l := Link{ID: fmt.Sprintf("link-%d", f.n), CampaignID: c, UserID: u, CreatedAt: time.Now()}
 	f.byHash[hash], f.active[c+"|"+u] = l, hash
 	return l, nil
 }

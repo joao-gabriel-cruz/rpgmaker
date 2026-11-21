@@ -1,0 +1,80 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, expect, it, vi } from 'vitest'
+import { fakeRealtime } from '../../test/fakeRealtime'
+import { stubApi } from '../../test/renderApp'
+import { ClaudePanel } from './ClaudePanel'
+
+afterEach(() => vi.unstubAllGlobals())
+
+const change = (id: string, summary: string) => ({ id, sceneId: 's1', summary, at: new Date().toISOString() })
+
+function setup(opts: { exists?: boolean; changes?: unknown[] } = {}) {
+  const calls: string[] = []
+  stubApi((method, path) => {
+    calls.push(`${method} ${path}`)
+    if (path === '/campaigns/c1/mcp-link' && method === 'GET') return { status: 200, body: { exists: !!opts.exists, createdAt: '2026-01-01T00:00:00Z', lastUsedAt: null } }
+    if (path === '/campaigns/c1/mcp-link' && method === 'POST') return { status: 201, body: { url: 'https://x/api/mcp/secret123', createdAt: '' } }
+    if (path === '/campaigns/c1/mcp-link' && method === 'DELETE') return { status: 204 }
+    if (path === '/campaigns/c1/mcp-changes') return { status: 200, body: { changes: opts.changes ?? [] } }
+    return { status: 404, body: {} }
+  })
+  const rt = fakeRealtime()
+  const view = () => (
+    <QueryClientProvider client={client}>
+      <rt.Provider><ClaudePanel campaignId="c1" /></rt.Provider>
+    </QueryClientProvider>
+  )
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const utils = render(view())
+  return { calls, rt, utils, view, client }
+}
+
+it('shows the generated URL once and hides it after remount', async () => {
+  const { utils, view } = setup()
+  await userEvent.click(await screen.findByRole('button', { name: 'Gerar link' }))
+  expect(await screen.findByDisplayValue('https://x/api/mcp/secret123')).toBeInTheDocument()
+  expect(screen.getByText(/Ele só aparece agora/)).toBeInTheDocument()
+  utils.unmount()
+  render(view())
+  await screen.findByText('Mudanças recentes do Claude')
+  expect(screen.queryByDisplayValue('https://x/api/mcp/secret123')).not.toBeInTheDocument()
+})
+
+it('revokes the link with DELETE', async () => {
+  const { calls } = setup({ exists: true })
+  expect(await screen.findByText('Nunca usado')).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Revogar link' }))
+  await waitFor(() => expect(calls).toContain('DELETE /campaigns/c1/mcp-link'))
+})
+
+it('confirms before regenerating', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const { calls } = setup({ exists: true })
+  await userEvent.click(await screen.findByRole('button', { name: 'Gerar novo link' }))
+  expect(confirm).toHaveBeenCalledWith('O link atual vai parar de funcionar. Continuar?')
+  expect(calls).not.toContain('POST /campaigns/c1/mcp-link')
+  confirm.mockRestore()
+})
+
+it('updates the list on an mcp.changed event', async () => {
+  const { rt } = setup({ changes: [change('1', 'Pintou grama')] })
+  expect(await screen.findByText('Pintou grama')).toBeInTheDocument()
+  act(() => rt.emit('mcp.changed', { changes: [change('2', 'Trocou o clima'), change('1', 'Pintou grama')] }))
+  expect(await screen.findByText('Trocou o clima')).toBeInTheDocument()
+})
+
+it('shows the empty state', async () => {
+  setup()
+  expect(await screen.findByText('Nenhuma mudança ainda.')).toBeInTheDocument()
+})
+
+it('sends mcp.undo with the change id and surfaces errors', async () => {
+  const { rt } = setup({ changes: [change('7', 'Pintou grama')] })
+  await userEvent.click(await screen.findByRole('button', { name: 'Desfazer' }))
+  expect(rt.send).toHaveBeenCalledWith('mcp.undo', { changeId: '7' })
+  rt.send.mockRejectedValueOnce(new Error('Não dá para desfazer.'))
+  await userEvent.click(screen.getByRole('button', { name: 'Desfazer' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Não dá para desfazer.')
+})

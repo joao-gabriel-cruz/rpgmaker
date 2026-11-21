@@ -1,3 +1,4 @@
+// Package mcp serves the Mestre's MCP endpoint: tools that let Claude edit the live table.
 package mcp
 
 import (
@@ -22,12 +23,12 @@ func callToolAs(t *testing.T, tbl Table, j *Journal, s Session, name string, arg
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ss.Close()
+	defer func() { _ = ss.Close() }()
 	cs, err := sdk.NewClient(&sdk.Implementation{Name: "test", Version: "1"}, nil).Connect(ctx, ct, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cs.Close()
+	defer func() { _ = cs.Close() }()
 	res, err := cs.CallTool(ctx, &sdk.CallToolParams{Name: name, Arguments: args})
 	if err != nil {
 		t.Fatal(err)

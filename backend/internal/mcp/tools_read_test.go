@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"strings"
 	"testing"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 )
 
