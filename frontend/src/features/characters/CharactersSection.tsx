@@ -1,51 +1,54 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { useRealtime } from '../realtime/realtimeContext'
+import { ExternalLink } from 'lucide-react'
+import { Link } from 'react-router'
+import { HealthBar, Portrait, StateBadges, TugBar } from '../hotbar/HotbarStatus'
+import { useTableCharacter, useTableCharacterOptional } from '../hotbar/TableCharacterContext'
 import { charactersKey, createCharacter, useCharacters, type CharacterView } from './characters'
-
-const EVENTS = ['character.created', 'character.updated', 'character.deleted']
-
-function useLiveList(campaignId: string) {
-  const queryClient = useQueryClient()
-  const { subscribe } = useRealtime()
-  useEffect(() => {
-    const refresh = () => void queryClient.invalidateQueries({ queryKey: charactersKey(campaignId) })
-    const offs = EVENTS.map((t) => subscribe(t, refresh))
-    return () => offs.forEach((off) => off())
-  }, [subscribe, queryClient, campaignId])
-}
+import { vitalsOf } from '../hotbar/vitals'
+import { useLiveCharacters } from './useLiveCharacters'
 
 function useCreate(campaignId: string, kind: 'pc' | 'npc') {
-  const navigate = useNavigate()
+  const table = useTableCharacterOptional()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => createCharacter(campaignId, kind),
     onSuccess: (c) => {
       void queryClient.invalidateQueries({ queryKey: charactersKey(campaignId) })
-      navigate(`/campaigns/${campaignId}/characters/${c.id}`)
+      table?.openSheet(c.id)
     },
   })
+}
+
+function Card({ campaignId, c, showOwner }: { campaignId: string; c: CharacterView; showOwner: boolean }) {
+  const table = useTableCharacter()
+  const v = vitalsOf(c)
+  return (
+    <li className="relative rounded-xl bg-zinc-800/60 transition-colors hover:bg-zinc-800">
+      <button type="button" aria-pressed={table.sheetId === c.id} onClick={() => table.openSheet(c.id)}
+        className="flex w-full flex-col gap-2 rounded-xl px-3 py-2 text-left active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-emerald-400">
+        <span className="flex items-center gap-3 pr-7">
+          <Portrait character={c} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{c.name}</span>
+            {showOwner && <span className="block truncate text-xs text-zinc-400">{c.ownerName || 'Sem dono'}</span>}
+            <span className="flex gap-1"><StateBadges v={v} /></span>
+          </span>
+        </span>
+        <HealthBar v={v} />
+        <TugBar v={v} />
+      </button>
+      <Link to={`/campaigns/${campaignId}/characters/${c.id}`} aria-label={`Abrir ficha de ${c.name} em página`} title="Abrir em página"
+        className="absolute right-2 top-2 rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white focus-visible:outline-2 focus-visible:outline-emerald-400">
+        <ExternalLink size={14} aria-hidden />
+      </Link>
+    </li>
+  )
 }
 
 function CharacterList({ campaignId, list, empty, showOwner }: { campaignId: string; list: CharacterView[]; empty: string; showOwner: boolean }) {
   return (
     <ul className="flex flex-col gap-1.5">
-      {list.map((c) => (
-        <li key={c.id}>
-          <Link to={`/campaigns/${campaignId}/characters/${c.id}`}
-            className="flex items-center gap-3 rounded-xl bg-zinc-800/60 px-3 py-2 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-emerald-400">
-            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-sm font-semibold">
-              {c.name.trim().charAt(0).toUpperCase() || '?'}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{c.name}</span>
-              {showOwner && <span className="block truncate text-xs text-zinc-400">{c.ownerName || 'Sem dono'}</span>}
-            </span>
-            {c.derived && <span className="shrink-0 text-xs text-emerald-400">{c.derived.levelName}</span>}
-          </Link>
-        </li>
-      ))}
+      {list.map((c) => <Card key={c.id} campaignId={campaignId} c={c} showOwner={showOwner} />)}
       {list.length === 0 && <li className="text-sm text-zinc-400">{empty}</li>}
     </ul>
   )
@@ -66,7 +69,7 @@ function CreateButton({ campaignId, kind, label }: { campaignId: string; kind: '
 
 export function CharactersSection({ campaignId, isGm = false }: { campaignId: string; isGm?: boolean }) {
   const { data } = useCharacters(campaignId)
-  useLiveList(campaignId)
+  useLiveCharacters(campaignId)
   const list = Array.isArray(data) ? data : []
   const pcs = list.filter((c) => c.kind !== 'npc')
   const npcs = list.filter((c) => c.kind === 'npc')

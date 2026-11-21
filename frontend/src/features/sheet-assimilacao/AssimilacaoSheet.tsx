@@ -41,8 +41,8 @@ export function AssimilacaoSheet({ sheet, onChange, readOnly = false, issues, on
     setSelection({})
   }
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 text-zinc-100 lg:grid-cols-2">
-      <div className="lg:col-span-2"><IdentitySection {...common} /></div>
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 text-zinc-100 @3xl:grid-cols-2">
+      <div className="@3xl:col-span-2"><IdentitySection {...common} /></div>
       <div className="space-y-4">
         <AttributesSection {...common} selection={selection} rollable={rollable} onSelect={setSelection} />
         {rollable && <RollBar selection={selection} onRoll={roll} />}
@@ -51,7 +51,7 @@ export function AssimilacaoSheet({ sheet, onChange, readOnly = false, issues, on
         <TugOfWarSection {...common} />
         <HealthSection {...common} />
       </div>
-      <div className="lg:col-span-2"><InventorySection {...common} onDeposit={readOnly ? undefined : onDepositItem} onUse={onUseItem} /></div>
+      <div className="@3xl:col-span-2"><InventorySection {...common} onDeposit={readOnly ? undefined : onDepositItem} onUse={onUseItem} /></div>
       <CharacteristicsSection {...common} />
       <div className="space-y-4">
         <AssimilationsSection {...common} />

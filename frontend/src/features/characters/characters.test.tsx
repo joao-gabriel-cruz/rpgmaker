@@ -41,18 +41,20 @@ function stub(o: Opts = {}) {
 it('lists characters with owner and health level, and creates one', async () => {
   const { posts } = stub()
   renderApp('/campaigns/c1')
-  const link = await screen.findByRole('link', { name: /Rita/ })
-  expect(link).toHaveTextContent('Ana')
-  expect(link).toHaveTextContent('Saudável')
+  const card = await screen.findByRole('button', { name: /Rita/ })
+  expect(card).toHaveTextContent('Ana')
+  expect(card).toHaveTextContent('Saudável')
+  expect(screen.getByRole('link', { name: 'Abrir ficha de Rita em página' })).toHaveAttribute('href', '/campaigns/c1/characters/ch1')
   await userEvent.click(screen.getByRole('button', { name: 'Criar personagem' }))
   await waitFor(() => expect(posts).toHaveLength(1))
   expect(await screen.findByLabelText('Nome')).toHaveValue('Rita')
 })
 
-it('opens the sheet from the list and autosaves after the debounce', async () => {
+it('opens the sheet in the drawer from the Grupo card and autosaves after the debounce', async () => {
   const { puts } = stub()
   renderApp('/campaigns/c1')
-  await userEvent.click(await screen.findByRole('link', { name: /Rita/ }))
+  await userEvent.click((await screen.findAllByRole('button', { name: /Rita/ }))[0])
+  expect(screen.getByRole('complementary', { name: 'Ficha do personagem' })).toBeInTheDocument()
   const name = await screen.findByLabelText('Nome')
   await userEvent.type(name, '!')
   expect(screen.getByRole('status', { name: 'Estado do salvamento' })).toHaveTextContent('Salvando…')
