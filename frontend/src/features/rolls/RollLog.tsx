@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { useRealtime } from '../realtime/realtimeContext'
 import { modifiersText } from './modifiers'
 import { poolLabel, type FinalizedEvent, type RollEntry } from './rolls'
+import { AssignToObjective } from '../conflict/AssignToObjective'
 import { SymbolCounts } from './SymbolCounts'
 
 function useRollLog(campaignId: string, isGm: boolean) {
@@ -48,6 +49,7 @@ function Entry({ e }: { e: RollEntry }) {
       <p className="text-xs text-zinc-400">{poolLabel(e)}</p>
       {mods && <p className="text-xs text-amber-300">{mods}</p>}
       <Outcome e={e} />
+      {e.kind === 'assimilacao' && e.result && <AssignToObjective rollId={e.rollId} ownerId={e.userId} />}
     </li>
   )
 }

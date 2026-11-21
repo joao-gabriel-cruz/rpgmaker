@@ -24,7 +24,7 @@ export interface RollEntry {
   userName: string
   characterId: string | null
   characterName?: string
-  kind: 'assimilacao' | 'generic'
+  kind: 'assimilacao' | 'generic' | 'threat'
   visibility: Visibility
   status?: 'pending' | 'final'
   dice: RolledDie[]
@@ -55,7 +55,7 @@ const countOf = (e: RollEntry, kind: string) => e.dice.filter((d) => d.kind === 
 
 /** "Reação 2 + Atletismo 1" (or the expression of a generic roll). */
 export function poolLabel(e: RollEntry): string {
-  if (e.kind === 'generic') return e.expression ?? ''
+  if (e.kind === 'generic' || e.kind === 'threat') return e.expression ?? ''
   const { instinct, aptitude } = e.request ?? {}
   const parts: string[] = []
   if (instinct) parts.push(`${INSTINCT_LABELS[instinct]} ${countOf(e, e.dice.some((d) => d.kind === 'd12' && !d.difficulty) ? 'd12' : 'd6')}`)

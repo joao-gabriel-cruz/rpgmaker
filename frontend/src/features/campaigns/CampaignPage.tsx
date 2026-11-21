@@ -5,6 +5,8 @@ import { useMe } from '../auth/auth'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { MapArea } from '../scenes/MapArea'
 import { OnlinePanel } from '../realtime/OnlinePanel'
+import { ConflictProvider } from '../conflict/ConflictContext'
+import { ConflictPanel } from '../conflict/ConflictPanel'
 import { RollLog } from '../rolls/RollLog'
 import { RollTray } from '../rolls/RollTray'
 import { SessionBar } from '../sessions/SessionBar'
@@ -46,6 +48,15 @@ function Members({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   )
 }
 
+function MembersSection({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <h2 className="text-xl font-semibold">Membros</h2>
+      <Members campaignId={campaignId} isGm={isGm} />
+    </div>
+  )
+}
+
 export function CampaignPage() {
   const { id = '' } = useParams()
   const { data: campaign, isPending, isError } = useQuery({
@@ -80,24 +91,24 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
     <section className="flex flex-col gap-6">
       <Heading campaign={campaign} />
       <CampaignSocketProvider campaignId={id}>
+        <ConflictProvider campaignId={id} isGm={isGm}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <SessionBar campaignId={id} isGm={isGm} />
             <RoundTracker campaignId={id} isGm={isGm} />
             <OnlinePanel />
+            <ConflictPanel />
             <MapArea campaignId={id} isGm={isGm} />
             <CharactersSection campaignId={id} isGm={isGm} />
             <RefugeSection campaignId={id} isGm={isGm} />
-            <div className="flex flex-col gap-2">
-              <h2 className="text-xl font-semibold">Membros</h2>
-              <Members campaignId={id} isGm={isGm} />
-            </div>
+            <MembersSection campaignId={id} isGm={isGm} />
             {isGm && <SettingsPanel campaign={campaign} />}
             {isGm && <InvitePanel campaignId={id} />}
           </div>
           <RollLog campaignId={id} isGm={isGm} />
         </div>
         <RollTray />
+        </ConflictProvider>
       </CampaignSocketProvider>
     </section>
   )

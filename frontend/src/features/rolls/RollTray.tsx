@@ -5,6 +5,7 @@ import type { DieKind, DieResult } from '../dice3d/faces'
 import { useRealtime } from '../realtime/realtimeContext'
 import { modifiersText } from './modifiers'
 import type { FinalizedEvent, RollEntry, RollResult } from './rolls'
+import { AssignToObjective } from '../conflict/AssignToObjective'
 import { SymbolCounts } from './SymbolCounts'
 
 const toDice = (e: RollEntry): DieResult[] =>
@@ -21,6 +22,7 @@ function useActiveRoll() {
   useEffect(() => subscribe('roll.rolled', (p) => {
     const entry = p as RollEntry
     if (entry.kind === 'assimilacao') setActive({ entry })
+    if (entry.kind === 'threat') setActive({ entry, result: entry.result })
   }), [subscribe])
   useEffect(() => subscribe('roll.finalized', (p) => {
     const ev = p as FinalizedEvent
@@ -70,6 +72,7 @@ function Body({ active, onClose }: { active: Active; onClose: () => void }) {
         onToggle={toggle} onSettled={() => setSettled(true)} />
       {mods && <p className="text-xs text-amber-300">{mods}</p>}
       {result && <SymbolCounts result={result} />}
+      {result && entry.kind === 'assimilacao' && <AssignToObjective rollId={entry.rollId} ownerId={entry.userId} />}
       {!result && mine && settled && <Picker entry={entry} selected={selected} onConfirm={confirm} busy={busy} />}
       {!result && mine && !settled && <p className="text-sm text-zinc-400">Rolando…</p>}
       {!result && !mine && <p className="text-sm text-zinc-400">{entry.userName} está escolhendo…</p>}

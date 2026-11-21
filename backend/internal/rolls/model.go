@@ -29,6 +29,8 @@ const (
 var (
 	// ErrNotFound means the roll does not exist in the campaign.
 	ErrNotFound = errors.New("roll not found")
+	// ErrNotFinal means the roll has no settled symbols to use.
+	ErrNotFinal = errors.New("roll not final")
 )
 
 // Record is a stored roll with the names resolved for display.
