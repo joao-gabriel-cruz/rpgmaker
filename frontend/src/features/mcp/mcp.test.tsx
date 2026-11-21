@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { fakeRealtime } from '../../test/fakeRealtime'
 import { stubApi } from '../../test/renderApp'
+import { ToastSlot } from '../table/slots/ToastSlot'
+import { ClaudeChangeToast } from './ClaudeChangeToast'
 import { ClaudePanel } from './ClaudePanel'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -77,4 +79,38 @@ it('sends mcp.undo with the change id and surfaces errors', async () => {
   rt.send.mockRejectedValueOnce(new Error('Não dá para desfazer.'))
   await userEvent.click(screen.getByRole('button', { name: 'Desfazer' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Não dá para desfazer.')
+})
+
+function renderToast(isGm: boolean) {
+  const rt = fakeRealtime()
+  const client = new QueryClient()
+  render(<QueryClientProvider client={client}><rt.Provider>{isGm ? <ClaudeChangeToast /> : <ToastSlot isGm={false} />}</rt.Provider></QueryClientProvider>)
+  return rt
+}
+
+it('toast shows the latest change and undoes it', async () => {
+  const rt = renderToast(true)
+  const c = change('9', '14 células → Lava perto de (12,8)')
+  act(() => rt.emit('mcp.changed', { changes: [c], latest: c }))
+  expect(await screen.findByRole('status')).toHaveTextContent('Claude: 14 células → Lava perto de (12,8)')
+  await userEvent.click(screen.getByRole('button', { name: 'Desfazer' }))
+  expect(rt.send).toHaveBeenCalledWith('mcp.undo', { changeId: '9' })
+})
+
+it('toast stays closed without latest and closes when its change is undone', async () => {
+  const rt = renderToast(true)
+  act(() => rt.emit('mcp.changed', { changes: [change('1', 'a')] }))
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  const c = change('2', 'b')
+  act(() => rt.emit('mcp.changed', { changes: [c], latest: c }))
+  expect(await screen.findByRole('status')).toBeInTheDocument()
+  act(() => rt.emit('mcp.changed', { changes: [] }))
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+it('toast is not rendered for a non-GM slot', () => {
+  const rt = renderToast(false)
+  const c = change('3', 'c')
+  act(() => rt.emit('mcp.changed', { changes: [c], latest: c }))
+  expect(screen.queryByText(/Claude:/)).not.toBeInTheDocument()
 })
