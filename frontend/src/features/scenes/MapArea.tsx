@@ -8,6 +8,9 @@ import { GmPanel } from './GmPanel'
 import { SceneSelector } from './SceneSelector'
 import { activateScene, createScene, deleteScene, listScenes, renameScene } from './scenes'
 import { useLiveScene } from './useLiveScene'
+import { DrawingLayer } from '../drawings/DrawingLayer'
+import { DrawingToolbar } from '../drawings/DrawingToolbar'
+import { useDrawings } from '../drawings/useDrawings'
 import { TokenLayer } from '../tokens/TokenLayer'
 import { TokensPanel } from '../tokens/TokensPanel'
 import { useSceneTokens } from '../tokens/useSceneTokens'
@@ -43,10 +46,17 @@ interface WithTokens extends Pick<Live, 'paint' | 'editObjects'> {
 function SceneWithTokens({ campaignId, sceneId, isGm, state, paint, editObjects }: WithTokens) {
   const userId = useMe().data?.id ?? ''
   const tokens = useSceneTokens(campaignId, sceneId, state.grid)
-  const layer = <TokenLayer grid={state.grid} tokens={tokens} userId={userId} isGm={isGm} />
+  const draw = useDrawings(campaignId, sceneId, userId)
+  const layer = (
+    <>
+      <TokenLayer grid={state.grid} tokens={tokens} userId={userId} isGm={isGm} />
+      <DrawingLayer grid={state.grid} draw={draw} />
+    </>
+  )
   return (
     <>
       <TokensPanel campaignId={campaignId} tokens={tokens} userId={userId} isGm={isGm} />
+      <DrawingToolbar draw={draw} isGm={isGm} />
       <div className="h-[70vh] overflow-hidden rounded border border-zinc-800">
         {isGm
           ? <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects}>{layer}</TerrainEditor>
