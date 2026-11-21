@@ -19,6 +19,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/migrations"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/platform/database"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rounds"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 )
 
@@ -54,6 +55,7 @@ func run() error {
 	campaignHandlers.Register(mux)
 	hub := realtime.NewHub(realtime.Options{OriginPatterns: splitList(os.Getenv("WS_ALLOWED_ORIGINS"))})
 	hub.Register(mux, campaignHandlers.RequireMember)
+	rounds.Register(mux, hub, rounds.NewService(rounds.NewStore(pool)), campaignHandlers.RequireMember)
 
 	addr := ":" + envOr("PORT", "8080")
 	return serve(ctx, &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second})

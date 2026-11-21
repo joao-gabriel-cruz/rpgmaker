@@ -37,6 +37,8 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
     nunca bloqueia. Filtros: `ToAll`, `ToGM`, `ToUser(id)`, `Except(id)`, `Or(...)` ou qualquer `func(Sender) bool`.
   - Presença: evento `presence.updated {users:[{userId,displayName,role}]}`; `hub.Online(campaignID)`. `ping` → `pong`.
   - Registre handlers no wiring (`main`), antes de servir; tipo duplicado dá panic.
+- Rodadas (`internal/rounds`): comandos GMOnly `round.start|next|prev|end` → evento `round.updated {state:{active,round,phase}}` (ToAll); estado atual via `GET /api/campaigns/{id}/round`; persistido em `campaign_rounds`.
+  Gancho: `svc.OnPhaseChange(func(ctx, campaignID, prev, next rounds.State))` roda síncrono após persistir cada transição (ex.: efeitos de terreno "ao começar o turno"); registre antes de servir.
 - RNG de dados: `crypto/rand`.
 - Testes: `go test ./...`; testes de store/integração podem usar o Postgres do compose via
   `TEST_DATABASE_URL` e devem ser pulados (`t.Skip`) quando a variável não existir.

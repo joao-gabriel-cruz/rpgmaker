@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { useMe } from '../auth/auth'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { OnlinePanel } from '../realtime/OnlinePanel'
+import { RoundTracker } from '../rounds/RoundTracker'
 import { InvitePanel } from './InvitePanel'
 import { removeMember, roleLabel, type Campaign, type MemberInfo } from './campaigns'
 
@@ -66,6 +67,7 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
         <p className="text-sm text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
       </div>
       <CampaignSocketProvider campaignId={id}>
+        <RoundTracker campaignId={id} isGm={isGm} />
         <OnlinePanel />
       </CampaignSocketProvider>
       <div className="flex flex-col gap-2">
