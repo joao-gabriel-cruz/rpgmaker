@@ -11,6 +11,9 @@ import { RollLog } from '../rolls/RollLog'
 import { RollTray } from '../rolls/RollTray'
 import { SessionBar } from '../sessions/SessionBar'
 import { RoundTracker } from '../rounds/RoundTracker'
+import { AppliedToast } from '../effects/AppliedToast'
+import { PendingEffects } from '../effects/PendingEffects'
+import { RulesEditor } from '../effects/RulesEditor'
 import { CharactersSection } from '../characters/CharactersSection'
 import { RefugeSection } from '../refuge/RefugeSection'
 import { InvitePanel } from './InvitePanel'
@@ -95,19 +98,19 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <SessionBar campaignId={id} isGm={isGm} />
-            <RoundTracker campaignId={id} isGm={isGm} />
+            <RoundTracker campaignId={id} isGm={isGm} />{isGm && <PendingEffects campaignId={id} />}
             <OnlinePanel />
             <ConflictPanel />
             <MapArea campaignId={id} isGm={isGm} />
             <CharactersSection campaignId={id} isGm={isGm} />
             <RefugeSection campaignId={id} isGm={isGm} />
             <MembersSection campaignId={id} isGm={isGm} />
-            {isGm && <SettingsPanel campaign={campaign} />}
+            {isGm && <><RulesEditor campaignId={id} /><SettingsPanel campaign={campaign} /></>}
             {isGm && <InvitePanel campaignId={id} />}
           </div>
           <RollLog campaignId={id} isGm={isGm} />
         </div>
-        <RollTray />
+        <RollTray /><AppliedToast />
         </ConflictProvider>
       </CampaignSocketProvider>
     </section>

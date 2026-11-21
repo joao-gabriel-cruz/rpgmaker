@@ -10,6 +10,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/conflict"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/drawings"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/effects"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
@@ -32,6 +33,7 @@ type deps struct {
 	auth        *auth.Service
 	systems     *systems.Registry
 	vision      *vision.Service
+	effects     *effects.Service
 }
 
 func buildMux(pool *pgxpool.Pool) *http.ServeMux {
@@ -54,6 +56,7 @@ func buildMux(pool *pgxpool.Pool) *http.ServeMux {
 // wireTable registers every game-table module; each module gets its own wireX function below.
 func wireTable(d deps) {
 	d.vision = vision.NewService(vision.NewStore(d.pool), scenes.NewService(scenes.NewStore(d.pool), d.hub), d.hub)
+	d.effects = newEffects(d)
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
@@ -64,10 +67,13 @@ func wireTable(d deps) {
 	wireDrawings(d)
 	wireVision(d)
 	wireConflict(d)
+	wireEffects(d)
 }
 
 func wireRounds(d deps) {
-	rounds.Register(d.mux, d.hub, rounds.NewService(rounds.NewStore(d.pool)), d.campaigns.RequireMember)
+	svc := rounds.NewService(rounds.NewStore(d.pool))
+	svc.OnPhaseChange(d.effects.StartOfTurn)
+	rounds.Register(d.mux, d.hub, svc, d.campaigns.RequireMember)
 }
 
 func wireScenes(d deps) {
@@ -95,7 +101,7 @@ func wireSessions(d deps) {
 
 func wireTokens(d deps) {
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
-	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.vision.Tap())
+	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, effects.NewTap(d.vision.Tap(), d.effects))
 	svc.SetVisibility(d.vision)
 	tokens.Register(d.mux, svc, d.campaigns)
 	tokens.RegisterCommands(d.hub, svc)
@@ -124,4 +130,16 @@ func wireConflict(d deps) {
 	svc := conflict.NewService(conflict.NewStore(d.pool), rollSvc, chars, d.hub)
 	conflict.RegisterCommands(d.hub, svc)
 	conflict.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
+}
+
+func newEffects(d deps) *effects.Service {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	rollSvc := rolls.NewService(rolls.NewStore(d.pool), chars, sessions.NewService(sessions.NewStore(d.pool), d.hub), d.hub)
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	return effects.NewService(effects.NewStore(d.pool), sceneSvc, tokens.NewStore(d.pool), chars, rollSvc, d.hub)
+}
+
+func wireEffects(d deps) {
+	effects.RegisterHTTP(d.mux, d.effects, d.campaigns)
+	effects.RegisterCommands(d.hub, d.effects)
 }
