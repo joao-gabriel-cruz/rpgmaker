@@ -27,6 +27,10 @@ type Token struct {
 	Name        string          `json:"name"`
 	PortraitURL *string         `json:"portraitUrl"`
 	OwnerID     *string         `json:"ownerId"`
+	// Appearance is the character's miniature description (sheet.appearance), null when unset.
+	Appearance json.RawMessage `json:"appearance"`
+	// AssimilationLevel comes from sheet.tugOfWar; null for sheets without it (NPCs).
+	AssimilationLevel *int `json:"assimilationLevel"`
 }
 
 // Char is the character data the rules need.

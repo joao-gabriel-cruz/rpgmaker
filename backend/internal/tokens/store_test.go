@@ -83,6 +83,25 @@ func TestStoreRoundTrip(t *testing.T) {
 	}
 }
 
+func TestStoreAppearancePayload(t *testing.T) {
+	pool := testPool(t)
+	c := context.Background()
+	campID, scID, chID := seed(t, pool)
+	s := NewStore(pool)
+	tok, _ := s.Place(c, scID, chID, 1, 1)
+	if string(tok.Appearance) != "null" && tok.Appearance != nil || tok.AssimilationLevel != nil {
+		t.Fatalf("empty sheet: %s %v", tok.Appearance, tok.AssimilationLevel)
+	}
+	sheet := `{"appearance":{"hair":{"style":"long"}},"tugOfWar":{"assimilationLevel":7}}`
+	if _, err := pool.Exec(c, `UPDATE characters SET sheet = $2::jsonb WHERE id = $1`, chID, sheet); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := s.List(c, campID, scID)
+	if len(list) != 1 || string(list[0].Appearance) != `{"hair": {"style": "long"}}` || list[0].AssimilationLevel == nil || *list[0].AssimilationLevel != 7 {
+		t.Fatalf("list: %+v", list)
+	}
+}
+
 func scenes16() string {
 	b := make([]byte, 16*16*2)
 	for i := range b {

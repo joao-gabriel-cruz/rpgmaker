@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/appearance"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
@@ -152,6 +153,9 @@ func (s *Service) Save(ctx context.Context, m campaigns.Member, id string, sheet
 	}
 	if !canEdit(m, c) {
 		return View{}, ErrForbidden
+	}
+	if issues := appearance.Validate(sheet); len(issues) > 0 {
+		return View{}, &RejectedError{Issues: issues}
 	}
 	c.Sheet = sheet
 	c.Name, c.PortraitURL = identityOf(sheet)
