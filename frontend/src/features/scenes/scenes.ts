@@ -16,13 +16,42 @@ export interface SceneDto {
   id: string
   name: string
   grid: SerializedGrid
-  objects: (Omit<MapObject, 'props'> & { props?: MapObject['props'] })[] | null
+  objects: ObjectDto[] | null
+  draft?: { grid: SerializedGrid; objects: ObjectDto[] | null }
 }
+
+type ObjectDto = Omit<MapObject, 'props'> & { props?: MapObject['props'] }
 
 export interface MapState {
   grid: MapGrid
   objects: readonly MapObject[]
+  /** True while the Mestre edits a hidden draft (grid/objects are then the draft's). */
+  draft?: boolean
 }
+
+export interface SnapshotDto {
+  id: string
+  name: string
+  createdAt: string
+}
+
+export interface ReplacedEvent {
+  sceneId: string
+  grid: SerializedGrid
+  objects: ObjectDto[] | null
+}
+
+const withProps = (list: ObjectDto[] | null) => (list ?? []).map((o) => ({ ...o, props: o.props ?? {} }))
+
+export const replacedState = (ev: ReplacedEvent): MapState =>
+  ({ grid: deserializeGrid(ev.grid), objects: withProps(ev.objects), draft: false })
+
+export const listSnapshots = (campaignId: string, sceneId: string) =>
+  api.get<SnapshotDto[]>(`${base(campaignId)}/${sceneId}/snapshots`)
+export const saveSnapshot = (campaignId: string, sceneId: string, name: string) =>
+  api.post<SnapshotDto>(`${base(campaignId)}/${sceneId}/snapshots`, { name })
+export const deleteSnapshot = (campaignId: string, sceneId: string, id: string) =>
+  api.delete<void>(`${base(campaignId)}/${sceneId}/snapshots/${id}`)
 
 export const base = (campaignId: string) => `/campaigns/${campaignId}/scenes`
 
@@ -38,8 +67,8 @@ export const activateScene = (campaignId: string, id: string) =>
 // One GET carries grid + objects; props default to {} because the server omits empty maps.
 export async function loadScene(campaignId: string, id: string): Promise<MapState> {
   const dto = await api.get<SceneDto>(`${base(campaignId)}/${id}`)
-  const objects = (dto.objects ?? []).map((o) => ({ ...o, props: o.props ?? {} }))
-  return { grid: deserializeGrid(dto.grid), objects }
+  const src = dto.draft ?? dto
+  return { grid: deserializeGrid(src.grid), objects: withProps(src.objects), draft: !!dto.draft }
 }
 
 export interface PatchedEvent<P> {

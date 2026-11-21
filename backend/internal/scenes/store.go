@@ -16,13 +16,14 @@ type Store struct{ pool *pgxpool.Pool }
 // NewStore wraps a pgx pool.
 func NewStore(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
 
-const sceneCols = "id, campaign_id, name, width, depth, grid, objects, is_active, settings, created_at, updated_at"
+const sceneCols = "id, campaign_id, name, width, depth, grid, objects, draft_grid, draft_objects, is_active, settings, created_at, updated_at"
 
 func scanScene(row pgx.Row) (Scene, error) {
 	var s Scene
 	var data string
-	var objects []byte
-	err := row.Scan(&s.ID, &s.CampaignID, &s.Name, &s.Width, &s.Depth, &data, &objects, &s.IsActive,
+	var objects, draftObjects []byte
+	var draftGrid *string
+	err := row.Scan(&s.ID, &s.CampaignID, &s.Name, &s.Width, &s.Depth, &data, &objects, &draftGrid, &draftObjects, &s.IsActive,
 		&s.Settings, &s.CreatedAt, &s.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Scene{}, ErrNotFound
@@ -32,7 +33,14 @@ func scanScene(row pgx.Row) (Scene, error) {
 	}
 	s.Grid = maps.Serialized{Width: s.Width, Depth: s.Depth, Data: data}
 	s.Objects = []maps.Object{}
-	return s, json.Unmarshal(objects, &s.Objects)
+	if err := json.Unmarshal(objects, &s.Objects); err != nil {
+		return Scene{}, err
+	}
+	if draftGrid != nil {
+		s.Draft = &Draft{Grid: maps.Serialized{Width: s.Width, Depth: s.Depth, Data: *draftGrid}, Objects: []maps.Object{}}
+		return s, json.Unmarshal(draftObjects, &s.Draft.Objects)
+	}
+	return s, nil
 }
 
 // Create inserts an inactive scene.

@@ -20,6 +20,11 @@ const (
 	EventListChanged    = "scenes.changed"
 	EventPatched        = "map.patched"
 	EventObjectsPatched = "map.objects.patched"
+
+	EventReplaced            = "map.replaced"
+	EventDraftPatched        = "map.draft.patched"
+	EventDraftObjectsPatched = "map.draft.objects.patched"
+	EventDraftChanged        = "map.draft.changed"
 )
 
 // Notifier is the part of the realtime hub the service needs.
@@ -99,6 +104,9 @@ func (s *Service) Get(ctx context.Context, campaignID, id, role string) (Scene, 
 	}
 	if role != campaigns.RoleGM && !sc.IsActive {
 		return Scene{}, ErrNotFound
+	}
+	if role != campaigns.RoleGM {
+		sc.Draft = nil
 	}
 	return sc, nil
 }

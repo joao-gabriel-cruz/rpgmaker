@@ -1,18 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TerrainEditor } from '../map3d/TerrainEditor'
 import { TerrainView } from '../map3d/TerrainView'
 import { useRealtime } from '../realtime/realtimeContext'
+import { GmPanel } from './GmPanel'
 import { SceneSelector } from './SceneSelector'
 import { activateScene, createScene, deleteScene, listScenes, renameScene } from './scenes'
 import { useLiveScene } from './useLiveScene'
 
 function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneId: string; isGm: boolean }) {
-  const { state, error, paint, editObjects } = useLiveScene(campaignId, sceneId)
+  const { state, error, paint, editObjects, command, replacedAt } = useLiveScene(campaignId, sceneId)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    // Short fade/scale-in so a map.replaced does not look like a glitch.
+    if (replacedAt) box.current?.animate?.([{ opacity: 0.2, transform: 'scale(0.97)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 400, easing: 'ease-out' })
+  }, [replacedAt])
   return (
     <div className="flex flex-col gap-1">
       {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-      <div className="h-[70vh] overflow-hidden rounded border border-zinc-800">
+      {isGm && state && <GmPanel campaignId={campaignId} sceneId={sceneId} draft={!!state.draft} onCommand={command} />}
+      <div ref={box} className="h-[70vh] overflow-hidden rounded border border-zinc-800">
         {!state && !error && <p className="p-4 text-zinc-400">Carregando mapa…</p>}
         {state && isGm && <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects} />}
         {state && !isGm && <TerrainView grid={state.grid} objects={state.objects} />}

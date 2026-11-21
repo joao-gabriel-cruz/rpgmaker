@@ -3,11 +3,38 @@ import { applyPatch, type MapPatch } from '../map3d/grid'
 import { applyObjectPatch, type ObjectPatch } from '../map3d/objects/model'
 import { useRealtime } from '../realtime/realtimeContext'
 import { applyRemoteObjects, applyRemotePaint } from './remote'
-import { loadScene, type MapState, type ObjectsEvent, type PaintEvent } from './scenes'
+import { loadScene, replacedState, type MapState, type ObjectsEvent, type PaintEvent, type ReplacedEvent } from './scenes'
+
+function useSceneEvents(sceneId: string, setState: Dispatch<SetStateAction<MapState | null>>, reload: () => void, onReplaced: () => void) {
+  const { subscribe } = useRealtime()
+  useEffect(() => {
+    // Draft patches (other Mestre sessions only) share the shape of the real ones.
+    const paint = (p: unknown) => setState((s) => s && applyRemotePaint(s, sceneId, p as PaintEvent))
+    const objs = (p: unknown) => setState((s) => s && applyRemoteObjects(s, sceneId, p as ObjectsEvent))
+    const offs = [subscribe('map.patched', paint), subscribe('map.draft.patched', paint),
+      subscribe('map.objects.patched', objs), subscribe('map.draft.objects.patched', objs)]
+    // Draft started/discarded elsewhere: refetch which layer we are looking at.
+    const offDraft = subscribe('map.draft.changed', (p) => {
+      if ((p as { sceneId?: string })?.sceneId === sceneId) reload()
+    })
+    const offReplaced = subscribe('map.replaced', (p) => {
+      const ev = p as ReplacedEvent
+      if (ev?.sceneId !== sceneId || !ev.grid) return
+      setState(replacedState(ev))
+      onReplaced()
+    })
+    return () => {
+      offs.forEach((off) => off())
+      offDraft()
+      offReplaced()
+    }
+  }, [subscribe, sceneId, setState, reload, onReplaced])
+}
 
 function useRemoteSync(campaignId: string, sceneId: string, setState: Dispatch<SetStateAction<MapState | null>>) {
-  const { subscribe, status } = useRealtime()
+  const { status } = useRealtime()
   const [error, setError] = useState('')
+  const [replacedAt, setReplacedAt] = useState(0)
   const wasOpen = useRef(false)
 
   const reload = useCallback(() => {
@@ -23,24 +50,16 @@ function useRemoteSync(campaignId: string, sceneId: string, setState: Dispatch<S
     if (status === 'open') wasOpen.current = true
   }, [status, reload])
 
-  useEffect(() => {
-    const offPaint = subscribe('map.patched', (p) =>
-      setState((s) => s && applyRemotePaint(s, sceneId, p as PaintEvent)))
-    const offObjects = subscribe('map.objects.patched', (p) =>
-      setState((s) => s && applyRemoteObjects(s, sceneId, p as ObjectsEvent)))
-    return () => {
-      offPaint()
-      offObjects()
-    }
-  }, [subscribe, sceneId, setState])
-  return { error, setError, reload }
+  const bump = useCallback(() => setReplacedAt((n) => n + 1), [])
+  useSceneEvents(sceneId, setState, reload, bump)
+  return { error, setError, reload, replacedAt }
 }
 
 /** Loads a scene (grid + objects in one GET) and keeps it live; the Mestre's edits are optimistic. */
 export function useLiveScene(campaignId: string, sceneId: string) {
   const { send } = useRealtime()
   const [state, setState] = useState<MapState | null>(null)
-  const { error, setError, reload } = useRemoteSync(campaignId, sceneId, setState)
+  const { error, setError, reload, replacedAt } = useRemoteSync(campaignId, sceneId, setState)
 
   const fail = useCallback((e: unknown) => {
     setError(e instanceof Error ? e.message : 'Não foi possível salvar a alteração.')
@@ -57,5 +76,10 @@ export function useLiveScene(campaignId: string, sceneId: string) {
     send('map.objects', { sceneId, patch }).catch(fail)
   }, [send, sceneId, fail])
 
-  return { state, error, paint, editObjects }
+  // Draft and snapshot commands only change state through the events the server sends back.
+  const command = useCallback((type: string, extra: object = {}) => {
+    send(type, { sceneId, ...extra }).catch(fail)
+  }, [send, sceneId, fail])
+
+  return { state, error, paint, editObjects, command, replacedAt }
 }

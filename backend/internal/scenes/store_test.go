@@ -88,3 +88,41 @@ func saveAndDelete(t *testing.T, s *Store, campID, aID, bID string) {
 		t.Errorf("deleted: %v", err)
 	}
 }
+
+func TestStoreDraftAndSnapshots(t *testing.T) {
+	s, campID := testStore(t)
+	c := context.Background()
+	a, _ := s.Create(c, campID, "A", 16, 16, "0100")
+	d := &Draft{Grid: maps.Serialized{Width: 16, Depth: 16, Data: "2a"}, Objects: []maps.Object{{ID: "v", Prefab: "wall", X: 1, Z: 1}}}
+	if err := s.SaveDraft(c, a.ID, d); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.Get(c, campID, a.ID)
+	if got.Draft == nil || got.Draft.Grid.Data != "2a" || len(got.Draft.Objects) != 1 || got.Grid.Data != "0100" {
+		t.Fatalf("draft: %+v", got)
+	}
+	sn, err := s.CreateSnapshot(c, a.ID, "erupção", "0100", got.Objects)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Replace(c, a.ID, "2a", d.Objects); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.Get(c, campID, a.ID)
+	if got.Draft != nil || got.Grid.Data != "2a" || len(got.Objects) != 1 {
+		t.Errorf("replace: %+v", got)
+	}
+	checkSnapshot(t, s, a.ID, sn)
+	_ = s.DeleteSnapshot(c, a.ID, sn.ID)
+	if _, err := s.GetSnapshot(c, a.ID, sn.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("deleted snapshot: %v", err)
+	}
+}
+
+func checkSnapshot(t *testing.T, s *Store, sceneID string, sn Snapshot) {
+	t.Helper()
+	data, err := s.GetSnapshot(context.Background(), sceneID, sn.ID)
+	if err != nil || data.Grid != "0100" || data.Name != "erupção" {
+		t.Errorf("snapshot: %+v %v", data, err)
+	}
+}

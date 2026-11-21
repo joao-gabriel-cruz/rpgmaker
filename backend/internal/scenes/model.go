@@ -28,6 +28,8 @@ var (
 	ErrInvalidName  = errors.New("scenes: invalid name")
 	ErrInvalidSize  = errors.New("scenes: invalid size")
 	ErrInvalidPatch = errors.New("scenes: invalid patch")
+
+	ErrTooManySnapshots = errors.New("scenes: too many snapshots")
 )
 
 // Scene is a full scene as returned by GET (grid + objects in one payload).
@@ -40,9 +42,31 @@ type Scene struct {
 	Grid       maps.Serialized `json:"grid"`
 	Objects    []maps.Object   `json:"objects"`
 	IsActive   bool            `json:"isActive"`
+	Draft      *Draft          `json:"draft,omitempty"`
 	Settings   json.RawMessage `json:"settings"`
 	CreatedAt  time.Time       `json:"createdAt"`
 	UpdatedAt  time.Time       `json:"updatedAt"`
+}
+
+// Draft is the Mestre's hidden working copy of a scene; players never receive it.
+type Draft struct {
+	Grid    maps.Serialized `json:"grid"`
+	Objects []maps.Object   `json:"objects"`
+}
+
+// Snapshot is a named saved state of a scene (terrain + objects).
+type Snapshot struct {
+	ID        string    `json:"id"`
+	SceneID   string    `json:"sceneId"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// SnapshotData is a snapshot with its payload.
+type SnapshotData struct {
+	Snapshot
+	Grid    string
+	Objects []maps.Object
 }
 
 // Summary is a scene without its heavy data, for listings.
@@ -71,4 +95,12 @@ type Repo interface {
 	Activate(ctx context.Context, campaignID, id string) error
 	SaveGrid(ctx context.Context, id, grid string) error
 	SaveObjects(ctx context.Context, id string, objects []maps.Object) error
+	// SaveDraft stores the draft (nil clears it).
+	SaveDraft(ctx context.Context, id string, d *Draft) error
+	// Replace overwrites the real grid+objects and clears the draft atomically.
+	Replace(ctx context.Context, id, grid string, objects []maps.Object) error
+	CreateSnapshot(ctx context.Context, sceneID, name, grid string, objects []maps.Object) (Snapshot, error)
+	ListSnapshots(ctx context.Context, sceneID string) ([]Snapshot, error)
+	GetSnapshot(ctx context.Context, sceneID, id string) (SnapshotData, error)
+	DeleteSnapshot(ctx context.Context, sceneID, id string) error
 }
