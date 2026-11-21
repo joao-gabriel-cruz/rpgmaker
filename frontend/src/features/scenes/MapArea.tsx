@@ -14,6 +14,9 @@ import { useDrawings } from '../drawings/useDrawings'
 import { TokenLayer } from '../tokens/TokenLayer'
 import { TokensPanel } from '../tokens/TokensPanel'
 import { useSceneTokens } from '../tokens/useSceneTokens'
+import { FogPanel } from '../vision/FogPanel'
+import { useShownTokens, useVision } from '../vision/useVision'
+import { VisionLayers } from '../vision/VisionLayers'
 import type { MapState } from './scenes'
 
 function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneId: string; isGm: boolean }) {
@@ -45,16 +48,19 @@ interface WithTokens extends Pick<Live, 'paint' | 'editObjects'> {
 
 function SceneWithTokens({ campaignId, sceneId, isGm, state, paint, editObjects }: WithTokens) {
   const userId = useMe().data?.id ?? ''
-  const tokens = useSceneTokens(campaignId, sceneId, state.grid)
+  const vision = useVision(campaignId, sceneId, state.grid, isGm)
+  const tokens = useShownTokens(useSceneTokens(campaignId, sceneId, state.grid), vision, state.grid, userId, isGm)
   const draw = useDrawings(campaignId, sceneId, userId)
   const layer = (
     <>
       <TokenLayer grid={state.grid} tokens={tokens} userId={userId} isGm={isGm} />
       <DrawingLayer grid={state.grid} draw={draw} />
+      <VisionLayers grid={state.grid} vision={vision} isGm={isGm} />
     </>
   )
   return (
     <>
+      {isGm && <FogPanel vision={vision} />}
       <TokensPanel campaignId={campaignId} tokens={tokens} userId={userId} isGm={isGm} />
       <DrawingToolbar draw={draw} isGm={isGm} />
       <div className="h-[70vh] overflow-hidden rounded border border-zinc-800">

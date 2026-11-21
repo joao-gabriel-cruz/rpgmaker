@@ -18,6 +18,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/sessions"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/vision"
 )
 
 // deps carries the shared building blocks that table modules wire themselves onto.
@@ -29,6 +30,7 @@ type deps struct {
 	campaignSvc *campaigns.Service
 	auth        *auth.Service
 	systems     *systems.Registry
+	vision      *vision.Service
 }
 
 func buildMux(pool *pgxpool.Pool) *http.ServeMux {
@@ -50,6 +52,7 @@ func buildMux(pool *pgxpool.Pool) *http.ServeMux {
 
 // wireTable registers every game-table module; each module gets its own wireX function below.
 func wireTable(d deps) {
+	d.vision = vision.NewService(vision.NewStore(d.pool), scenes.NewService(scenes.NewStore(d.pool), d.hub), d.hub)
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
@@ -58,6 +61,7 @@ func wireTable(d deps) {
 	wireTokens(d)
 	wireRefuge(d)
 	wireDrawings(d)
+	wireVision(d)
 }
 
 func wireRounds(d deps) {
@@ -65,7 +69,7 @@ func wireRounds(d deps) {
 }
 
 func wireScenes(d deps) {
-	svc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	svc := scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
 	scenes.NewHandlers(svc, d.campaigns).Register(d.mux)
 	scenes.RegisterCommands(d.hub, svc)
 }
@@ -89,7 +93,8 @@ func wireSessions(d deps) {
 
 func wireTokens(d deps) {
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
-	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.hub)
+	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.vision.Tap())
+	svc.SetVisibility(d.vision)
 	tokens.Register(d.mux, svc, d.campaigns)
 	tokens.RegisterCommands(d.hub, svc)
 }
@@ -104,4 +109,9 @@ func wireDrawings(d deps) {
 	svc := drawings.NewService(drawings.NewStore(d.pool), sceneSvc, d.hub)
 	drawings.Register(d.mux, svc, d.campaigns)
 	drawings.RegisterCommands(d.hub, svc)
+}
+
+func wireVision(d deps) {
+	vision.RegisterHTTP(d.mux, d.vision, d.campaigns)
+	vision.RegisterCommands(d.hub, d.vision)
 }
