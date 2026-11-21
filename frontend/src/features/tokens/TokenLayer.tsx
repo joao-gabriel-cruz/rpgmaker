@@ -18,6 +18,8 @@ interface Props {
   pingTool?: boolean
   /** Tokens can be dragged (false while painting or measuring, so gestures never collide). */
   dragEnabled?: boolean
+  /** A character armed in the Tokens tool: the next click on a map cell places its token there. */
+  onPlaceAt?: ((c: Coord) => void) | null
 }
 
 interface Drag {
@@ -80,14 +82,38 @@ function useAltPing(grid: MapGrid, ping: (x: number, z: number) => void, always:
   }, [dom, camera, grid, ndc, ping, always])
 }
 
+// While armed, a plain click picks the cell for the new token (capture keeps the editor from also acting).
+function usePlaceClick(grid: MapGrid, onPlaceAt: ((c: Coord) => void) | null | undefined) {
+  const dom = useThree((s) => s.gl.domElement)
+  const camera = useThree((s) => s.camera)
+  const ndc = useNdc()
+  useEffect(() => {
+    if (!onPlaceAt) return
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0 || e.altKey) return
+      e.stopPropagation()
+      const c = pickCell(grid, ndc(e), camera)
+      if (c) onPlaceAt(c)
+    }
+    const prev = dom.style.cursor
+    dom.style.cursor = 'crosshair'
+    dom.addEventListener('pointerdown', down, true)
+    return () => {
+      dom.style.cursor = prev
+      dom.removeEventListener('pointerdown', down, true)
+    }
+  }, [dom, camera, grid, ndc, onPlaceAt])
+}
+
 /** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
-export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true }: Props) {
+export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
   const { drag, start } = useDrag(grid, onDrop)
   useAltPing(grid, ping, pingTool)
+  usePlaceClick(grid, onPlaceAt)
   const down = (t: Token) => (e: ThreeEvent<PointerEvent>) => {
-    if (!dragEnabled || pingTool || e.button !== 0 || e.altKey || !canMoveToken(t, userId, isGm)) return
+    if (!dragEnabled || pingTool || onPlaceAt || e.button !== 0 || e.altKey || !canMoveToken(t, userId, isGm)) return
     e.stopPropagation()
     start(t)
   }

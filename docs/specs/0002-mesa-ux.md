@@ -107,3 +107,15 @@ Mobile (desktop-first, só não pode quebrar em tablet), temas claros, novas reg
 2. **Hotbar, compositor de rolagem e ficha em drawer** — depende de 1.
 3. **Ferramentas do Mestre no painel de opções** — terreno/objetos/muro/névoa/tokens/rascunho
    saindo das barras empilhadas para a rail + painel; controles de câmera — depende de 1.
+
+## Notas da entrega 3 (ferramentas do Mestre)
+
+- **Atalhos novos** (listados no diálogo `?`): Terreno `1–6` (pintar, subir, descer, altura, preencher, apagar) e Objetos `1–3`
+  (colocar, selecionar, remover) — as letras ficam com a rail e a câmera; `Shift+R` gira o objeto e `−`/`+` mudam o pincel
+  (como antes). Câmera, para todos: `C` centralizar no mapa, `H` no meu token, `Z`/`X` aproximar/afastar, `Q`/`E` girar 90°,
+  `U` visão de cima. `Ctrl/⌘+Z` desfaz e `Shift+Ctrl/⌘+Z` (ou `Ctrl+Y`) refaz.
+- **Desfazer/refazer** é do cliente e só da sessão atual: cada traço do pincel (até soltar o mouse) e cada operação de objetos
+  vira um passo; o patch inverso sai pelos mesmos comandos `map.paint`/`map.objects`. Edições de outras pessoas não entram na
+  pilha (desfazer pode sobrescrever uma edição alheia na mesma célula).
+- **Tokens:** "Colocar" arma o personagem e o próximo clique no mapa o posiciona (o servidor recusa células inválidas);
+  o botão de varinha mantém o posicionamento automático.

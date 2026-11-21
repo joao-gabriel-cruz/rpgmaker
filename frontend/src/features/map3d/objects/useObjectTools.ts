@@ -9,6 +9,9 @@ interface Wall {
   to: Coord
 }
 
+/** Selected object id kept outside (the table shows its panel next to the rail). */
+export type Selection = [string | null, (id: string | null) => void]
+
 export type ObjectPatchHandler = (patch: ObjectPatch) => void
 
 // Click/drag behaviour of the object tools (place, wall, select, remove).
@@ -17,8 +20,10 @@ export function useObjectTools(
   objects: readonly MapObject[],
   state: ToolState,
   emit: ObjectPatchHandler,
+  selection?: Selection,
 ) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const own = useState<string | null>(null)
+  const [selectedId, setSelectedId] = selection ?? own
   const [wall, setWall] = useState<Wall | null>(null)
   const send = (patch: ObjectPatch) => !isEmptyPatch(patch) && emit(patch)
 
