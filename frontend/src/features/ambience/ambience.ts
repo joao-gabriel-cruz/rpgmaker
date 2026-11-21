@@ -72,6 +72,12 @@ export function atmosphereFor(time: TimeOfDay, weather: Weather): AtmospherePara
   }
 }
 
+/** The camera frames big maps from farther away, so fog distances grow with the map side (1x up to 20 cells). */
+export function scaleFog(p: AtmosphereParams, side: number): AtmosphereParams {
+  const k = Math.max(1, side / 20)
+  return { ...p, fogNear: p.fogNear * k, fogFar: p.fogFar * k }
+}
+
 /** Weather that makes a rain-like sound bed. */
 export const isWet = (w: Weather) => w === 'rain' || w === 'storm'
 

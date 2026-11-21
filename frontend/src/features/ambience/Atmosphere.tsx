@@ -4,7 +4,7 @@ import { AmbientLight, Color, DirectionalLight, Fog } from 'three'
 import type { MapGrid } from '../map3d/grid'
 import type { MapObject } from '../map3d/objects/model'
 import type { Token } from '../tokens/tokens'
-import { atmosphereFor, LIGHT_MIN_DARKNESS, type Ambience } from './ambience'
+import { atmosphereFor, LIGHT_MIN_DARKNESS, scaleFog, type Ambience } from './ambience'
 import { lightPoints } from './lightPoints'
 import { LightSources } from './LightSources'
 import { Precipitation } from './Precipitation'
@@ -57,7 +57,8 @@ export function Atmosphere({ ambience, grid, tokens, objects, neutral }: Props) 
   const reduced = useReducedMotion()
   const time = neutral ? 'day' : ambience.timeOfDay
   const weather = neutral ? 'clear' : ambience.weather
-  const target = useMemo(() => atmosphereFor(time, weather), [time, weather])
+  const side = Math.max(grid.width, grid.depth)
+  const target = useMemo(() => scaleFog(atmosphereFor(time, weather), side), [time, weather, side])
   const flash = useLightning(weather, reduced)
   const { ambient, sun, level } = useEasing(target, flash)
   const points = useMemo(() => (target.darkness >= LIGHT_MIN_DARKNESS ? lightPoints(grid, tokens, objects) : []), [target.darkness, grid, tokens, objects])

@@ -43,14 +43,23 @@ func (h *Handlers) list(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) create(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Name  string `json:"name"`
-		Width int    `json:"width"`
-		Depth int    `json:"depth"`
+		Name       string `json:"name"`
+		Width      int    `json:"width"`
+		Depth      int    `json:"depth"`
+		TemplateID string `json:"templateId"`
+		Seed       int64  `json:"seed"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
-	sc, err := h.svc.Create(r.Context(), r.PathValue("id"), in.Name, in.Width, in.Depth)
+	campaignID := r.PathValue("id")
+	var sc Scene
+	var err error
+	if in.TemplateID != "" {
+		sc, err = h.svc.CreateFromTemplate(r.Context(), campaignID, in.Name, in.TemplateID, in.Seed)
+	} else {
+		sc, err = h.svc.Create(r.Context(), campaignID, in.Name, in.Width, in.Depth)
+	}
 	if err != nil {
 		fail(w, err)
 		return
@@ -110,8 +119,10 @@ func fail(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "Limite de estados salvos desta cena atingido")
 	case errors.Is(err, ErrInvalidName):
 		writeError(w, http.StatusBadRequest, "Informe um nome para a cena (até 80 caracteres)")
+	case errors.Is(err, ErrUnknownTemplate):
+		writeError(w, http.StatusBadRequest, "Modelo de mapa não encontrado")
 	case errors.Is(err, ErrInvalidSize):
-		writeError(w, http.StatusBadRequest, "O tamanho da cena deve ser de 16 a 64 células por lado")
+		writeError(w, http.StatusBadRequest, "O tamanho da cena deve ser de 16 a 128 células por lado")
 	default:
 		slog.Error("scenes request failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "Erro interno. Tente novamente")

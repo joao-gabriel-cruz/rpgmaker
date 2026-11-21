@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { createGrid } from '../map3d/grid'
 import type { MapObject } from '../map3d/objects/model'
 import { applyCharacter, type Token } from '../tokens/tokens'
-import { atmosphereFor, isAmbience, LIGHT_MIN_DARKNESS } from './ambience'
+import { atmosphereFor, isAmbience, LIGHT_MIN_DARKNESS, scaleFog } from './ambience'
 import { autoConditions, conditionsOf } from './conditions'
 import { lightPoints, MAX_LIGHTS } from './lightPoints'
 import { hasLightSource } from './lightSource'
@@ -75,4 +75,11 @@ it('tokens mirror conditions and inventory from character.updated', () => {
   const out = applyCharacter([tok('a', 1, 1)], { id: 'ca', sheet: { conditions: ['hidden'], inventory: { body: [item('Tocha')], backpack: [] } } })
   expect(conditionsOf(out[0].status)).toEqual(['hidden'])
   expect(hasLightSource(out[0].status)).toBe(true)
+})
+
+it('pushes the fog out for big maps and leaves small ones alone', () => {
+  const fog = atmosphereFor('day', 'fog')
+  expect(scaleFog(fog, 16).fogFar).toBe(fog.fogFar)
+  expect(scaleFog(fog, 96).fogFar).toBeCloseTo(fog.fogFar * 4.8)
+  expect(scaleFog(fog, 96).fogNear).toBeGreaterThan(fog.fogNear)
 })
