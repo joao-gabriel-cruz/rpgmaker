@@ -8,10 +8,12 @@ import { Layout } from './features/auth/Layout'
 import { LoginPage } from './features/auth/LoginPage'
 import { DiceDemo } from './features/dice3d/DiceDemo'
 import { MapDemo } from './features/map3d/MapDemo'
+import { SheetDemo } from './features/sheet-assimilacao/SheetDemo'
 
 export default function App() {
   if (location.search.includes('map-demo')) return <MapDemo />
   if (location.search.includes('dice-demo')) return <DiceDemo />
+  if (location.search.includes('sheet-demo')) return <SheetDemo />
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
