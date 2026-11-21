@@ -42,15 +42,15 @@ func getTable(ctx context.Context, t Table, s Session) (*sdk.CallToolResult, any
 		return textResult("Nenhuma cena está ativa. Use list_scenes para ver as cenas disponíveis."), nil, nil
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, toolError(err)
 	}
 	v, err := tableView(ctx, t, s, sc)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, toolError(err)
 	}
 	text, err := RenderTable(v)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, toolError(err)
 	}
 	return textResult(text), nil, nil
 }
@@ -58,7 +58,7 @@ func getTable(ctx context.Context, t Table, s Session) (*sdk.CallToolResult, any
 func listScenes(ctx context.Context, t Table, s Session) (*sdk.CallToolResult, any, error) {
 	list, err := t.Scenes.List(ctx, s.CampaignID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, toolError(err)
 	}
 	if len(list) == 0 {
 		return textResult("Esta campanha ainda não tem cenas."), nil, nil

@@ -78,3 +78,6 @@ func userMessage(err error) (string, bool) {
 	}
 	return "", false
 }
+
+// UserMessage returns the PT-BR message of an error built with UserError.
+func UserMessage(err error) (string, bool) { return userMessage(err) }

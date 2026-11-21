@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"errors"
 	"sort"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
@@ -47,10 +46,10 @@ func Rasterize(s Shape, w, d int) ([]maps.Coord, error) {
 		out = append(out, c)
 	}
 	if len(out) == 0 {
-		return nil, errors.New("a forma fica toda fora do mapa")
+		return nil, newUserError("a forma fica toda fora do mapa")
 	}
 	if len(out) > maxShapeCells {
-		return nil, errors.New("a forma cobre mais de 4096 células; use uma área menor")
+		return nil, newUserError("a forma cobre mais de 4096 células; use uma área menor")
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Z != out[j].Z {
@@ -72,15 +71,15 @@ func shapePoints(s Shape, w, d int) ([]Point, error) {
 	case "cells":
 		return s.Cells, nil
 	}
-	return nil, errors.New("tipo de forma desconhecido; use rect, circle, line ou cells")
+	return nil, newUserError("tipo de forma desconhecido; use rect, circle, line ou cells")
 }
 
 func checkPoint(p *Point, name string) error {
 	if p == nil {
-		return errors.New("a forma precisa do campo \"" + name + "\"")
+		return newUserError("a forma precisa do campo \"" + name + "\"")
 	}
 	if p.X < -maxCoordinate || p.X > maxCoordinate || p.Z < -maxCoordinate || p.Z > maxCoordinate {
-		return errors.New("coordenada fora do intervalo permitido")
+		return newUserError("coordenada fora do intervalo permitido")
 	}
 	return nil
 }
@@ -108,7 +107,7 @@ func circlePoints(s Shape) ([]Point, error) {
 		return nil, err
 	}
 	if s.Radius < 0 || s.Radius > maxCircleRadius {
-		return nil, errors.New("o raio deve ficar entre 0 e 32")
+		return nil, newUserError("o raio deve ficar entre 0 e 32")
 	}
 	r := s.Radius
 	var pts []Point
@@ -134,7 +133,7 @@ func linePoints(s Shape) ([]Point, error) {
 		width = 1
 	}
 	if width < 1 || width > maxLineWidth {
-		return nil, errors.New("a largura da linha deve ficar entre 1 e 5")
+		return nil, newUserError("a largura da linha deve ficar entre 1 e 5")
 	}
 	return thicken(bresenham(*s.From, *s.To), (width-1)/2, width%2 == 0), nil
 }

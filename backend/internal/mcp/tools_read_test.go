@@ -1,6 +1,10 @@
 package mcp
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"strings"
 	"testing"
 
@@ -51,5 +55,38 @@ func TestGetCatalogListsTerrains(t *testing.T) {
 	text, isErr := callTool(t, newRig().t, NewJournal(&recNotifier{}), "get_catalog", map[string]any{})
 	if isErr || !strings.Contains(text, "grass") {
 		t.Fatalf("catalog missing terrains: err=%v %q", isErr, text)
+	}
+}
+
+type failingScenes struct{ *fakeScenes }
+
+func (failingScenes) List(context.Context, string) ([]scenes.Summary, error) {
+	return nil, errors.New("pgx: connection refused to 10.0.0.1")
+}
+
+func TestToolErrorHidesInternals(t *testing.T) {
+	r := newRig()
+	r.t.Scenes = failingScenes{r.sc}
+	for _, tool := range []string{"get_table", "list_scenes"} {
+		text, isErr := callTool(t, r.t, r.j, tool, map[string]any{})
+		if !isErr || text != "Erro interno. Tente novamente" {
+			t.Fatalf("%s: want generic PT-BR error, got err=%v %q", tool, isErr, text)
+		}
+	}
+}
+
+func TestToolErrorMapping(t *testing.T) {
+	cases := map[string]error{
+		"Cena não encontrada":            fmt.Errorf("get: %w", scenes.ErrNotFound),
+		"Mudança inválida no mapa: fora": fmt.Errorf("%w: fora", scenes.ErrInvalidPatch),
+		"Sem permissão":                  realtime.UserError("Sem permissão"),
+		"nenhuma cena ativa":             errNoActiveScene,
+		"a forma fica toda fora do mapa": newUserError("a forma fica toda fora do mapa"),
+		"Erro interno. Tente novamente":  errors.New("boom"),
+	}
+	for want, in := range cases {
+		if got := toolError(in).Error(); got != want {
+			t.Errorf("toolError(%v) = %q, want %q", in, got, want)
+		}
 	}
 }
