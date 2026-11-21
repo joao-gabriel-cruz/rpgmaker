@@ -63,3 +63,9 @@ func Footprint(o Object) []Coord {
 	}
 	return out
 }
+
+// KnownPrefab reports whether the prefab id exists in the catalog.
+func KnownPrefab(id string) bool {
+	_, ok := prefabs[id]
+	return ok
+}

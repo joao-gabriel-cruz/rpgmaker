@@ -13,14 +13,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/migrations"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/platform/database"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rounds"
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 )
 
 func main() {
@@ -44,18 +38,7 @@ func run() error {
 	}
 	defer pool.Close()
 
-	mux := http.NewServeMux()
-	mux.Handle("GET /api/health", health.Handler(pool))
-	authSvc := auth.NewService(auth.NewStore(pool))
-	authHandlers := auth.NewHandlers(authSvc)
-	authHandlers.Register(mux)
-	reg := systems.Default()
-	systems.Register(mux, reg, authHandlers.RequireAuth)
-	campaignHandlers := campaigns.NewHandlers(campaigns.NewService(campaigns.NewStore(pool), authSvc, reg), authHandlers.RequireAuth)
-	campaignHandlers.Register(mux)
-	hub := realtime.NewHub(realtime.Options{OriginPatterns: splitList(os.Getenv("WS_ALLOWED_ORIGINS"))})
-	hub.Register(mux, campaignHandlers.RequireMember)
-	rounds.Register(mux, hub, rounds.NewService(rounds.NewStore(pool)), campaignHandlers.RequireMember)
+	mux := buildMux(pool)
 
 	addr := ":" + envOr("PORT", "8080")
 	return serve(ctx, &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second})

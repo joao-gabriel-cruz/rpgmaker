@@ -13,7 +13,7 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
 - Comentários só para o *porquê* não óbvio, ≤ 2 linhas.
 
 ## Backend (Go, `backend/`)
-- `cmd/api` só faz wiring. Domínios em `internal/<domain>` (ex.: `auth`, `campaigns`, `realtime`,
+- `cmd/api` só faz wiring: módulos da mesa entram em `cmd/api/wire.go` com uma função `wireX(d deps)` e uma linha em `wireTable` (evita conflito entre tickets). Domínios em `internal/<domain>` (ex.: `auth`, `campaigns`, `realtime`,
   `dice`, `systems/assimilacao`, `maps`), cada um com `store.go` (SQL via pgx), `service.go`
   (regras) e `http.go` (handlers) quando fizer sentido.
 - HTTP: `net/http` ServeMux com padrões `"METHOD /api/..."`; JSON in/out; erros como

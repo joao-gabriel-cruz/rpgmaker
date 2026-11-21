@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/auth'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
+import { MapArea } from '../scenes/MapArea'
 import { OnlinePanel } from '../realtime/OnlinePanel'
 import { RoundTracker } from '../rounds/RoundTracker'
 import { InvitePanel } from './InvitePanel'
@@ -69,6 +70,7 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
       <CampaignSocketProvider campaignId={id}>
         <RoundTracker campaignId={id} isGm={isGm} />
         <OnlinePanel />
+        <MapArea campaignId={id} isGm={isGm} />
       </CampaignSocketProvider>
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">Membros</h2>
