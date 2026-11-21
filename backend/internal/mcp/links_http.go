@@ -88,3 +88,11 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
+
+// RegisterChangesHTTP mounts the GM-only recent-changes endpoint.
+func RegisterChangesHTTP(mux *http.ServeMux, j *Journal, cmp *campaigns.Handlers) {
+	mux.Handle("GET /api/campaigns/{id}/mcp-changes", cmp.RequireGM(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, map[string]any{"changes": j.List(r.PathValue("id"))})
+		})))
+}
