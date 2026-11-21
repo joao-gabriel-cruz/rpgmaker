@@ -2,7 +2,7 @@ import { api } from '../../lib/api'
 import { deserializeGrid, type MapGrid, type MapPatch, type SerializedGrid } from '../map3d/grid'
 import type { MapObject, ObjectPatch } from '../map3d/objects/model'
 
-export const SCENE_SIZES = [16, 24, 32, 48, 64] as const
+export const SCENE_SIZES = [16, 24, 32, 48, 64, 96, 128] as const
 
 export interface SceneSummary {
   id: string
@@ -58,6 +58,8 @@ export const base = (campaignId: string) => `/campaigns/${campaignId}/scenes`
 export const listScenes = (campaignId: string) => api.get<SceneSummary[]>(base(campaignId))
 export const createScene = (campaignId: string, name: string, size: number) =>
   api.post<SceneDto>(base(campaignId), { name, width: size, depth: size })
+export const createSceneFromTemplate = (campaignId: string, name: string, templateId: string, seed: number) =>
+  api.post<SceneDto>(base(campaignId), { name, templateId, seed })
 export const renameScene = (campaignId: string, id: string, name: string) =>
   api.patch<void>(`${base(campaignId)}/${id}`, { name })
 export const deleteScene = (campaignId: string, id: string) => api.delete<void>(`${base(campaignId)}/${id}`)

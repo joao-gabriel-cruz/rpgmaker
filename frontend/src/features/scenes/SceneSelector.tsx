@@ -1,41 +1,27 @@
-import { useState, type FormEvent } from 'react'
-import { SCENE_SIZES, type SceneSummary } from './scenes'
+import { Plus } from 'lucide-react'
+import type { SceneSummary } from './scenes'
 
 interface Props {
   scenes: SceneSummary[]
   selectedId: string | null
   onSelect: (id: string) => void
-  onCreate: (name: string, size: number) => void
+  onNew: () => void
   onRename: (id: string, name: string) => void
   onDelete: (id: string) => void
   onActivate: (id: string) => void
 }
 
 const btn = 'rounded-lg bg-zinc-800 px-2.5 py-1 text-xs transition-[background-color,transform] hover:bg-zinc-700 active:scale-[0.96] disabled:opacity-50'
-const input = 'rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm'
 
-function CreateForm({ onCreate }: Pick<Props, 'onCreate'>) {
-  const [name, setName] = useState('')
-  const [size, setSize] = useState(32)
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onCreate(name.trim(), size)
-    setName('')
-  }
+function NewSceneButton({ onNew }: Pick<Props, 'onNew'>) {
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-center gap-2">
-      <input aria-label="Nome da cena" placeholder="Nome da nova cena" value={name} maxLength={80}
-        onChange={(e) => setName(e.target.value)} className={input} />
-      <select aria-label="Tamanho da cena" value={size} onChange={(e) => setSize(Number(e.target.value))} className={input}>
-        {SCENE_SIZES.map((s) => <option key={s} value={s}>{s} × {s}</option>)}
-      </select>
-      <button type="submit" className={btn}>Criar cena</button>
-    </form>
+    <button type="button" onClick={onNew} className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] hover:bg-emerald-500 active:scale-[0.96]">
+      <Plus size={16} aria-hidden />Nova cena
+    </button>
   )
 }
 
-function SceneRow({ scene, selected, ...p }: { scene: SceneSummary; selected: boolean } & Omit<Props, 'scenes' | 'selectedId' | 'onCreate'>) {
+function SceneRow({ scene, selected, ...p }: { scene: SceneSummary; selected: boolean } & Omit<Props, 'scenes' | 'selectedId' | 'onNew'>) {
   const rename = () => {
     const name = window.prompt('Novo nome da cena', scene.name)?.trim()
     if (name && name !== scene.name) p.onRename(scene.id, name)
@@ -59,10 +45,10 @@ function SceneRow({ scene, selected, ...p }: { scene: SceneSummary; selected: bo
   )
 }
 
-export function SceneSelector({ scenes, selectedId, onCreate, ...rest }: Props) {
+export function SceneSelector({ scenes, selectedId, onNew, ...rest }: Props) {
   return (
     <div className="flex flex-col gap-3">
-      <CreateForm onCreate={onCreate} />
+      <NewSceneButton onNew={onNew} />
       {scenes.length === 0 && <p className="text-sm text-zinc-400">Nenhuma cena ainda. Crie a primeira.</p>}
       <ul className="flex flex-col gap-1.5">
         {scenes.map((s) => <SceneRow key={s.id} scene={s} selected={s.id === selectedId} {...rest} />)}

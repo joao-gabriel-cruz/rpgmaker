@@ -38,6 +38,8 @@ type Service struct {
 	notif Notifier
 	mu    sync.Mutex
 	locks map[string]*sync.Mutex
+
+	ambience AmbienceSetter
 }
 
 // NewService builds the service.

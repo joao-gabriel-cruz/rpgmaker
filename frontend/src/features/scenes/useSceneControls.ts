@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useRealtime } from '../realtime/realtimeContext'
-import { activateScene, createScene, deleteScene, listScenes, renameScene, type SceneSummary } from './scenes'
+import { activateScene, createScene, createSceneFromTemplate, deleteScene, listScenes, renameScene, type SceneSummary } from './scenes'
 
 const scenesKey = (campaignId: string) => ['campaigns', campaignId, 'scenes']
 
@@ -16,6 +16,7 @@ function useSceneList(campaignId: string) {
 }
 
 export interface SceneControls {
+  campaignId: string
   scenes: SceneSummary[]
   loading: boolean
   /** Scene on the map: the Mestre's pick, else the active scene; players always see the active one. */
@@ -23,7 +24,8 @@ export interface SceneControls {
   selected: SceneSummary | null
   error: string
   select: (id: string) => void
-  create: (name: string, size: number) => void
+  create: (name: string, size: number) => Promise<void>
+  createFromTemplate: (name: string, templateId: string, seed: number) => Promise<void>
   rename: (id: string, name: string) => void
   remove: (id: string) => void
   activate: (id: string) => void
@@ -36,11 +38,13 @@ export function useSceneControls(campaignId: string, isGm: boolean): SceneContro
   const active = scenes.find((s) => s.isActive)
   const selectedId = (isGm ? scenes.find((s) => s.id === picked)?.id ?? active?.id ?? scenes[0]?.id : active?.id) ?? null
   const act = useMutation({ mutationFn: (fn: () => Promise<unknown>) => fn(), onSuccess: refresh })
+  const make = (fn: () => Promise<{ id: string }>) => act.mutateAsync(async () => setPicked((await fn()).id)).then(() => undefined)
   return {
-    scenes, loading, selectedId, selected: scenes.find((s) => s.id === selectedId) ?? null,
+    campaignId, scenes, loading, selectedId, selected: scenes.find((s) => s.id === selectedId) ?? null,
     error: act.error?.message ?? '',
     select: setPicked,
-    create: (name, size) => act.mutate(async () => setPicked((await createScene(campaignId, name, size)).id)),
+    create: (name, size) => make(() => createScene(campaignId, name, size)),
+    createFromTemplate: (name, templateId, seed) => make(() => createSceneFromTemplate(campaignId, name, templateId, seed)),
     rename: (id, name) => act.mutate(() => renameScene(campaignId, id, name)),
     remove: (id) => act.mutate(() => deleteScene(campaignId, id)),
     activate: (id) => act.mutate(async () => { await activateScene(campaignId, id); setPicked(id) }),

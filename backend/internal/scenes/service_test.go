@@ -16,13 +16,13 @@ func TestCreateValidatesNameAndSize(t *testing.T) {
 	if _, err := svc.Create(ctx, camp, " ", 32, 32); !errors.Is(err, ErrInvalidName) {
 		t.Errorf("empty name: %v", err)
 	}
-	for _, sz := range [][2]int{{15, 32}, {32, 65}, {0, 0}} {
+	for _, sz := range [][2]int{{15, 32}, {32, 129}, {0, 0}} {
 		if _, err := svc.Create(ctx, camp, "x", sz[0], sz[1]); !errors.Is(err, ErrInvalidSize) {
 			t.Errorf("size %v: %v", sz, err)
 		}
 	}
-	sc, err := svc.Create(ctx, camp, "  Floresta ", 64, 16)
-	if err != nil || sc.Name != "Floresta" || len(sc.Grid.Data) != 64*16*2 {
+	sc, err := svc.Create(ctx, camp, "  Floresta ", 128, 16)
+	if err != nil || sc.Name != "Floresta" || len(sc.Grid.Data) != 128*16*2 {
 		t.Fatalf("create: %+v %v", sc, err)
 	}
 }

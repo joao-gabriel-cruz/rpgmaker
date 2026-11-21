@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import { applyPatch, type MapPatch } from '../map3d/grid'
 import { applyObjectPatch, type ObjectPatch } from '../map3d/objects/model'
 import { useRealtime } from '../realtime/realtimeContext'
-import { applyRemoteObjects, applyRemotePaint } from './remote'
+import { applyRemoteObjects, applyRemotePaint, chunkPatch } from './remote'
 import { loadScene, replacedState, type MapState, type ObjectsEvent, type PaintEvent, type ReplacedEvent } from './scenes'
 
 function useSceneEvents(sceneId: string, setState: Dispatch<SetStateAction<MapState | null>>, reload: () => void, onReplaced: () => void) {
@@ -68,7 +68,7 @@ export function useLiveScene(campaignId: string, sceneId: string) {
 
   const paint = useCallback((patch: MapPatch) => {
     setState((s) => s && { ...s, grid: applyPatch(s.grid, patch) })
-    send('map.paint', { sceneId, patch }).catch(fail)
+    Promise.all(chunkPatch(patch).map((p) => send('map.paint', { sceneId, patch: p }))).catch(fail)
   }, [send, sceneId, fail])
 
   const editObjects = useCallback((patch: ObjectPatch) => {
