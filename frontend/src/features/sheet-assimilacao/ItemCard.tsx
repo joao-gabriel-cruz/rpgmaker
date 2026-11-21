@@ -10,6 +10,7 @@ interface Props {
   onChange: (item: Item) => void
   onMove: () => void
   onRemove: () => void
+  onDeposit?: () => void
 }
 
 const STATS = [['quality', 'Qualidade'], ['scarcity', 'Escassez'], ['pressure', 'Pressão']] as const
@@ -36,12 +37,13 @@ function Traits({ item, readOnly, onChange }: Pick<Props, 'item' | 'readOnly' | 
   )
 }
 
-export function ItemCard({ item, readOnly, moveLabel, canMove, onChange, onMove, onRemove }: Props) {
+export function ItemCard({ item, readOnly, moveLabel, canMove, onChange, onMove, onRemove, onDeposit }: Props) {
   return (
     <li className="rounded border border-zinc-700 bg-zinc-950 p-2">
       <div className="flex gap-2">
         <input className={`${inputCls} flex-1`} aria-label="Nome do item" placeholder="Nome do item" value={item.name} disabled={readOnly} onChange={(e) => onChange({ ...item, name: e.target.value })} />
         <button className={btnCls} disabled={readOnly || !canMove} title={canMove ? undefined : 'Destino cheio'} onClick={onMove}>{moveLabel}</button>
+        {onDeposit && <button className={btnCls} aria-label={`Guardar ${item.name || 'item'} no Refúgio`} onClick={onDeposit}>Guardar no Refúgio</button>}
         <button className={btnCls} disabled={readOnly} aria-label={`Remover item ${item.name}`} onClick={onRemove}>Remover</button>
       </div>
       <div className="mt-2 flex gap-3 text-xs text-zinc-400">

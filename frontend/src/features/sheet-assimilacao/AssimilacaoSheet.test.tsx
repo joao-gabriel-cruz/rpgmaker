@@ -64,3 +64,14 @@ it('readOnly disables editing and rolling', () => {
   expect(screen.getByLabelText('Caixa de dano 1')).toBeDisabled()
   expect(screen.queryByRole('button', { name: 'Rolar' })).toBeNull()
 })
+
+it('deposit button appears only with onDepositItem and reports place and index', () => {
+  const s = newSheet()
+  s.inventory.backpack = [newItem(), { ...newItem(), name: 'Corda' }]
+  const onDeposit = vi.fn()
+  const { rerender } = render(<AssimilacaoSheet sheet={s} onChange={() => {}} />)
+  expect(screen.queryByText('Guardar no Refúgio')).toBeNull()
+  rerender(<AssimilacaoSheet sheet={s} onChange={() => {}} onDepositItem={onDeposit} />)
+  click(screen.getByLabelText('Guardar Corda no Refúgio'))
+  expect(onDeposit).toHaveBeenCalledWith('backpack', 1)
+})
