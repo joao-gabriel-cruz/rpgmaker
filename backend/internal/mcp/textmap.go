@@ -45,9 +45,11 @@ func RenderTable(v TableView) (string, error) {
 		v.Scene.Name, g.Width, g.Depth, v.Ambience.TimeOfDay, v.Ambience.Weather)
 	b.WriteString(axisLine + "\n" + legendLine + "\n")
 	writeGrid(&b, g, func(c maps.Cell) byte { return glyphOf(c.Terrain) })
-	if hasHeights(g) {
+	if variesHeight(g) {
 		b.WriteString("Alturas (0-9, X = 10):\n")
 		writeGrid(&b, g, func(c maps.Cell) byte { return heightGlyph(c.Height) })
+	} else {
+		fmt.Fprintf(&b, "altura uniforme: %d\n", g.Cells[0].Height)
 	}
 	writeTokens(&b, v.Tokens)
 	writeObjects(&b, v.Scene.Objects)
@@ -68,9 +70,9 @@ func heightGlyph(h int) byte {
 	return byte('0' + max(h, 0))
 }
 
-func hasHeights(g *maps.Grid) bool {
+func variesHeight(g *maps.Grid) bool {
 	for _, c := range g.Cells {
-		if c.Height != 0 {
+		if c.Height != g.Cells[0].Height {
 			return true
 		}
 	}

@@ -16,12 +16,13 @@ func viewFor(t *testing.T, w, d int, patch ...maps.CellPatch) TableView {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range g.Cells {
-		g.Cells[i].Height = 0 // NewGrid defaults to height 1; start flat
-	}
 	for _, p := range patch {
 		g.Cells[p.Z*w+p.X] = maps.Cell{Terrain: p.Terrain, Height: p.Height}
 	}
+	return tableOf(w, d, g)
+}
+
+func tableOf(w, d int, g *maps.Grid) TableView {
 	return TableView{
 		Scene:    scenes.Scene{Name: "Rua", Width: w, Depth: d, Grid: g.Serialize()},
 		Ambience: ambience.Default("s"),
@@ -36,8 +37,8 @@ func TestRenderTableFlatGrid(t *testing.T) {
 	if !strings.Contains(out, "z00 ...\n") || !strings.Contains(out, "z01 ...") {
 		t.Fatalf("grid lines missing:\n%s", out)
 	}
-	if strings.Contains(out, "Alturas") {
-		t.Fatalf("unexpected heights block:\n%s", out)
+	if strings.Contains(out, "Alturas") || !strings.Contains(out, "altura uniforme: 1") {
+		t.Fatalf("expected uniform height line only:\n%s", out)
 	}
 	if !strings.Contains(out, "x cresce para a direita (leste); z cresce para baixo (sul); norte = z menor") {
 		t.Fatalf("axis line missing:\n%s", out)
@@ -45,7 +46,12 @@ func TestRenderTableFlatGrid(t *testing.T) {
 }
 
 func TestRenderTableLavaAndHeights(t *testing.T) {
-	out, _ := RenderTable(viewFor(t, 3, 1, maps.CellPatch{X: 1, Z: 0, Terrain: "lava", Height: 2}))
+	g, _ := maps.NewGrid(3, 1)
+	for i := range g.Cells {
+		g.Cells[i].Height = 0
+	}
+	g.Cells[1] = maps.Cell{Terrain: "lava", Height: 2}
+	out, _ := RenderTable(tableOf(3, 1, g))
 	if !strings.Contains(out, "z00 .!.") || !strings.Contains(out, "z00 020") {
 		t.Fatalf("lava/heights missing:\n%s", out)
 	}
@@ -84,5 +90,12 @@ func TestRenderCatalogListsEverything(t *testing.T) {
 		if !strings.Contains(out, id) {
 			t.Fatalf("catalog missing %q:\n%s", id, out)
 		}
+	}
+}
+
+func TestRenderTableHeightGridOnlyWhenVarying(t *testing.T) {
+	out, _ := RenderTable(viewFor(t, 3, 1, maps.CellPatch{X: 1, Z: 0, Terrain: "floor", Height: 2}))
+	if !strings.Contains(out, "Alturas") || !strings.Contains(out, "z00 121") || strings.Contains(out, "altura uniforme") {
+		t.Fatalf("expected heights grid:\n%s", out)
 	}
 }
