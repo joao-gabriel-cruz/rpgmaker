@@ -21,7 +21,7 @@ var (
 
 func newSvc(damage int, faces ...int) (*Service, *fakeRepo, *fakeEvents) {
 	repo, ev := &fakeRepo{}, &fakeEvents{}
-	s := NewService(repo, &fakeChars{damage: damage}, ev)
+	s := NewService(repo, &fakeChars{damage: damage, det: 5}, &fakeSessions{id: "sess-1"}, ev)
 	s.rng, s.seed = &seqRNG{vals: faces}, func() int64 { return 42 }
 	return s, repo, ev
 }

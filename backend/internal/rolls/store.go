@@ -32,9 +32,9 @@ func scan(row pgx.Row) (Record, error) {
 // Insert stores a roll and returns it with names resolved.
 func (s *Store) Insert(ctx context.Context, r Record) (Record, error) {
 	var id string
-	err := s.pool.QueryRow(ctx, `INSERT INTO rolls (campaign_id, user_id, character_id, visibility, kind, spec, dice, result, status, seed)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-		r.CampaignID, r.UserID, r.CharacterID, r.Visibility, r.Kind, []byte(r.Spec), []byte(r.Dice), nullable(r.Result), r.Status, r.Seed).Scan(&id)
+	err := s.pool.QueryRow(ctx, `INSERT INTO rolls (campaign_id, play_session_id, user_id, character_id, visibility, kind, spec, dice, result, status, seed)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+		r.CampaignID, r.PlaySessionID, r.UserID, r.CharacterID, r.Visibility, r.Kind, []byte(r.Spec), []byte(r.Dice), nullable(r.Result), r.Status, r.Seed).Scan(&id)
 	if err != nil {
 		return Record{}, err
 	}

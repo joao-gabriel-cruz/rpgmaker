@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../../lib/api'
 import { useRealtime } from '../realtime/realtimeContext'
+import { modifiersText } from './modifiers'
 import { poolLabel, type FinalizedEvent, type RollEntry } from './rolls'
 import { SymbolCounts } from './SymbolCounts'
 
@@ -36,6 +37,7 @@ function Outcome({ e }: { e: RollEntry }) {
 }
 
 function Entry({ e }: { e: RollEntry }) {
+  const mods = modifiersText(e.request)
   return (
     <li className="flex flex-col gap-0.5 rounded bg-zinc-900 px-3 py-2">
       <p className="text-sm">
@@ -44,6 +46,7 @@ function Entry({ e }: { e: RollEntry }) {
         {e.visibility === 'gm' && <span className="ml-2 rounded bg-purple-900 px-1.5 text-xs text-purple-200">Secreta</span>}
       </p>
       <p className="text-xs text-zinc-400">{poolLabel(e)}</p>
+      {mods && <p className="text-xs text-amber-300">{mods}</p>}
       <Outcome e={e} />
     </li>
   )

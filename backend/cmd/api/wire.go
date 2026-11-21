@@ -15,6 +15,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rolls"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rounds"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/sessions"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
 )
@@ -53,6 +54,7 @@ func wireTable(d deps) {
 	wireScenes(d)
 	wireCharacters(d)
 	wireRolls(d)
+	wireSessions(d)
 	wireTokens(d)
 	wireRefuge(d)
 	wireDrawings(d)
@@ -75,9 +77,14 @@ func wireCharacters(d deps) {
 
 func wireRolls(d deps) {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
-	svc := rolls.NewService(rolls.NewStore(d.pool), chars, d.hub)
+	svc := rolls.NewService(rolls.NewStore(d.pool), chars, sessions.NewService(sessions.NewStore(d.pool), d.hub), d.hub)
 	rolls.RegisterCommands(d.hub, svc)
 	rolls.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
+}
+
+func wireSessions(d deps) {
+	svc := sessions.NewService(sessions.NewStore(d.pool), d.hub)
+	sessions.Register(d.mux, d.hub, svc, d.campaigns.RequireMember)
 }
 
 func wireTokens(d deps) {

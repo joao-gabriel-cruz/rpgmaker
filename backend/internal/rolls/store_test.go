@@ -81,3 +81,34 @@ func TestStoreFinalize(t *testing.T) {
 		t.Errorf("bad id = %v", err)
 	}
 }
+
+func TestStoreUsageAndDifficulty(t *testing.T) {
+	st, c, u := seedStore(t)
+	var sessionID string
+	if err := st.pool.QueryRow(ctx, `INSERT INTO play_sessions (campaign_id) VALUES ($1) RETURNING id`, c.ID).Scan(&sessionID); err != nil {
+		t.Fatal(err)
+	}
+	var charID string
+	if err := st.pool.QueryRow(ctx, `INSERT INTO characters (campaign_id, owner_id, kind, name, sheet) VALUES ($1,$2,'pc','Rita','{}') RETURNING id`, c.ID, u.ID).Scan(&charID); err != nil {
+		t.Skipf("characters schema differs: %v", err)
+	}
+	rec := pendingRecord(c, u, VisPublic)
+	rec.CharacterID, rec.PlaySessionID = &charID, &sessionID
+	rec.Spec = json.RawMessage(`{"request":{"useOccupation":true,"useMarkingEvent":false},"pool":{"dice":[],"keptCount":0,"assimilated":false}}`)
+	if _, err := st.Insert(ctx, rec); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := st.Usage(ctx, sessionID, charID); err != nil || !got.OccupationUsed || got.MarkingEventUsed {
+		t.Errorf("usage = %+v %v", got, err)
+	}
+	if err := st.SetDifficulty(ctx, c.ID, charID, 2); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := st.Difficulty(ctx, c.ID, charID); n != 2 {
+		t.Errorf("difficulty = %d", n)
+	}
+	_ = st.SetDifficulty(ctx, c.ID, charID, 0)
+	if n, _ := st.Difficulty(ctx, c.ID, charID); n != 0 {
+		t.Errorf("cleared = %d", n)
+	}
+}

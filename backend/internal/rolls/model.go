@@ -35,6 +35,7 @@ var (
 type Record struct {
 	ID            string
 	CampaignID    string
+	PlaySessionID *string
 	UserID        string
 	UserName      string
 	CharacterID   *string

@@ -21,7 +21,41 @@ const (
 	anaName = "Ana"
 )
 
-type fakeRepo struct{ recs []Record }
+type fakeRepo struct {
+	recs []Record
+	diff map[string]int
+}
+
+func (f *fakeRepo) Usage(_ context.Context, sessionID, characterID string) (Usage, error) {
+	var u Usage
+	for _, r := range f.recs {
+		var spec assimilacaoSpec
+		if r.PlaySessionID == nil || *r.PlaySessionID != sessionID || r.CharacterID == nil || *r.CharacterID != characterID {
+			continue
+		}
+		_ = json.Unmarshal(r.Spec, &spec)
+		u.OccupationUsed = u.OccupationUsed || spec.Request.UseOccupation
+		u.MarkingEventUsed = u.MarkingEventUsed || spec.Request.UseMarkingEvent
+	}
+	return u, nil
+}
+
+func (f *fakeRepo) Difficulty(_ context.Context, _, characterID string) (int, error) {
+	return f.diff[characterID], nil
+}
+
+func (f *fakeRepo) SetDifficulty(_ context.Context, _, characterID string, d12 int) error {
+	if f.diff == nil {
+		f.diff = map[string]int{}
+	}
+	f.diff[characterID] = d12
+	return nil
+}
+
+// fakeSessions reports a configurable active session.
+type fakeSessions struct{ id string }
+
+func (f *fakeSessions) ActiveID(context.Context, string) (string, error) { return f.id, nil }
 
 func (f *fakeRepo) Insert(_ context.Context, r Record) (Record, error) {
 	r.ID = fmt.Sprintf("33333333-3333-3333-3333-%012d", len(f.recs)+1)
@@ -63,7 +97,16 @@ func (f *fakeRepo) Recent(_ context.Context, _ string, _ int, includeGM bool) ([
 }
 
 // fakeChars serves one PC owned by ana and one NPC; damage sets the sheet health.
-type fakeChars struct{ damage int }
+type fakeChars struct {
+	damage int
+	det    int
+	saved  json.RawMessage
+}
+
+func (f *fakeChars) Save(_ context.Context, _ campaigns.Member, _ string, sheet json.RawMessage) (characters.View, error) {
+	f.saved = sheet
+	return characters.View{}, nil
+}
 
 func (f *fakeChars) Get(_ context.Context, m campaigns.Member, id string) (characters.View, error) {
 	owner := anaID
@@ -76,7 +119,10 @@ func (f *fakeChars) Get(_ context.Context, m campaigns.Member, id string) (chara
 	} else if id != charID {
 		return characters.View{}, characters.ErrNotFound
 	}
-	sheet := fmt.Sprintf(`{"instincts":{"reaction":2,"potency":1,"resolution":1},"practices":{"athletics":1},"health":{"damage":%d}}`, f.damage)
+	sheet := fmt.Sprintf(`{"instincts":{"reaction":2,"potency":1,"resolution":1},"practices":{"athletics":1},"health":{"damage":%d},"tugOfWar":{"determinationPoints":%d}}`, f.damage, f.det)
+	if f.saved != nil {
+		sheet = string(f.saved)
+	}
 	c := characters.Character{ID: id, OwnerID: &owner, Kind: kind, Name: "Rita", Sheet: json.RawMessage(sheet)}
 	return characters.View{Character: c}, nil
 }

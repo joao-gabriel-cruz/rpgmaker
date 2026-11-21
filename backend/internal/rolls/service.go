@@ -22,11 +22,20 @@ type Repository interface {
 	Get(ctx context.Context, campaignID, id string) (Record, error)
 	Finalize(ctx context.Context, campaignID, id string, result json.RawMessage) error
 	Recent(ctx context.Context, campaignID string, limit int, includeGM bool) ([]Record, error)
+	Usage(ctx context.Context, sessionID, characterID string) (Usage, error)
+	Difficulty(ctx context.Context, campaignID, characterID string) (int, error)
+	SetDifficulty(ctx context.Context, campaignID, characterID string, d12 int) error
+}
+
+// Sessions tells which play session is running ("" when none).
+type Sessions interface {
+	ActiveID(ctx context.Context, campaignID string) (string, error)
 }
 
 // Characters is the part of characters.Service used here.
 type Characters interface {
 	Get(ctx context.Context, m campaigns.Member, id string) (characters.View, error)
+	Save(ctx context.Context, m campaigns.Member, id string, sheet json.RawMessage) (characters.View, error)
 }
 
 // Events is the part of realtime.Hub used to notify clients.
@@ -38,14 +47,15 @@ type Events interface {
 type Service struct {
 	repo   Repository
 	chars  Characters
+	sess   Sessions
 	events Events
 	rng    assimilacao.RNG
 	seed   func() int64
 }
 
 // NewService builds a Service using crypto/rand.
-func NewService(repo Repository, chars Characters, ev Events) *Service {
-	return &Service{repo: repo, chars: chars, events: ev, rng: assimilacao.CryptoRNG{}, seed: randomSeed}
+func NewService(repo Repository, chars Characters, sess Sessions, ev Events) *Service {
+	return &Service{repo: repo, chars: chars, sess: sess, events: ev, rng: assimilacao.CryptoRNG{}, seed: randomSeed}
 }
 
 func randomSeed() int64 {
@@ -56,12 +66,18 @@ func randomSeed() int64 {
 	return int64(binary.BigEndian.Uint64(b[:]) >> 1)
 }
 
-// RequestInput is the payload of roll.request; modifiers (Empenho etc.) can be added later.
+// RequestInput is the payload of roll.request; DifficultyD12 is honored only for the Mestre.
 type RequestInput struct {
 	CharacterID string `json:"characterId"`
 	Instinct    string `json:"instinct"`
 	Aptitude    string `json:"aptitude,omitempty"`
 	Secret      bool   `json:"secret,omitempty"`
+
+	SecondInstinct  string `json:"secondInstinct,omitempty"`
+	Effort          bool   `json:"effort,omitempty"`
+	UseOccupation   bool   `json:"useOccupation,omitempty"`
+	UseMarkingEvent bool   `json:"useMarkingEvent,omitempty"`
+	DifficultyD12   int    `json:"difficultyD12,omitempty"`
 }
 
 func member(campaignID string, s realtime.Sender) campaigns.Member {
@@ -84,29 +100,46 @@ func filterFor(visibility string) realtime.Filter {
 
 // Request draws an Assimilação roll for a character and stores it as pending.
 func (s *Service) Request(ctx context.Context, campaignID string, sender realtime.Sender, in RequestInput) error {
-	if in.Secret && sender.Role != campaigns.RoleGM {
-		return realtime.UserError("Apenas o Mestre pode rolar em segredo.")
-	}
-	view, err := s.chars.Get(ctx, member(campaignID, sender), in.CharacterID)
+	view, sheet, err := s.authorize(ctx, campaignID, sender, in)
 	if err != nil {
 		return err
 	}
-	if sender.Role != campaigns.RoleGM && (view.OwnerID == nil || *view.OwnerID != sender.UserID) {
-		return realtime.UserError("Você só pode rolar pelos seus personagens.")
-	}
-	sheet, err := assimilacao.ParseSheet(view.Sheet)
+	req := requestOf(in)
+	sessionID, err := s.prepare(ctx, campaignID, sender, view.ID, &req)
 	if err != nil {
-		return realtime.UserError("A ficha deste personagem é inválida.")
+		return err
 	}
-	req := assimilacao.RollRequest{Instinct: in.Instinct, Aptitude: in.Aptitude}
 	pool, err := assimilacao.BuildRoll(sheet, req)
 	if err != nil {
 		return err
 	}
+	if err := s.commitCosts(ctx, campaignID, sender, view, sheet, req); err != nil {
+		return err
+	}
 	roll := assimilacao.Resolve(pool, s.rng)
 	return s.store(ctx, campaignID, sender, Record{
-		CharacterID: &view.ID, Visibility: visibilityOf(in.Secret), Kind: KindAssimilacao, Status: StatusPending,
+		CharacterID: &view.ID, PlaySessionID: nullID(sessionID), Visibility: visibilityOf(in.Secret),
+		Kind: KindAssimilacao, Status: StatusPending,
 	}, assimilacaoSpec{Request: req, Pool: pool}, roll.Dice, assimilacao.SuggestKept(roll, pool))
+}
+
+// authorize checks who may roll and loads the character with its parsed sheet.
+func (s *Service) authorize(ctx context.Context, campaignID string, sender realtime.Sender, in RequestInput) (characters.View, assimilacao.Sheet, error) {
+	if in.Secret && sender.Role != campaigns.RoleGM {
+		return characters.View{}, assimilacao.Sheet{}, realtime.UserError("Apenas o Mestre pode rolar em segredo.")
+	}
+	view, err := s.chars.Get(ctx, member(campaignID, sender), in.CharacterID)
+	if err != nil {
+		return view, assimilacao.Sheet{}, err
+	}
+	if sender.Role != campaigns.RoleGM && (view.OwnerID == nil || *view.OwnerID != sender.UserID) {
+		return view, assimilacao.Sheet{}, realtime.UserError("Você só pode rolar pelos seus personagens.")
+	}
+	sheet, err := assimilacao.ParseSheet(view.Sheet)
+	if err != nil {
+		return view, sheet, realtime.UserError("A ficha deste personagem é inválida.")
+	}
+	return view, sheet, nil
 }
 
 func (s *Service) store(ctx context.Context, campaignID string, sender realtime.Sender, rec Record, spec any, dice []assimilacao.Die, suggested []int) error {
