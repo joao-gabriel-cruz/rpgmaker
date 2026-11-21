@@ -7,13 +7,13 @@ interface SessionState {
   startedAt: string | null
 }
 
-const pill = 'flex h-8 items-center gap-2 rounded-lg px-2.5 text-sm'
+const pill = 'flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 text-sm'
 
 function Indicator({ active }: { active: boolean }) {
   return (
     <>
       <span aria-hidden className={`h-2 w-2 rounded-full ${active ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
-      <span className={active ? 'font-medium text-emerald-300' : 'text-zinc-400'}>{active ? 'Sessão ativa' : 'Sem sessão ativa'}</span>
+      <span className={`${active ? 'font-medium text-emerald-300' : 'text-zinc-400'} compact:sr-only`}>{active ? 'Sessão ativa' : 'Sem sessão ativa'}</span>
     </>
   )
 }
@@ -36,11 +36,11 @@ export function SessionBar({ campaignId, isGm }: { campaignId: string; isGm: boo
     <div className="flex items-center gap-2">
       {isGm ? (
         <button type="button" aria-label={state.active ? 'Encerrar sessão' : 'Iniciar sessão'} title={state.active ? 'Encerrar sessão' : 'Iniciar sessão'}
-          onClick={toggle} className={`${pill} transition-[background-color,transform] hover:bg-zinc-800 active:scale-[0.96]`}>
+          onClick={toggle} className={`${pill} transition-[background-color,transform] hover:bg-zinc-800 active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400`}>
           <Indicator active={state.active} />
         </button>
       ) : (
-        <span aria-label="Estado da sessão" className={pill}><Indicator active={state.active} /></span>
+        <span aria-label="Estado da sessão" title={state.active ? 'Sessão ativa' : 'Sem sessão ativa'} className={pill}><Indicator active={state.active} /></span>
       )}
       {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
     </div>

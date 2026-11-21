@@ -30,35 +30,41 @@ function SpotlightToggle() {
 
 const Divider = () => <span aria-hidden className="h-5 w-px bg-zinc-800" />
 
+function TopActions({ campaignId, isGm, onOpenHelp, onOpenSettings }: { campaignId: string; isGm: boolean; onOpenHelp: () => void; onOpenSettings: () => void }) {
+  return (
+    <div className="ml-auto flex shrink-0 items-center gap-2">
+      <PresenceAvatars campaignId={campaignId} />
+      <SoundControl />
+      <button type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)" onClick={onOpenHelp} className={`${ICON_BTN} h-9 w-9`}>
+        <Keyboard size={18} strokeWidth={1.5} aria-hidden />
+      </button>
+      {isGm && <SpotlightToggle />}
+      {isGm && (
+        <button type="button" aria-label="Gerenciar campanha" title="Membros, configurações e regras" onClick={onOpenSettings} className={`${ICON_BTN} h-9 w-9`}>
+          <Settings size={18} strokeWidth={1.5} aria-hidden />
+        </button>
+      )}
+    </div>
+  )
+}
+
 /** Compact 48px bar: back, campaign, scene, session, round, presence, shortcuts and (Mestre) the gear menu. */
 export function TopBar({ campaign, scenes, onOpenSettings, onOpenHelp }: Props) {
   const isGm = campaign.role === 'gm'
   return (
-    <header className="z-30 flex h-12 shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-2">
+    <header className="z-30 flex h-12 shrink-0 items-center gap-3 whitespace-nowrap border-b border-zinc-800 bg-zinc-950 px-2">
       <Link to="/" aria-label="Voltar para Minhas campanhas" className={`${ICON_BTN} h-9 w-9`}><ArrowLeft size={18} aria-hidden /></Link>
-      <div className="min-w-0 leading-tight">
-        <h1 className="truncate text-sm font-bold tracking-tight">{campaign.name}</h1>
-        <p className="truncate text-[11px] text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
+      <div className="min-w-0 max-w-80 shrink leading-tight compact:max-w-64">
+        <h1 title={campaign.name} className="truncate text-sm font-bold tracking-tight">{campaign.name}</h1>
+        <p className="truncate text-[11px] text-zinc-400 compact:sr-only">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
       </div>
       <Divider />
-      <SceneMenu scenes={scenes} isGm={isGm} />
+      <div className="min-w-0 shrink"><SceneMenu scenes={scenes} isGm={isGm} /></div>
       <Divider />
       <SessionBar campaignId={campaign.id} isGm={isGm} />
       <Divider />
       <RoundTracker campaignId={campaign.id} isGm={isGm} />
-      <div className="ml-auto flex items-center gap-2">
-        <PresenceAvatars />
-        <SoundControl />
-        <button type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)" onClick={onOpenHelp} className={`${ICON_BTN} h-9 w-9`}>
-          <Keyboard size={18} strokeWidth={1.5} aria-hidden />
-        </button>
-        {isGm && <SpotlightToggle />}
-        {isGm && (
-          <button type="button" aria-label="Gerenciar campanha" title="Membros, configurações e regras" onClick={onOpenSettings} className={`${ICON_BTN} h-9 w-9`}>
-            <Settings size={18} strokeWidth={1.5} aria-hidden />
-          </button>
-        )}
-      </div>
+      <TopActions campaignId={campaign.id} isGm={isGm} onOpenHelp={onOpenHelp} onOpenSettings={onOpenSettings} />
     </header>
   )
 }

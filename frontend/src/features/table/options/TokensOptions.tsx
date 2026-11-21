@@ -1,5 +1,6 @@
 import { Crosshair, LocateFixed, MapPinPlus, Trash2, Wand2 } from 'lucide-react'
 import { useCharacters, type CharacterView } from '../../characters/characters'
+import { CharacterAvatar } from '../../miniature/CharacterAvatar'
 import type { SceneTokens } from '../../tokens/useSceneTokens'
 import { useTableTool } from '../useTableTool'
 import { BTN, Hint, Section } from './ui'
@@ -7,12 +8,8 @@ import { BTN, Hint, Section } from './ui'
 const ROW_BTN = 'flex h-7 w-7 items-center justify-center rounded-md text-zinc-300 transition-[background-color,color,transform] hover:bg-zinc-700 hover:text-white active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-emerald-400 motion-reduce:transition-none'
 
 function Avatar({ c }: { c: CharacterView }) {
-  const url = c.sheet?.identity?.portraitUrl
-  return url
-    ? <img src={url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
-    : <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-medium text-zinc-200 ring-1 ring-white/10">
-        {c.name.slice(0, 2).toUpperCase()}
-      </span>
+  return <CharacterAvatar name={c.name} appearance={c.sheet?.appearance} portraitUrl={c.sheet?.identity?.portraitUrl}
+    ring={c.sheet?.appearance ? undefined : '#52525b'} size="h-8 w-8" shape="circle" />
 }
 
 interface RowProps {

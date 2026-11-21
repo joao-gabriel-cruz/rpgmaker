@@ -1,14 +1,13 @@
-import { initials, playerColor } from '../tokens/tokens'
+import { CharacterAvatar } from '../miniature/CharacterAvatar'
+import { playerColor } from '../tokens/tokens'
 import type { CharacterView } from '../characters/characters'
 import { penaltyLabel, type Vitals } from './vitals'
 
+/** Avatar of a character: 2D bust from its appearance, else portrait URL, else initials. */
 export function Portrait({ character }: { character: CharacterView }) {
-  const url = character.sheet.identity?.portraitUrl
-  const color = playerColor(character.ownerId)
-  return url
-    ? <img src={url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" style={{ boxShadow: `0 0 0 2px ${color}` }} />
-    : <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-base font-semibold"
-      style={{ boxShadow: `0 0 0 2px ${color}` }}>{initials(character.name)}</span>
+  const look = character.sheet.appearance
+  return <CharacterAvatar name={character.name} appearance={look} portraitUrl={character.sheet.identity?.portraitUrl}
+    ring={look ? undefined : playerColor(character.ownerId)} size="h-12 w-12" />
 }
 
 /** Six segments, one per health level: red fills with the damage taken, the current level is outlined. */

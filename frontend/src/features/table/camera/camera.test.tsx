@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, it, vi } from 'vitest'
 import { createCameraActions, type CameraHandle } from './cameraActions'
+import { CameraPortal } from '../CameraPortal'
+import { TableToolProvider, useTableTool } from '../useTableTool'
 import { CameraControls } from './CameraControls'
 import { isTopDown, rotateOffset, topDownOffset, zoomOffset, MAX_DISTANCE, MIN_DISTANCE } from './cameraMath'
 
@@ -87,4 +89,14 @@ it('disables "my token" without a token and ignores keys while typing', () => {
   fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
   expect(actions.rotate.mock.calls).toEqual([[-90], [90]])
   expect(actions.zoomIn).toHaveBeenCalledTimes(1)
+})
+
+function Host() {
+  const { setCameraHost } = useTableTool()
+  return <div data-testid="host" ref={setCameraHost} />
+}
+
+it('portals the camera controls into the bottom-right zone of the table', () => {
+  render(<TableToolProvider isGm={false}><Host /><CameraPortal><button type="button">cam</button></CameraPortal></TableToolProvider>)
+  expect(screen.getByTestId('host')).toContainElement(screen.getByRole('button', { name: 'cam' }))
 })

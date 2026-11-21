@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Top bar and floating zones switch to icon-only at 1280px and below. */
+@custom-variant compact (@media (max-width: 1280px));
+
 @keyframes tray-in {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }

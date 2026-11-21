@@ -119,3 +119,14 @@ Mobile (desktop-first, só não pode quebrar em tablet), temas claros, novas reg
   pilha (desfazer pode sobrescrever uma edição alheia na mesma célula).
 - **Tokens:** "Colocar" arma o personagem e o próximo clique no mapa o posiciona (o servidor recusa células inválidas);
   o botão de varinha mantém o posicionamento automático.
+
+## Notas do polimento (RPG-66)
+
+- **Zonas flutuantes sem sobreposição:** o `TableLayout` organiza o mapa em fluxo — linha superior (painel de opções à esquerda,
+  drawer da ficha à direita) e linha inferior em grid `auto | 1fr | auto` (dock Falar/Reagir, hotbar centralizada com largura máxima,
+  câmera). A câmera sai do mapa via `CameraPortal`. Com o mapa estreito (< 68rem) a dock vira só ícones.
+- **Avatar da aparência:** `CharacterAvatar` (`features/miniature`) desenha um busto 2D em SVG a partir de `sheet.appearance`
+  (anel na cor do token), com fallback para `portraitUrl` e depois iniciais. Usado em Grupo, hotbar, lista de Tokens e presença.
+- **TopBar compacta** (`compact:` = ≤ 1280 px): rótulos viram `sr-only` com `title`/`aria-label`; nada quebra linha.
+- **Vulcão:** geometria procedural low-poly (`map3d/objects/volcanoGeometry.ts`), cratera e veios emissivos animados
+  (parados com `prefers-reduced-motion`).

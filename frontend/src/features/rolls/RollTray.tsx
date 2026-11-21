@@ -46,7 +46,7 @@ function useSelection(entry: RollEntry) {
   return { selected, toggle }
 }
 
-const TRAY_BOX = 'h-[min(48dvh,26rem)] w-full overflow-hidden rounded-xl bg-zinc-950/60'
+const TRAY_BOX = 'h-[min(38dvh,26rem)] w-full overflow-hidden rounded-xl bg-zinc-950/60'
 
 function Body({ active, mine }: { active: ActiveRoll; mine: boolean }) {
   const { entry, result } = active
