@@ -84,6 +84,18 @@ func checkEntry(g maps.Grid, occ []bool) error {
 // Reachable returns the fraction of walkable cells (no blocking terrain or object, not lava) that can be
 // walked to from the entry area by 8-way steps (height step <= maps.DefaultMaxStep); templates are tested for >= 0.9.
 func Reachable(g maps.Grid, objects []maps.Object) float64 {
+	open, heights := walkGrid(g, objects)
+	total := 0
+	for _, ok := range open {
+		if ok {
+			total++
+		}
+	}
+	return float64(len(flood(g, open, heights))) / float64(max(total, 1))
+}
+
+// walkGrid returns which cells can be stood on and at what height (bridges span blocking terrain).
+func walkGrid(g maps.Grid, objects []maps.Object) ([]bool, []int) {
 	open := make([]bool, len(g.Cells))
 	for i, c := range g.Cells {
 		t, _ := maps.TerrainByID(c.Terrain)
@@ -97,16 +109,10 @@ func Reachable(g maps.Grid, objects []maps.Object) float64 {
 			open[c.Z*g.Width+c.X] = false
 		}
 	}
-	total := 0
-	for _, ok := range open {
-		if ok {
-			total++
-		}
-	}
-	return float64(flood(g, open)) / float64(max(total, 1))
+	return open, bridgeSpans(g, objects, open)
 }
 
-func flood(g maps.Grid, open []bool) int {
+func flood(g maps.Grid, open []bool, heights []int) map[Pt]bool {
 	r := EntryRect(g.Width, g.Depth)
 	start := r.Center()
 	seen := map[Pt]bool{start: true}
@@ -120,7 +126,7 @@ func flood(g maps.Grid, open []bool) int {
 				if seen[n] || !g.InBounds(n.X, n.Z) || !open[n.Z*g.Width+n.X] {
 					continue
 				}
-				dh := g.Cells[n.Z*g.Width+n.X].Height - g.Cells[cur.Z*g.Width+cur.X].Height
+				dh := heights[n.Z*g.Width+n.X] - heights[cur.Z*g.Width+cur.X]
 				if absInt(dh) <= maps.DefaultMaxStep {
 					seen[n] = true
 					queue = append(queue, n)
@@ -128,5 +134,5 @@ func flood(g maps.Grid, open []bool) int {
 			}
 		}
 	}
-	return len(seen)
+	return seen
 }
