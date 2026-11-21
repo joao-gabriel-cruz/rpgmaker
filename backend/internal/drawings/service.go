@@ -153,7 +153,7 @@ func (s *Service) RulerMove(campaignID string, snd realtime.Sender, sceneID stri
 	if !uuidRe.MatchString(sceneID) || (to != nil && (from == nil || !validPoint(*from) || !validPoint(*to))) {
 		return deny("Posição inválida")
 	}
-	s.notif.Broadcast(campaignID, realtime.Except(snd.UserID), EventRuler, map[string]any{
+	s.notif.Broadcast(campaignID, realtime.ExceptConn(snd.ConnID), EventRuler, map[string]any{
 		"sceneId": sceneID, "userId": snd.UserID, "userName": snd.Name, "from": from, "to": to,
 	})
 	return nil

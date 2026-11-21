@@ -2,6 +2,8 @@ package realtime
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -36,6 +38,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, campaignID string, s
 	ws.SetReadLimit(readLimit)
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+	s.ConnID = newConnID()
 	c := &conn{ws: ws, hub: h, campaignID: campaignID, sender: s, send: make(chan []byte, queueSize), cancel: cancel}
 	go c.writeLoop(ctx)
 	h.join(campaignID, c)
@@ -112,7 +115,7 @@ func (c *conn) dispatch(ctx context.Context, m Message) {
 			return
 		}
 	}
-	cmd := Command{CampaignID: c.campaignID, Sender: c.sender, Type: m.Type, Payload: m.Payload, ReqID: m.ReqID}
+	cmd := Command{CampaignID: c.campaignID, Sender: c.sender, ConnID: c.sender.ConnID, Type: m.Type, Payload: m.Payload, ReqID: m.ReqID}
 	if err := rt.fn(ctx, cmd); err != nil {
 		c.failErr(m.ReqID, err)
 		return
@@ -147,4 +150,10 @@ func (c *conn) reply(typ, reqID string, payload map[string]string) {
 	if err == nil {
 		c.enqueue(data)
 	}
+}
+
+func newConnID() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }

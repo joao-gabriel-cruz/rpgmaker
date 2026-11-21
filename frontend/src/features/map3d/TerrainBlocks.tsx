@@ -1,8 +1,8 @@
 import { useFrame } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { InstancedMesh, MeshStandardMaterial, Object3D, BoxGeometry } from 'three'
-import { layoutBlocks } from './blockLayout'
-import type { MapGrid } from './grid'
+import { layoutBlocks, layoutSlabs } from './blockLayout'
+import { SLAB_THICKNESS, type MapGrid } from './grid'
 import { TERRAIN_LIST, type TerrainType } from './terrainTypes'
 
 const geometry = new BoxGeometry(1, 1, 1)
@@ -17,7 +17,7 @@ function makeMaterial(t: TerrainType) {
   })
 }
 
-function BlockLayer({ type, positions }: { type: TerrainType; positions: number[] }) {
+function BlockLayer({ type, positions, thickness = 1 }: { type: TerrainType; positions: number[]; thickness?: number }) {
   const ref = useRef<InstancedMesh>(null)
   const material = useMemo(() => makeMaterial(type), [type])
   const count = positions.length / 3
@@ -28,12 +28,13 @@ function BlockLayer({ type, positions }: { type: TerrainType; positions: number[
     const dummy = new Object3D()
     for (let i = 0; i < count; i++) {
       dummy.position.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2])
+      dummy.scale.set(1, thickness, 1)
       dummy.updateMatrix()
       mesh.setMatrixAt(i, dummy.matrix)
     }
     mesh.instanceMatrix.needsUpdate = true
     mesh.computeBoundingSphere()
-  }, [positions, count])
+  }, [positions, count, thickness])
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
@@ -49,10 +50,14 @@ function BlockLayer({ type, positions }: { type: TerrainType; positions: number[
 
 export function TerrainBlocks({ grid }: { grid: MapGrid }) {
   const layout = useMemo(() => layoutBlocks(grid), [grid])
+  const slabs = useMemo(() => layoutSlabs(grid), [grid])
   return (
     <>
       {TERRAIN_LIST.map((t) => (
         <BlockLayer key={t.id} type={t} positions={layout[t.id]} />
+      ))}
+      {TERRAIN_LIST.map((t) => (
+        <BlockLayer key={`slab-${t.id}`} type={t} positions={slabs[t.id]} thickness={SLAB_THICKNESS} />
       ))}
     </>
   )

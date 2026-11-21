@@ -30,12 +30,15 @@ type Sender struct {
 	UserID string `json:"userId"`
 	Name   string `json:"displayName"`
 	Role   string `json:"role"`
+	// ConnID identifies the WebSocket connection (one per tab); set by the hub, never serialized.
+	ConnID string `json:"-"`
 }
 
 // Command is a validated client request handed to a registered handler.
 type Command struct {
 	CampaignID string
 	Sender     Sender
+	ConnID     string // origin connection; use with ExceptConn to skip only the sending tab
 	Type       string
 	Payload    json.RawMessage
 	ReqID      string
