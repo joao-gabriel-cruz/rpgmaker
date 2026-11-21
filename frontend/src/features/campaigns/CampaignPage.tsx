@@ -77,7 +77,7 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
             <RoundTracker campaignId={id} isGm={isGm} />
             <OnlinePanel />
             <MapArea campaignId={id} isGm={isGm} />
-            <CharactersSection campaignId={id} />
+            <CharactersSection campaignId={id} isGm={isGm} />
             <div className="flex flex-col gap-2">
               <h2 className="text-xl font-semibold">Membros</h2>
               <Members campaignId={id} isGm={isGm} />

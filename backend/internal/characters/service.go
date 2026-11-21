@@ -80,6 +80,11 @@ func visibleTo(m campaigns.Member, c Character) bool {
 
 func (i ctxInfo) view(c Character) View {
 	v := View{Character: c, Issues: []systems.Issue{}}
+	if n, ok := i.system.(systems.NPCSheeter); ok && c.Kind == KindNPC {
+		v.Derived, _ = n.DeriveNPCSheet(c.Sheet)
+		v.Issues = n.ValidateNPCSheet(c.Sheet)
+		return v
+	}
 	if d, ok := i.system.(systems.SheetDeriver); ok {
 		if out, err := d.DeriveSheet(c.Sheet); err == nil {
 			v.Derived = out
@@ -137,63 +142,6 @@ func (s *Service) fetch(ctx context.Context, m campaigns.Member, id string) (ctx
 		return ctxInfo{}, Character{}, ErrNotFound
 	}
 	return info, c, nil
-}
-
-// CreateInput is a request to create a PC; OwnerID and Name are optional.
-type CreateInput struct {
-	OwnerID string
-	Name    string
-}
-
-// Create makes a PC with a blank sheet. Players create their own; the gm may pick any member.
-func (s *Service) Create(ctx context.Context, m campaigns.Member, in CreateInput) (View, error) {
-	name := strings.TrimSpace(in.Name)
-	if name == "" {
-		name = defaultName
-	}
-	if len(name) > maxNameLen {
-		return View{}, ErrInvalidInput
-	}
-	owner, err := s.resolveOwner(ctx, m, in.OwnerID)
-	if err != nil {
-		return View{}, err
-	}
-	info, err := s.load(ctx, m)
-	if err != nil {
-		return View{}, err
-	}
-	sheet, err := info.blankSheet(name)
-	if err != nil {
-		return View{}, err
-	}
-	c, err := s.repo.Create(ctx, Character{CampaignID: m.CampaignID, OwnerID: &owner, Kind: KindPC, Name: name, Sheet: sheet})
-	if err != nil {
-		return View{}, err
-	}
-	v := info.view(c)
-	s.notify(c, "character.created", v)
-	return v, nil
-}
-
-func (i ctxInfo) blankSheet(name string) (json.RawMessage, error) {
-	t, ok := i.system.(systems.SheetTemplater)
-	if !ok {
-		return nil, ErrNoSheetSupport
-	}
-	return t.NewSheet(name)
-}
-
-func (s *Service) resolveOwner(ctx context.Context, m campaigns.Member, requested string) (string, error) {
-	if requested == "" || requested == m.UserID {
-		return m.UserID, nil
-	}
-	if m.Role != campaigns.RoleGM {
-		return "", ErrForbidden
-	}
-	if _, err := s.campaigns.Membership(ctx, m.CampaignID, requested); err != nil {
-		return "", ErrInvalidInput
-	}
-	return requested, nil
 }
 
 // Save replaces the whole sheet. Blocking issues always reject; limit issues only in "block" mode.

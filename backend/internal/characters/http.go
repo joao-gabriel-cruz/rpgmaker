@@ -41,12 +41,13 @@ func (h *Handlers) create(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		OwnerID string `json:"ownerId"`
 		Name    string `json:"name"`
+		Kind    string `json:"kind"`
 	}
 	if r.ContentLength != 0 && !decode(w, r, &in) {
 		return
 	}
 	m, _ := campaigns.MemberFrom(r)
-	out, err := h.svc.Create(r.Context(), m, CreateInput{OwnerID: in.OwnerID, Name: in.Name})
+	out, err := h.svc.Create(r.Context(), m, CreateInput{OwnerID: in.OwnerID, Name: in.Name, Kind: in.Kind})
 	respond(w, http.StatusCreated, out, err)
 }
 
