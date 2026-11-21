@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"sort"
 	"sync"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/ambience"
@@ -51,7 +52,19 @@ func newFakeScenes(ids ...string) *fakeScenes {
 	return f
 }
 
-func (f *fakeScenes) List(context.Context, string) ([]scenes.Summary, error) { return nil, nil }
+func (f *fakeScenes) List(context.Context, string) ([]scenes.Summary, error) {
+	ids := make([]string, 0, len(f.scenes))
+	for id := range f.scenes {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	out := make([]scenes.Summary, 0, len(ids))
+	for _, id := range ids {
+		sc := f.scenes[id]
+		out = append(out, scenes.Summary{ID: id, Name: sc.Name, Width: sc.Width, Depth: sc.Depth, IsActive: sc.IsActive})
+	}
+	return out, nil
+}
 
 func (f *fakeScenes) Get(_ context.Context, _, id, _ string) (scenes.Scene, error) {
 	sc, ok := f.scenes[id]

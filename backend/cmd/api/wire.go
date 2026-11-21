@@ -15,6 +15,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/effects"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/items"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/mcp"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rolls"
@@ -82,6 +83,7 @@ func wireTable(d deps) {
 	wireItems(d)
 	wireAmbience(d)
 	wireActions(d)
+	wireMCP(d)
 }
 
 func wireRounds(d deps) {
@@ -194,4 +196,15 @@ func wireActions(d deps) {
 	d.rolls.OnFinalized(svc.Finalized)
 	actions.RegisterHTTP(d.mux, svc, d.campaigns)
 	actions.RegisterCommands(d.hub, svc)
+}
+
+func wireMCP(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	j := mcp.NewJournal(d.hub)
+	t := mcp.Table{Scenes: d.scenes, Tokens: d.tokens, Ambience: d.ambience, Characters: chars}
+	links := mcp.NewLinks(mcp.NewLinkRepo(d.pool), d.campaignSvc)
+	d.mux.Handle("/api/mcp/{secret}", mcp.NewHandler(links, t, j))
+	mcp.RegisterLinkHTTP(d.mux, links, d.campaigns)
+	mcp.RegisterChangesHTTP(d.mux, j, d.campaigns)
+	mcp.RegisterUndo(d.hub, j, t)
 }
