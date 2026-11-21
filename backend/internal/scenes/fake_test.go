@@ -133,7 +133,7 @@ type fakeNotifier struct {
 func (n *fakeNotifier) Broadcast(_ string, to realtime.Filter, typ string, payload any) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.events = append(n.events, event{typ, to(realtime.Sender{Role: "gm"}), to(realtime.Sender{Role: "player"}), to(realtime.Sender{UserID: "u1", Role: "gm"}), payload})
+	n.events = append(n.events, event{typ, to(realtime.Sender{Role: "gm"}), to(realtime.Sender{Role: "player"}), to(realtime.Sender{UserID: "u1", ConnID: "u1", Role: "gm"}), payload})
 }
 
 func (n *fakeNotifier) last(typ string) (event, bool) {

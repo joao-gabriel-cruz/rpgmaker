@@ -1,5 +1,5 @@
 import { api } from '../../lib/api'
-import { getCell, type Coord, type MapGrid } from '../map3d/grid'
+import { getCell, surfaceHeight, type Coord, type MapGrid } from '../map3d/grid'
 
 export interface Point {
   x: number
@@ -84,7 +84,7 @@ export function projectStroke(grid: MapGrid, points: readonly Point[], lift = LI
     for (let k = prev ? 1 : 0; k <= (prev ? n : 0); k++) {
       const x = prev ? prev.x + ((p.x - prev.x) * k) / n : p.x
       const z = prev ? prev.z + ((p.z - prev.z) * k) / n : p.z
-      out.push([x, heightAt(grid, x, z) + lift, z])
+      out.push([x, surfaceHeight(heightAt(grid, x, z)) + lift, z])
     }
   })
   return out

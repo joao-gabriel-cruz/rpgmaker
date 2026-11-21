@@ -28,10 +28,10 @@ func RegisterCommands(r Registrar, svc *Service) {
 		SceneID string `json:"sceneId"`
 	}
 	handle(r, "map.paint", func(ctx context.Context, cmd realtime.Command, in paint) error {
-		return svc.Paint(ctx, cmd.CampaignID, in.SceneID, cmd.Sender.UserID, in.Patch)
+		return svc.Paint(ctx, cmd.CampaignID, in.SceneID, cmd.ConnID, in.Patch)
 	})
 	handle(r, "map.objects", func(ctx context.Context, cmd realtime.Command, in objects) error {
-		return svc.EditObjects(ctx, cmd.CampaignID, in.SceneID, cmd.Sender.UserID, in.Patch)
+		return svc.EditObjects(ctx, cmd.CampaignID, in.SceneID, cmd.ConnID, in.Patch)
 	})
 	handle(r, "scene.activate", func(ctx context.Context, cmd realtime.Command, in activate) error {
 		return svc.Activate(ctx, cmd.CampaignID, in.SceneID)

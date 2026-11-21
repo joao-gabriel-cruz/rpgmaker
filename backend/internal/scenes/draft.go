@@ -24,7 +24,7 @@ func editAudience(sc Scene, origin string) realtime.Filter {
 	if sc.Draft == nil {
 		return audience(sc, origin)
 	}
-	return func(s realtime.Sender) bool { return realtime.ToGM(s) && (origin == "" || s.UserID != origin) }
+	return func(s realtime.Sender) bool { return realtime.ToGM(s) && (origin == "" || s.ConnID != origin) }
 }
 
 func eventName(sc Scene, live, draft string) string {

@@ -8,10 +8,10 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 )
 
-// audience: players only ever receive events of the active scene; the origin already applied the change locally.
+// audience: players only ever receive events of the active scene; origin is the sending connection, which already applied the change locally.
 func audience(sc Scene, origin string) realtime.Filter {
 	return func(s realtime.Sender) bool {
-		if origin != "" && s.UserID == origin {
+		if origin != "" && s.ConnID == origin {
 			return false
 		}
 		return sc.IsActive || realtime.ToGM(s)

@@ -1,5 +1,5 @@
 import { api } from '../../lib/api'
-import { getCell, type Coord, type MapGrid } from '../map3d/grid'
+import { getCell, surfaceHeight, type Coord, type MapGrid } from '../map3d/grid'
 import type { Token } from '../tokens/tokens'
 import { cellsWhere, decodeBits, hasBit } from './bits'
 
@@ -82,7 +82,7 @@ const COVER_ABOVE = 4
 /** Box per covered cell: players get an opaque column above any terrain/object, the Mestre a thin film on top. */
 export function fogInstances(g: MapGrid, cells: Coord[], gm: boolean): FogInstance[] {
   return cells.map((c) => {
-    const top = getCell(g, c.x, c.z)?.height ?? 0
+    const top = surfaceHeight(getCell(g, c.x, c.z)?.height ?? 0)
     const h = gm ? 0.06 : top + COVER_ABOVE
     return { x: c.x + 0.5, y: gm ? top + 0.1 : h / 2, z: c.z + 0.5, h }
   })

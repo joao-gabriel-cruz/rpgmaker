@@ -35,6 +35,7 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
     remetente como evento `error {reqId,message}`; outros erros viram mensagem genérica. Sucesso → `ack {reqId}`.
   - Evento (servidor→clientes), de handlers WS ou HTTP: `hub.Broadcast(campaignID, filter, "type", payload)`,
     nunca bloqueia. Filtros: `ToAll`, `ToGM`, `ToUser(id)`, `Except(id)`, `Or(...)` ou qualquer `func(Sender) bool`.
+    Eco: `cmd.ConnID` + `ExceptConn(id)` excluem só a conexão (aba) de origem; `Except(userID)` exclui todas as abas do usuário.
   - Presença: evento `presence.updated {users:[{userId,displayName,role}]}`; `hub.Online(campaignID)`. `ping` → `pong`.
   - Registre handlers no wiring (`main`), antes de servir; tipo duplicado dá panic.
 - Rodadas (`internal/rounds`): comandos GMOnly `round.start|next|prev|end` → evento `round.updated {state:{active,round,phase}}` (ToAll); estado atual via `GET /api/campaigns/{id}/round`; persistido em `campaign_rounds`.

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { MapGrid } from './grid'
+import { surfaceHeight, type MapGrid } from './grid'
 
 // Outlines each cell on top of its terrain so the grid is visible over blocks.
 export function GridLines({ grid }: { grid: MapGrid }) {
@@ -7,7 +7,7 @@ export function GridLines({ grid }: { grid: MapGrid }) {
     const v: number[] = []
     for (let z = 0; z < grid.depth; z++) {
       for (let x = 0; x < grid.width; x++) {
-        const y = grid.cells[z * grid.width + x].height + 0.02
+        const y = surfaceHeight(grid.cells[z * grid.width + x].height) + 0.02
         v.push(x, y, z, x + 1, y, z, x + 1, y, z, x + 1, y, z + 1)
         v.push(x + 1, y, z + 1, x, y, z + 1, x, y, z + 1, x, y, z)
       }

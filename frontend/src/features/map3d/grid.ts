@@ -32,6 +32,12 @@ export interface SerializedGrid {
   data: string
 }
 
+// Height-0 cells render as a thin slab of their terrain instead of a hole.
+export const SLAB_THICKNESS = 0.15
+
+// Top of the walkable surface: standing height for tokens, objects, lines and fog.
+export const surfaceHeight = (height: number) => Math.max(height, SLAB_THICKNESS)
+
 export const clampHeight = (h: number) =>
   Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(h)))
 
