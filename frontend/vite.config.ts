@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8081',
+      '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:8081', ws: true },
     },
   },
   test: {

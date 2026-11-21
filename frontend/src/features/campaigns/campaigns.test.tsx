@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
+import { FakeWebSocket } from '../../test/fakeWebSocket'
 import { renderApp, stubApi } from '../../test/renderApp'
 
 const ana = { id: 'u1', email: 'a@x.com', displayName: 'Ana', isAdmin: false, createdAt: '' }
@@ -82,4 +83,21 @@ it('shows the invalid invite message', async () => {
   })
   renderApp('/invite/old')
   expect(await screen.findByRole('alert')).toHaveTextContent('Convite inválido ou expirado')
+})
+
+it('shows who is online and the connection state on the campaign page', async () => {
+  stubApi((_m, path) => {
+    if (path === '/auth/me') return { status: 200, body: ana }
+    if (path === '/campaigns/c1') return { status: 200, body: camp }
+    return { status: 200, body: [] }
+  })
+  renderApp('/campaigns/c1')
+  expect(await screen.findByText('Conectando…')).toBeInTheDocument()
+  const ws = FakeWebSocket.last
+  act(() => ws.open())
+  act(() => ws.receive({ type: 'presence.updated', payload: { users: [{ userId: 'u1', displayName: 'Ana', role: 'gm' }] } }))
+  expect(await screen.findByText('Conectado')).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Online agora' }).parentElement?.nextElementSibling).toHaveTextContent('Ana')
+  act(() => ws.drop())
+  expect(await screen.findByText('Reconectando…')).toBeInTheDocument()
 })
