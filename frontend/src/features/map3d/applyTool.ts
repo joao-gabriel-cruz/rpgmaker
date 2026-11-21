@@ -18,5 +18,7 @@ export function applyTool(grid: MapGrid, at: Coord, s: ToolState): MapPatch {
       return fill(grid, at, s.terrain).patch
     case 'erase':
       return erase(grid, cells).patch
+    default:
+      return { cells: [] }
   }
 }
