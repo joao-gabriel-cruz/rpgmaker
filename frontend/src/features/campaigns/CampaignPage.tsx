@@ -5,6 +5,8 @@ import { useMe } from '../auth/auth'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { MapArea } from '../scenes/MapArea'
 import { OnlinePanel } from '../realtime/OnlinePanel'
+import { RollLog } from '../rolls/RollLog'
+import { RollTray } from '../rolls/RollTray'
 import { RoundTracker } from '../rounds/RoundTracker'
 import { CharactersSection } from '../characters/CharactersSection'
 import { InvitePanel } from './InvitePanel'
@@ -70,17 +72,23 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
         <p className="text-sm text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
       </div>
       <CampaignSocketProvider campaignId={id}>
-        <RoundTracker campaignId={id} isGm={isGm} />
-        <OnlinePanel />
-        <MapArea campaignId={id} isGm={isGm} />
-        <CharactersSection campaignId={id} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="flex min-w-0 flex-col gap-6">
+            <RoundTracker campaignId={id} isGm={isGm} />
+            <OnlinePanel />
+            <MapArea campaignId={id} isGm={isGm} />
+            <CharactersSection campaignId={id} />
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-semibold">Membros</h2>
+              <Members campaignId={id} isGm={isGm} />
+            </div>
+            {isGm && <SettingsPanel campaign={campaign} />}
+            {isGm && <InvitePanel campaignId={id} />}
+          </div>
+          <RollLog campaignId={id} isGm={isGm} />
+        </div>
+        <RollTray />
       </CampaignSocketProvider>
-      <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold">Membros</h2>
-        <Members campaignId={id} isGm={isGm} />
-      </div>
-      {isGm && <SettingsPanel campaign={campaign} />}
-      {isGm && <InvitePanel campaignId={id} />}
     </section>
   )
 }

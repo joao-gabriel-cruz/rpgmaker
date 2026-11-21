@@ -6,13 +6,11 @@ import { CampaignPage } from './features/campaigns/CampaignPage'
 import { InvitePage } from './features/campaigns/InvitePage'
 import { Layout } from './features/auth/Layout'
 import { LoginPage } from './features/auth/LoginPage'
-import { DiceDemo } from './features/dice3d/DiceDemo'
 import { MapDemo } from './features/map3d/MapDemo'
 import { CharacterPage } from './features/characters/CharacterPage'
 
 export default function App() {
   if (location.search.includes('map-demo')) return <MapDemo />
-  if (location.search.includes('dice-demo')) return <DiceDemo />
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

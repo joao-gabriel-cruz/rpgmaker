@@ -10,6 +10,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rolls"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rounds"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
@@ -48,6 +49,7 @@ func wireTable(d deps) {
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
+	wireRolls(d)
 }
 
 func wireRounds(d deps) {
@@ -63,4 +65,11 @@ func wireScenes(d deps) {
 func wireCharacters(d deps) {
 	svc := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	characters.NewHandlers(svc, d.campaigns.RequireMember).Register(d.mux)
+}
+
+func wireRolls(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	svc := rolls.NewService(rolls.NewStore(d.pool), chars, d.hub)
+	rolls.RegisterCommands(d.hub, svc)
+	rolls.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
 }
