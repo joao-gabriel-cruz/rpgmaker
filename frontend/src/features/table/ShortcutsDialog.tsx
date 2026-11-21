@@ -4,6 +4,9 @@ import { Kbd } from './Tip'
 import { toolsFor } from './tools'
 
 const EXTRA: [string, string][] = [
+  ['Espaço', 'Abrir o compositor de rolagem do personagem ativo'],
+  ['Enter', 'Rolar de novo a última combinação (fora de botões e campos)'],
+  ['← ↑ → ↓', 'No compositor: navegar entre Instintos e Aptidões (Enter rola, Esc fecha)'],
   ['Esc', 'Voltar para Mover'],
   ['[', 'Recolher a barra lateral'],
   [']', 'Expandir a barra lateral'],

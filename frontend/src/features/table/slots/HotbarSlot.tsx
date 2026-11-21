@@ -1,10 +1,6 @@
-/**
- * Slot "hotbar": bottom-center of the map. Delivery 2 renders the player's hotbar here
- * (portrait, health, roll composer, sheet drawer). The wrapper is pointer-events-none;
- * give the real content `pointer-events-auto`.
- */
+import { Hotbar } from '../../hotbar/Hotbar'
+
+/** Slot "hotbar": bottom-center of the map. The wrapper is pointer-events-none; the hotbar re-enables it. */
 export function HotbarSlot({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
-  void campaignId
-  void isGm
-  return null
+  return <Hotbar campaignId={campaignId} isGm={isGm} />
 }

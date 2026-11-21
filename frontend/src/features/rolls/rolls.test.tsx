@@ -79,7 +79,40 @@ it('shows others "is choosing" and then the result with the penalty', () => {
   expect(screen.queryByRole('button', { name: 'Confirmar' })).toBeNull()
   emit('roll.finalized', { rollId: 'r1', result: { symbols: { success: 1, adaptation: 0, pressure: 2 }, kept: [2], penalty: 1, assimilated: false, healthLevel: 'Laceração' } })
   expect(screen.getByText('−1 Sucesso (Laceração)')).toBeInTheDocument()
-  expect(screen.getByText(/Pressões: 2/)).toBeInTheDocument()
+  expect(screen.getByRole('status', { name: 'Resultado da rolagem' })).toHaveTextContent('2Pressões')
+})
+
+const finalized = { rollId: 'r1', result: { symbols: { success: 1, adaptation: 0, pressure: 0 }, kept: [2], penalty: 0, assimilated: false } }
+
+it('closes by itself 4 seconds after the result for someone who did not roll', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  const { emit } = setup(<RollTray />)
+  emit('roll.rolled', { ...entry, userId: 'u2', userName: 'Bea' })
+  act(() => void vi.advanceTimersByTime(10000))
+  expect(screen.getByLabelText('Bandeja de dados')).toBeInTheDocument()
+  emit('roll.finalized', finalized)
+  act(() => void vi.advanceTimersByTime(3900))
+  expect(screen.getByLabelText('Bandeja de dados')).toBeInTheDocument()
+  act(() => void vi.advanceTimersByTime(200))
+  expect(screen.queryByLabelText('Bandeja de dados')).toBeNull()
+  vi.useRealTimers()
+})
+
+it('keeps the result for the roller until Esc, and queues further rolls', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  const { emit } = setup(<RollTray />)
+  emit('roll.rolled', entry)
+  emit('roll.rolled', { ...entry, rollId: 'r2', userId: 'u2', userName: 'Bea' })
+  expect(screen.getByText('+1 na fila')).toBeInTheDocument()
+  await userEvent.keyboard('{Escape}')
+  expect(screen.getByText('Ana · Rita')).toBeInTheDocument()
+  emit('roll.finalized', finalized)
+  act(() => void vi.advanceTimersByTime(10000))
+  expect(screen.getByText('Ana · Rita')).toBeInTheDocument()
+  await userEvent.keyboard('{Escape}')
+  expect(screen.getByRole('heading', { name: /Bea/ })).toBeInTheDocument()
+  expect(screen.queryByText('+1 na fila')).toBeNull()
+  vi.useRealTimers()
 })
 
 it('labels the pool and the result in the log', async () => {

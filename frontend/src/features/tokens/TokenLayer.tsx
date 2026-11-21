@@ -20,6 +20,8 @@ interface Props {
   dragEnabled?: boolean
   /** A character armed in the Tokens tool: the next click on a map cell places its token there. */
   onPlaceAt?: ((c: Coord) => void) | null
+  /** A token was clicked with the Move/Tokens tool: the table selects its character. */
+  onSelect?: (characterId: string) => void
 }
 
 interface Drag {
@@ -106,14 +108,16 @@ function usePlaceClick(grid: MapGrid, onPlaceAt: ((c: Coord) => void) | null | u
 }
 
 /** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
-export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt }: Props) {
+export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true, onPlaceAt, onSelect }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
   const { drag, start } = useDrag(grid, onDrop)
   useAltPing(grid, ping, pingTool)
   usePlaceClick(grid, onPlaceAt)
   const down = (t: Token) => (e: ThreeEvent<PointerEvent>) => {
-    if (!dragEnabled || pingTool || onPlaceAt || e.button !== 0 || e.altKey || !canMoveToken(t, userId, isGm)) return
+    if (!dragEnabled || pingTool || onPlaceAt || e.button !== 0 || e.altKey) return
+    onSelect?.(t.characterId)
+    if (!canMoveToken(t, userId, isGm)) return
     e.stopPropagation()
     start(t)
   }

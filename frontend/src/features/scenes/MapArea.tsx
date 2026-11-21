@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useSceneTokensBridge, useTableCharacter } from '../hotbar/TableCharacterContext'
 import { MapOptions } from '../table/options/MapOptions'
 import { OptionsPortal } from '../table/OptionsPortal'
-import { SURFACE } from '../table/surface'
 import { drawModeOf, isEditorTool } from '../table/tools'
 import { useTableTool } from '../table/useTableTool'
 import { CameraBridge } from '../table/camera/CameraBridge'
@@ -19,8 +19,8 @@ import { useDrawings } from '../drawings/useDrawings'
 import { LootLayer } from '../items/LootLayer'
 import { useSceneLoot, type SceneLoot } from '../items/loot'
 import { TokenLayer } from '../tokens/TokenLayer'
-import { TokensError, TokensPanel } from '../tokens/TokensPanel'
-import { useSceneTokens, type SceneTokens } from '../tokens/useSceneTokens'
+import { TokensError } from '../tokens/TokensPanel'
+import { useSceneTokens } from '../tokens/useSceneTokens'
 import { useShownTokens, useVision } from '../vision/useVision'
 import { VisionLayers } from '../vision/VisionLayers'
 import type { MapState } from './scenes'
@@ -81,10 +81,11 @@ interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
   userId: string
   isGm: boolean
   camera: CameraHandle
+  onSelect: (characterId: string) => void
 }
 
 // The in-canvas layers; the rail tool decides which of them react to the pointer.
-function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera }: LayersProps) {
+function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera, onSelect }: LayersProps) {
   const { tool, placing, setPlacing } = useTableTool()
   const place = useCallback((c: { x: number; z: number }) => {
     if (placing) tokens.place(placing, c)
@@ -93,7 +94,7 @@ function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camer
   return (
     <>
       <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
-        dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} />
+        dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} onSelect={onSelect} />
       <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />
       <CameraBridge handleRef={camera} />
       <DrawingLayer grid={grid} draw={draw} />
@@ -116,6 +117,15 @@ function usePublishDraft(draft: boolean, setDraftActive: (v: boolean) => void) {
   }, [draft, setDraftActive])
 }
 
+// The hotbar reads the scene's tokens (to offer "place my token") from the table context.
+function usePublishTokens(tokens: Tools['tokens']) {
+  const { setTokens } = useSceneTokensBridge()
+  useEffect(() => {
+    setTokens(tokens)
+    return () => setTokens(null)
+  }, [tokens, setTokens])
+}
+
 function SceneWithTokens(p: WithTokens) {
   const { campaignId, sceneId, isGm, state, command, draft } = p
   const { tool, editor, setEditor, showGrid, setDraftActive, selectedObjectId, setSelectedObjectId } = useTableTool()
@@ -124,15 +134,16 @@ function SceneWithTokens(p: WithTokens) {
   const history = useEditing(p)
   const camera = useRef<CameraHandle['current']>(null) as CameraHandle
   usePublishDraft(draft, setDraftActive)
+  usePublishTokens(tokens)
+  const { select } = useTableCharacter()
   const loot = useSceneLoot(campaignId, sceneId)
-  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera }} />
+  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera, onSelect: select }} />
   const mine = tokens.tokens.find((t) => t.ownerId === userId)
   const opts = { campaignId, sceneId, isGm, grid: state.grid, objects: state.objects, onObjectPatch: history.editObjects,
     history, draw, vision, tokens, draft, onCommand: command }
   return (
     <>
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><TokensError tokens={tokens} /></div>
-      {!isGm && <PlayerTokenPrompt campaignId={campaignId} tokens={tokens} userId={userId} />}
       <OptionsPortal>
         <MapOptions {...opts} />
       </OptionsPortal>
@@ -145,11 +156,6 @@ function SceneWithTokens(p: WithTokens) {
         : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
     </>
   )
-}
-
-// Players have no Tokens tool: the "place my token" button floats at the bottom-left of the map.
-function PlayerTokenPrompt(p: { campaignId: string; tokens: SceneTokens; userId: string }) {
-  return <div className={`absolute bottom-3 left-3 z-10 empty:hidden rounded-xl p-1 ${SURFACE}`}><TokensPanel {...p} /></div>
 }
 
 function Empty({ children }: { children: ReactNode }) {

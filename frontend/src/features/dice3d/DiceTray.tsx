@@ -14,6 +14,8 @@ export interface DiceTrayProps {
   selected?: number[]
   onToggle?: (index: number) => void
   onSettled?: () => void
+  /** Size/appearance of the frame; defaults to a fixed 24rem-high card. */
+  className?: string
 }
 
 function useSettleTracking(dice: DieResult[], rollId: string | number, onSettled?: () => void) {
@@ -68,9 +70,9 @@ function Scene({ dice, rollId, seed, selectable, selected = [], onToggle, onSett
   )
 }
 
-export function DiceTray(props: DiceTrayProps) {
+export function DiceTray({ className, ...props }: DiceTrayProps) {
   return (
-    <div className="h-96 w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+    <div className={className ?? 'h-96 w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950'}>
       <Canvas camera={{ position: [0, 10, 8], fov: 40 }}>
         <Scene {...props} />
       </Canvas>

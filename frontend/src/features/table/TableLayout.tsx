@@ -7,6 +7,7 @@ import { ShortcutsDialog } from './ShortcutsDialog'
 import { Sidebar } from './Sidebar'
 import { ToolRail } from './ToolRail'
 import { TopBar } from './TopBar'
+import { useTableCharacter } from '../hotbar/TableCharacterContext'
 import { useSidebarState } from './useSidebarState'
 import { useTableShortcuts } from './useTableShortcuts'
 import { TableToolProvider, useTableTool } from './useTableTool'
@@ -20,20 +21,29 @@ export interface TableLayoutProps {
   hotbar?: ReactNode
   /** Slot "overlay": centered over the map (dice tray). */
   overlay?: ReactNode
+  /** Slot "drawer": side panel over the map (character sheet). */
+  drawer?: ReactNode
   /** Slot "toasts": fixed notices. */
   toasts?: ReactNode
 }
 
 type Dialog = 'settings' | 'help' | null
 
-function Frame({ campaign, scenes, map, hotbar, overlay, toasts }: TableLayoutProps) {
+// Space opens the roll composer and Enter repeats the last roll.
+function useRollShortcuts() {
+  const { setComposerOpen, rollAgain } = useTableCharacter()
+  const openRoll = useCallback(() => setComposerOpen(true), [setComposerOpen])
+  return { openRoll, rollAgain }
+}
+
+function Frame({ campaign, scenes, map, hotbar, drawer, overlay, toasts }: TableLayoutProps) {
   const isGm = campaign.role === 'gm'
   const { setTool } = useTableTool()
   const sidebar = useSidebarState()
   const [dialog, setDialog] = useState<Dialog>(null)
   const closeDialog = useCallback(() => setDialog(null), [])
   const openHelp = useCallback(() => setDialog('help'), [])
-  useTableShortcuts({ isGm, setTool, setSidebarOpen: sidebar.setOpen, openHelp })
+  useTableShortcuts({ isGm, setTool, setSidebarOpen: sidebar.setOpen, openHelp, ...useRollShortcuts() })
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-zinc-950 text-zinc-100">
       <TopBar campaign={campaign} scenes={scenes} onOpenHelp={openHelp} onOpenSettings={() => setDialog('settings')} />
@@ -43,6 +53,7 @@ function Frame({ campaign, scenes, map, hotbar, overlay, toasts }: TableLayoutPr
           {map}
           <OptionsPanel />
           <div data-slot="overlay" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">{overlay}</div>
+          <div data-slot="drawer" className="pointer-events-none absolute bottom-[6.75rem] right-3 top-3 z-10 flex">{drawer}</div>
           <div data-slot="hotbar" className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">{hotbar}</div>
         </main>
         <Sidebar campaignId={campaign.id} isGm={isGm} sidebar={sidebar} />

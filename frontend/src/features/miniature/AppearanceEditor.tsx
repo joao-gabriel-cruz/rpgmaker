@@ -26,8 +26,8 @@ export function AppearanceEditor({ appearance, onChange, readOnly = false, assim
   )
   return (
     <Section title="Aparência" aside={actions}>
-      <div className="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_2fr]">
-        <div className="h-72 overflow-hidden rounded border border-zinc-800 lg:h-96">
+      <div className="grid gap-4 @2xl:grid-cols-[minmax(240px,1fr)_2fr]">
+        <div className="h-72 overflow-hidden rounded border border-zinc-800 @2xl:h-96">
           <Suspense fallback={<p className="p-3 text-sm text-zinc-400">Carregando prévia…</p>}>
             <MiniaturePreview appearance={a} assimilationLevel={assimilationLevel} />
           </Suspense>

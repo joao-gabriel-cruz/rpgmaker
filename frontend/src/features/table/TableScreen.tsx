@@ -3,6 +3,8 @@ import { ConflictProvider } from '../conflict/ConflictContext'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { MapArea } from '../scenes/MapArea'
 import { useSceneControls } from '../scenes/useSceneControls'
+import { TableCharacterProvider } from '../hotbar/TableCharacterContext'
+import { DrawerSlot } from './slots/DrawerSlot'
 import { HotbarSlot } from './slots/HotbarSlot'
 import { OverlaySlot } from './slots/OverlaySlot'
 import { ToastSlot } from './slots/ToastSlot'
@@ -15,6 +17,7 @@ function TableContent({ campaign }: { campaign: Campaign }) {
     <TableLayout campaign={campaign} scenes={scenes}
       map={<MapArea campaignId={campaign.id} isGm={isGm} scenes={scenes} />}
       hotbar={<HotbarSlot campaignId={campaign.id} isGm={isGm} />}
+      drawer={<DrawerSlot campaign={campaign} />}
       overlay={<OverlaySlot />}
       toasts={<ToastSlot />} />
   )
@@ -25,7 +28,7 @@ export function TableScreen({ campaign }: { campaign: Campaign }) {
   return (
     <CampaignSocketProvider campaignId={campaign.id}>
       <ConflictProvider campaignId={campaign.id} isGm={campaign.role === 'gm'}>
-        <TableContent campaign={campaign} />
+        <TableCharacterProvider><TableContent campaign={campaign} /></TableCharacterProvider>
       </ConflictProvider>
     </CampaignSocketProvider>
   )
