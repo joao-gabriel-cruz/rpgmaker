@@ -18,9 +18,10 @@ function moveItem(inv: Inv, from: Place, to: Place, i: number): Inv {
 interface ColProps extends SectionProps {
   place: (typeof PLACES)[number]
   set: (next: Inv) => void
+  onDeposit?: (place: Place, index: number) => void
 }
 
-function PlaceColumn({ sheet, readOnly, issues, place: p, set }: ColProps) {
+function PlaceColumn({ sheet, readOnly, issues, place: p, set, onDeposit }: ColProps) {
   const inv = sheet.inventory
   const update = (i: number, item: Item) => set({ ...inv, [p.key]: inv[p.key].map((x, j) => (j === i ? item : x)) })
   const remove = (i: number) => set({ ...inv, [p.key]: inv[p.key].filter((_, j) => j !== i) })
@@ -34,7 +35,7 @@ function PlaceColumn({ sheet, readOnly, issues, place: p, set }: ColProps) {
       </div>
       <ul className="space-y-2">
         {inv[p.key].map((item, i) => (
-          <ItemCard key={i} item={item} readOnly={readOnly} moveLabel={p.moveLabel} canMove={inv[p.other].length < LIMITS[p.other]} onChange={(it) => update(i, it)} onMove={() => set(moveItem(inv, p.key, p.other, i))} onRemove={() => remove(i)} />
+          <ItemCard key={i} item={item} readOnly={readOnly} moveLabel={p.moveLabel} canMove={inv[p.other].length < LIMITS[p.other]} onChange={(it) => update(i, it)} onMove={() => set(moveItem(inv, p.key, p.other, i))} onRemove={() => remove(i)} onDeposit={onDeposit && (() => onDeposit(p.key, i))} />
         ))}
       </ul>
       <IssueList issues={issues} field={`inventory.${p.key}`} />
@@ -42,7 +43,7 @@ function PlaceColumn({ sheet, readOnly, issues, place: p, set }: ColProps) {
   )
 }
 
-export function InventorySection(props: SectionProps) {
+export function InventorySection(props: SectionProps & { onDeposit?: (place: Place, index: number) => void }) {
   const set = (next: Inv) => props.onChange({ ...props.sheet, inventory: next })
   return (
     <Section title="Inventário">

@@ -9,6 +9,7 @@ import { RollLog } from '../rolls/RollLog'
 import { RollTray } from '../rolls/RollTray'
 import { RoundTracker } from '../rounds/RoundTracker'
 import { CharactersSection } from '../characters/CharactersSection'
+import { RefugeSection } from '../refuge/RefugeSection'
 import { InvitePanel } from './InvitePanel'
 import { SettingsPanel } from './SettingsPanel'
 import { removeMember, roleLabel, type Campaign, type MemberInfo } from './campaigns'
@@ -78,6 +79,7 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
             <OnlinePanel />
             <MapArea campaignId={id} isGm={isGm} />
             <CharactersSection campaignId={id} isGm={isGm} />
+            <RefugeSection campaignId={id} isGm={isGm} />
             <div className="flex flex-col gap-2">
               <h2 className="text-xl font-semibold">Membros</h2>
               <Members campaignId={id} isGm={isGm} />

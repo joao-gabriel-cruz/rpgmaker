@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/auth'
@@ -47,7 +47,8 @@ function Banners({ status, error, hasIssues }: { status: SaveStatus; error: stri
 
 function Editor({ campaign, character, canEdit }: { campaign: Campaign; character: CharacterView; canEdit: boolean }) {
   const navigate = useNavigate()
-  const { subscribe } = useRealtime()
+  const { subscribe, send } = useRealtime()
+  const [depositError, setDepositError] = useState('')
   const { sheet, issues, status, error, onChange } = useCharacterSync(campaign.id, character, canEdit)
   const remove = useMutation({
     mutationFn: () => deleteCharacter(campaign.id, character.id),
@@ -61,10 +62,15 @@ function Editor({ campaign, character, canEdit }: { campaign: Campaign; characte
     <section className="flex flex-col gap-4">
       <Toolbar campaign={campaign} character={character} canEdit={canEdit} status={status} onRemove={() => remove.mutate()} />
       {canEdit && <Banners status={status} error={error} hasIssues={issues.length > 0} />}
+      {depositError && <p role="alert" className="rounded bg-red-950 px-3 py-2 text-sm text-red-300">{depositError}</p>}
       {character.kind === 'npc'
         ? <NpcSheet sheet={asNpc(sheet)} onChange={(n) => onChange(asSheet(n))} readOnly={!canEdit} issues={toSheetIssues(issues)} />
         : <RollableSheet characterId={character.id} isGm={campaign.role === 'gm'}
-          sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)} />}
+          sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)}
+          onDepositItem={(from, index) => {
+            setDepositError('')
+            send('refuge.item.deposit', { characterId: character.id, from, index }).catch((e: Error) => setDepositError(e.message))
+          }} />}
       <RollTray />
     </section>
   )

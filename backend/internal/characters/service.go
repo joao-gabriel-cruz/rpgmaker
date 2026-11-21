@@ -167,6 +167,20 @@ func (s *Service) Save(ctx context.Context, m campaigns.Member, id string, sheet
 	return v, nil
 }
 
+// Announce broadcasts character.updated for a character changed outside this service (e.g. by the refuge).
+func (s *Service) Announce(ctx context.Context, campaignID, id string) error {
+	c, err := s.repo.Get(ctx, campaignID, id)
+	if err != nil {
+		return err
+	}
+	info, err := s.load(ctx, campaigns.Member{CampaignID: campaignID, Role: campaigns.RoleGM})
+	if err != nil {
+		return err
+	}
+	s.notify(c, "character.updated", info.view(c))
+	return nil
+}
+
 // Delete removes a character (owner or gm).
 func (s *Service) Delete(ctx context.Context, m campaigns.Member, id string) error {
 	_, c, err := s.fetch(ctx, m, id)
