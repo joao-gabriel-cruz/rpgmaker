@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
 )
@@ -70,4 +72,39 @@ func sceneTokens(ctx context.Context, t Table, s Session, sceneID string) ([]tok
 		return nil, fmt.Errorf("list tokens: %w", err)
 	}
 	return list, nil
+}
+
+// pick resolves ref against items by exact id first, then case-insensitive name.
+func pick[T any](list []T, ref string, id, name func(T) string) (T, error) {
+	var zero T
+	for _, it := range list {
+		if id(it) == ref {
+			return it, nil
+		}
+	}
+	var found []T
+	for _, it := range list {
+		if strings.EqualFold(name(it), ref) {
+			found = append(found, it)
+		}
+	}
+	switch len(found) {
+	case 0:
+		return zero, newUserError(fmt.Sprintf("não encontrei %q", ref))
+	case 1:
+		return found[0], nil
+	}
+	opts := make([]string, len(found))
+	for i, it := range found {
+		opts[i] = fmt.Sprintf("%s (%s)", name(it), id(it))
+	}
+	return zero, newUserError(fmt.Sprintf("%q é ambíguo: %s", ref, strings.Join(opts, ", ")))
+}
+
+func findToken(list []tokens.Token, ref string) (tokens.Token, error) {
+	return pick(list, ref, func(t tokens.Token) string { return t.ID }, func(t tokens.Token) string { return t.Name })
+}
+
+func findCharacter(list []characters.View, ref string) (characters.View, error) {
+	return pick(list, ref, func(c characters.View) string { return c.ID }, func(c characters.View) string { return c.Name })
 }

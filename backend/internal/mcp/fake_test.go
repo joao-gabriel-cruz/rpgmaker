@@ -118,13 +118,14 @@ func (f *fakeTokens) Place(context.Context, realtime.Sender, string, string, str
 }
 
 type fakeAmbience struct {
+	cur        ambience.Ambience
 	set        []ambience.Ambience
 	conditions []ConditionState
 	senders    []realtime.Sender
 }
 
 func (f *fakeAmbience) Get(context.Context, string, string) (ambience.Ambience, error) {
-	return ambience.Ambience{}, nil
+	return f.cur, nil
 }
 
 func (f *fakeAmbience) Set(_ context.Context, _ string, a ambience.Ambience) error {
@@ -138,10 +139,10 @@ func (f *fakeAmbience) SetCondition(_ context.Context, snd realtime.Sender, _, c
 	return nil
 }
 
-type fakeCharacters struct{}
+type fakeCharacters struct{ list []characters.View }
 
-func (fakeCharacters) List(context.Context, campaigns.Member) ([]characters.View, error) {
-	return nil, nil
+func (f *fakeCharacters) List(context.Context, campaigns.Member) ([]characters.View, error) {
+	return f.list, nil
 }
 
 type rig struct {
@@ -150,14 +151,15 @@ type rig struct {
 	sc  *fakeScenes
 	tk  *fakeTokens
 	amb *fakeAmbience
+	chr *fakeCharacters
 	t   Table
 	s   Session
 }
 
 func newRig(sceneIDs ...string) *rig {
-	r := &rig{n: &recNotifier{}, sc: newFakeScenes(sceneIDs...), tk: &fakeTokens{}, amb: &fakeAmbience{}}
+	r := &rig{n: &recNotifier{}, sc: newFakeScenes(sceneIDs...), tk: &fakeTokens{}, amb: &fakeAmbience{}, chr: &fakeCharacters{}}
 	r.j = NewJournal(r.n)
-	r.t = Table{Scenes: r.sc, Tokens: r.tk, Ambience: r.amb, Characters: fakeCharacters{}}
+	r.t = Table{Scenes: r.sc, Tokens: r.tk, Ambience: r.amb, Characters: r.chr}
 	r.s = Session{CampaignID: "c1", Sender: realtime.Sender{UserID: "gm", Role: campaigns.RoleGM, Name: "Mestre"}}
 	return r
 }

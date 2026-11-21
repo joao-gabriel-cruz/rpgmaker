@@ -39,6 +39,7 @@ func newServer(t Table, j *Journal, s Session) *sdk.Server {
 	registerReadTools(srv, t, j, s)
 	registerTerrainTools(srv, t, j, s)
 	registerObjectTools(srv, t, j, s)
+	registerTokenTools(srv, t, j, s)
 	return srv
 }
 
