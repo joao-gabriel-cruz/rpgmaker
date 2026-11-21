@@ -6,6 +6,7 @@ import { renderApp, stubApi } from '../../test/renderApp'
 import { openTab } from '../../test/table'
 
 vi.mock('../map3d/TerrainView', () => ({ TerrainView: () => <div data-testid="view" /> }))
+vi.mock('../dice3d/DiceTray', () => ({ DiceTray: () => <div data-testid="tray3d" /> }))
 vi.mock('../map3d/TerrainEditor', () => ({ TerrainEditor: () => <div data-testid="editor" /> }))
 
 const me = { id: 'u1', email: 'a@x.com', displayName: 'Ana', isAdmin: false, createdAt: '' }

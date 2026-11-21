@@ -6,6 +6,7 @@ import { ConflictProvider } from '../conflict/ConflictContext'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { MapArea } from '../scenes/MapArea'
 import { useSceneControls } from '../scenes/useSceneControls'
+import { ActionFlowProvider } from '../actions/ActionFlow'
 import { TableCharacterProvider } from '../hotbar/TableCharacterContext'
 import { DrawerSlot } from './slots/DrawerSlot'
 import { HotbarSlot } from './slots/HotbarSlot'
@@ -23,7 +24,7 @@ function TableContent({ campaign }: { campaign: Campaign }) {
       drawer={<DrawerSlot campaign={campaign} />}
       overlay={<OverlaySlot />}
       presence={<PresenceDock campaignId={campaign.id} isGm={isGm} />}
-      toasts={<ToastSlot />} />
+      toasts={<ToastSlot isGm={isGm} sceneId={scenes.scenes.find((s) => s.isActive)?.id ?? null} />} />
   )
 }
 
@@ -33,7 +34,7 @@ export function TableScreen({ campaign }: { campaign: Campaign }) {
     <CampaignSocketProvider campaignId={campaign.id}>
       <ConflictProvider campaignId={campaign.id} isGm={campaign.role === 'gm'}>
         <SoundProvider><PresenceProvider>
-          <TableCharacterProvider><TableContent campaign={campaign} /></TableCharacterProvider>
+          <TableCharacterProvider><ActionFlowProvider><TableContent campaign={campaign} /></ActionFlowProvider></TableCharacterProvider>
         </PresenceProvider></SoundProvider>
       </ConflictProvider>
     </CampaignSocketProvider>

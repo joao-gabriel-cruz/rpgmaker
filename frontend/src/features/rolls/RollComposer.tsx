@@ -39,6 +39,14 @@ export interface RollComposerProps {
   /** Quick alternatives shown as chips above the grids. */
   alternatives?: RollOption[]
   title?: string
+  /** Extra kept dice from equipped items (action rolls only); shown in the preview. */
+  bonusKept?: number
+  /** Small line under the title (e.g. which item grants the bonus). */
+  hint?: string
+  /** Only the alternatives can be picked (action rolls); the instinct/aptitude grids are hidden. */
+  lockToAlternatives?: boolean
+  /** Replaces the default `roll.request` (actions send `action.perform`); resolves when the server accepted. */
+  submit?: (body: RollPayload, selection: PoolSelection) => Promise<void>
   /** Called with the sent payload once the server accepted the request. */
   onRoll?: (payload: RollPayload) => void
   onClose: () => void
@@ -91,7 +99,8 @@ function useComposer(p: RollComposerProps) {
     } as RollPayload
     setError('')
     setBusy(true)
-    send('roll.request', body).then(() => { p.onRoll?.(body); p.onClose() }, (e: Error) => { setError(e.message); setBusy(false) })
+    const sent = p.submit ? p.submit(body, selection) : send('roll.request', body)
+    sent.then(() => { p.onRoll?.(body); p.onClose() }, (e: Error) => { setError(e.message); setBusy(false) })
   }
   const setDifficulty = (d12: number) => {
     send('roll.difficulty.set', { characterId: p.character.id, d12 }).catch((e: Error) => setError(e.message))
@@ -153,17 +162,20 @@ export function RollComposer(p: RollComposerProps) {
     const picks = root.current?.querySelectorAll<HTMLButtonElement>('button[data-pick]')
     ;(root.current?.querySelector<HTMLButtonElement>('button[data-pick][aria-pressed="true"]') ?? picks?.[0])?.focus()
   }, [])
-  const preview = poolPreview(p.character.sheet, c.selection, c.mods, p.isGm)
+  const preview = poolPreview(p.character.sheet, c.selection, c.mods, p.isGm, p.bonusKept ?? 0)
   return (
     <div ref={root} role="dialog" aria-label={p.title ?? 'Compositor de rolagem'} tabIndex={-1} onKeyDown={useKeys(c, p.onClose)}
       className={`pointer-events-auto max-h-[min(36rem,calc(100dvh-14rem))] w-[min(46rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl p-1 outline-none ${SURFACE}`}>
       <div className="flex flex-col gap-3 rounded-xl p-3">
         <h2 className="text-sm font-semibold">{p.title ?? `Rolar com ${p.character.name}`}</h2>
+        {p.hint && <p className="-mt-2 text-xs text-amber-300">{p.hint}</p>}
         {p.alternatives && p.alternatives.length > 0 && (
           <Alternatives options={p.alternatives} selection={c.selection} onPick={(o) => c.setSelection({ instinct: o.instinct, aptitude: o.aptitude })} />
         )}
-        <div className="grid gap-4 sm:grid-cols-[1.25fr_1fr]">
-          <ComposerGrids sheet={p.character.sheet} selection={c.selection} instinctDie={instinctDieKind(c.mods)} onChange={c.setSelection} />
+        <div className={p.lockToAlternatives ? 'grid gap-4' : 'grid gap-4 sm:grid-cols-[1.25fr_1fr]'}>
+          {!p.lockToAlternatives && (
+            <ComposerGrids sheet={p.character.sheet} selection={c.selection} instinctDie={instinctDieKind(c.mods)} onChange={c.setSelection} />
+          )}
           <Options c={c} p={p} />
         </div>
         <Footer c={c} p={p} preview={preview.text} />

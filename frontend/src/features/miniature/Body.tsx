@@ -1,3 +1,5 @@
+import type { RefObject } from 'react'
+import type { Group } from 'three'
 import type { Appearance, Build } from './appearance'
 import { Part, box, cyl, ico, type V3 } from './shared'
 
@@ -39,13 +41,13 @@ function Shoe({ kind, color, skin, w }: { kind: Appearance['outfit']['shoes']; c
   )
 }
 
-function Arm({ a, side, w }: { a: Appearance; side: 1 | -1; w: number }) {
+function Arm({ a, side, w, groupRef }: { a: Appearance; side: 1 | -1; w: number; groupRef?: RefObject<Group | null> }) {
   const { top, topColor } = a.outfit
   const skin = a.body.skin
   const sleeve = top === 'tshirt' ? 0.1 : top === 'vest' ? 0 : 0.27
   const lower = 0.27 - sleeve
   return (
-    <group position={[side * armX(w), TORSO_TOP - 0.02, 0]}>
+    <group ref={groupRef} position={[side * armX(w), TORSO_TOP - 0.02, 0]}>
       {sleeve > 0 && <Part geo={box(ARM_W, sleeve, ARM_W)} color={topColor} pos={[0, -sleeve / 2, 0]} />}
       {lower > 0 && <Part geo={box(ARM_W, lower, ARM_W)} color={skin} pos={[0, -sleeve - lower / 2, 0]} />}
       <Part geo={box(0.06, 0.06, 0.06)} color={skin} pos={[0, -0.3, 0]} />
@@ -66,16 +68,22 @@ function Torso({ a, w }: { a: Appearance; w: number }) {
   )
 }
 
+/** Arm groups an emote can swing. */
+export interface Rig {
+  armL: RefObject<Group | null>
+  armR: RefObject<Group | null>
+}
+
 /** Legs, torso, arms, neck and head (without face details), feet at y = 0. */
-export function Body({ a }: { a: Appearance }) {
+export function Body({ a, rig }: { a: Appearance; rig?: Rig }) {
   const w = BUILD_WIDTH[a.body.build]
   const headPos: V3 = [0, 0.82, 0]
   return (
     <>
       <Legs a={a} w={w} />
       <Torso a={a} w={w} />
-      <Arm a={a} side={-1} w={w} />
-      <Arm a={a} side={1} w={w} />
+      <Arm a={a} side={-1} w={w} groupRef={rig?.armL} />
+      <Arm a={a} side={1} w={w} groupRef={rig?.armR} />
       <Part geo={box(0.06, 0.05, 0.06)} color={a.body.skin} pos={[0, 0.72, 0]} />
       <Part geo={ico(0.1)} color={a.body.skin} pos={headPos} scale={[1, 1.08, 0.95]} />
       <Part geo={box(0.03, 0.025, 0.02)} color={darker} pos={[-0.04, 0.83, 0.093]} />

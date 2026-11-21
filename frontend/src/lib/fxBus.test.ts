@@ -13,3 +13,13 @@ it('delivers payloads to subscribers of that name only and stops after unsubscri
   fxBus.emit('fx:test_a', {})
   expect(a).toHaveBeenCalledTimes(1)
 })
+
+it('carries action payloads with targets to fx:<animation> subscribers', () => {
+  const strike = vi.fn()
+  const off = fxBus.on('fx:melee_strike', strike)
+  fxBus.emit('fx:melee_strike', { x: 2, z: 3, target: { kind: 'token', tokenId: 't1' } })
+  expect(strike).toHaveBeenCalledWith({ x: 2, z: 3, target: { kind: 'token', tokenId: 't1' } })
+  off()
+  fxBus.emit('fx:melee_strike', { x: 0, z: 0 })
+  expect(strike).toHaveBeenCalledTimes(1)
+})

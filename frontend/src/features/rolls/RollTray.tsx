@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { fxBus } from '../../lib/fxBus'
 import { useMe } from '../auth/auth'
 import { AssignToObjective } from '../conflict/AssignToObjective'
 import { DiceTray } from '../dice3d/DiceTray'
@@ -8,7 +9,7 @@ import { useRealtime } from '../realtime/realtimeContext'
 import { modifiersText } from './modifiers'
 import { ResultBanner } from './ResultBanner'
 import type { RollEntry } from './rolls'
-import { useRollQueue, type ActiveRoll } from './useRollQueue'
+import { isSettled, useRollQueue, type ActiveRoll } from './useRollQueue'
 
 /** Seconds the result stays up for people who did not roll. */
 export const AUTO_CLOSE_MS = 4000
@@ -24,6 +25,15 @@ function Picker({ entry, selected, onConfirm, busy }: { entry: RollEntry; select
       <button onClick={onConfirm} disabled={selected.length !== need || busy}
         className="rounded-lg bg-emerald-600 px-4 py-1.5 font-semibold text-white transition-[background-color,transform] hover:bg-emerald-500 active:scale-[0.96] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300">Confirmar</button>
     </div>
+  )
+}
+
+function GenericTotal({ entry, settled }: { entry: RollEntry; settled: boolean }) {
+  if (!settled) return <p className="text-center text-sm text-zinc-400">Rolando {entry.expression}…</p>
+  return (
+    <p data-testid="generic-total" className="text-center text-lg font-semibold text-emerald-300">
+      {entry.expression}: <span className="tabular-nums">{entry.total}</span>
+    </p>
   )
 }
 
@@ -53,14 +63,15 @@ function Body({ active, mine }: { active: ActiveRoll; mine: boolean }) {
   }
   return (
     <>
-      <DiceTray dice={dice} rollId={entry.rollId} seed={entry.seed} selectable={mine && !result} selected={result?.kept ?? selected}
+      <DiceTray dice={dice} rollId={entry.rollId} seed={entry.seed} selectable={mine && !result && entry.kind !== 'generic'} selected={result?.kept ?? selected}
         onToggle={toggle} onSettled={() => setSettled(true)} className={TRAY_BOX} />
       {mods && <p className="text-center text-xs text-amber-300">{mods}</p>}
       {result && <ResultBanner result={result} />}
+      {entry.kind === 'generic' && <GenericTotal entry={entry} settled={settled} />}
       {result && entry.kind === 'assimilacao' && <AssignToObjective rollId={entry.rollId} ownerId={entry.userId} />}
-      {!result && mine && settled && <Picker entry={entry} selected={selected} onConfirm={confirm} busy={busy} />}
-      {!result && mine && !settled && <p className="text-center text-sm text-zinc-400">Rolando…</p>}
-      {!result && !mine && <p className="text-center text-sm text-zinc-400">{entry.userName} está escolhendo…</p>}
+      {!result && entry.kind !== 'generic' && mine && settled && <Picker entry={entry} selected={selected} onConfirm={confirm} busy={busy} />}
+      {!result && entry.kind !== 'generic' && mine && !settled && <p className="text-center text-sm text-zinc-400">Rolando…</p>}
+      {!result && entry.kind !== 'generic' && !mine && <p className="text-center text-sm text-zinc-400">{entry.userName} está escolhendo…</p>}
       {error && <p role="alert" className="text-center text-sm text-red-400">{error}</p>}
     </>
   )
@@ -69,7 +80,7 @@ function Body({ active, mine }: { active: ActiveRoll; mine: boolean }) {
 // Others' rolls close by themselves; the roller closes with the button or Esc once there is a result.
 function useDismiss(active: ActiveRoll | undefined, mine: boolean, close: () => void) {
   const rollId = active?.entry.rollId
-  const done = !!active?.result
+  const done = !!active && isSettled(active)
   useEffect(() => {
     if (!rollId || !done || mine) return
     const t = setTimeout(close, AUTO_CLOSE_MS)
@@ -83,14 +94,20 @@ function useDismiss(active: ActiveRoll | undefined, mine: boolean, close: () => 
   }, [rollId, done, mine, close])
 }
 
+// Tells the effects which roll covers the map, so actions play after the tray closes.
+function useTrayBeacon(rollId: string | null) {
+  useEffect(() => { fxBus.emit('ui:tray', { x: 0, z: 0, rollId }) }, [rollId])
+}
+
 /** Translucent overlay (slot: overlay) with the dice of the roll in progress; extra rolls wait in a queue. */
 export function RollTray() {
   const { current, waiting, close } = useRollQueue()
   const { data: me } = useMe()
   const mine = !!current && me?.id === current.entry.userId
   useDismiss(current, mine, close)
+  useTrayBeacon(current?.entry.rollId ?? null)
   if (!current) return null
-  const { entry, result } = current
+  const { entry } = current
   return (
     <aside aria-label="Bandeja de dados" className="pointer-events-auto flex w-[min(52rem,calc(100%-2rem))] flex-col gap-3 rounded-3xl bg-zinc-900/75 p-2 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl motion-safe:animate-[tray-in_160ms_ease-out]">
       <div className="flex flex-col gap-3 rounded-2xl p-3">
@@ -100,7 +117,7 @@ export function RollTray() {
           </h2>
           <span className="flex items-center gap-2">
             {waiting > 0 && <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">+{waiting} na fila</span>}
-            {(!mine || result) && (
+            {(!mine || isSettled(current)) && (
               <button type="button" aria-label="Fechar bandeja" onClick={close}
                 className="rounded-lg p-1.5 text-zinc-400 transition-[background-color,color,transform] hover:bg-zinc-800 hover:text-white active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-emerald-400">
                 <X size={18} aria-hidden />

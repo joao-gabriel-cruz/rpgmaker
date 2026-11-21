@@ -139,13 +139,60 @@ it('marks secret rolls for the Mestre', async () => {
   expect(await screen.findByText('Secreta')).toBeInTheDocument()
 })
 
-it('sends /r commands as generic rolls and rejects unknown ones', async () => {
-  const { send } = setup(<RollLog campaignId="c1" isGm={false} />)
-  const input = screen.getByLabelText('Comando de rolagem')
-  await userEvent.type(input, '/r 2d6+3{Enter}')
-  expect(send).toHaveBeenCalledWith('roll.generic', { expression: '2d6+3' })
-  await userEvent.type(input, 'oi{Enter}')
-  expect(screen.getByRole('alert')).toHaveTextContent('Comando desconhecido')
+it('has no text box for rolls: the /r command left the interface', () => {
+  setup(<RollLog campaignId="c1" isGm={false} />)
+  expect(screen.queryByLabelText('Comando de rolagem')).toBeNull()
+  expect(screen.queryByPlaceholderText('/r 2d6+3')).toBeNull()
+  expect(screen.queryByRole('textbox')).toBeNull()
+})
+
+it('puts generic rolls through the 3D tray with the total once the dice settle', async () => {
+  const { emit } = setup(<RollTray />)
+  emit('roll.rolled', { rollId: 'g1', userId: 'u2', userName: 'Bob', characterId: null, kind: 'generic', visibility: 'public',
+    dice: [{ kind: 'd20', face: 17, difficulty: false }], expression: 'd20', total: 17, seed: 4 })
+  expect(trayProps.mock.calls.at(-1)![0].dice).toEqual([{ kind: 'd20', face: 17, variant: 'normal' }])
+  expect(screen.queryByTestId('generic-total')).toBeNull()
+  await userEvent.click(screen.getByText('settle'))
+  expect(screen.getByTestId('generic-total')).toHaveTextContent('d20: 17')
+  expect(screen.queryByRole('button', { name: 'Confirmar' })).toBeNull()
+})
+
+it('skips the tray for generic rolls with dice the renderer lacks', () => {
+  const { emit } = setup(<RollTray />)
+  emit('roll.rolled', { rollId: 'g2', userId: 'u1', userName: 'Ana', characterId: null, kind: 'generic', visibility: 'public',
+    dice: [{ kind: 'd100', face: 50, difficulty: false }], expression: 'd100', total: 50, seed: 1 })
+  expect(screen.queryByTestId('tray')).toBeNull()
+})
+
+it('gives the Mestre a button-driven pool builder that rolls through roll.pool', async () => {
+  const { send } = setup(<RollLog campaignId="c1" isGm />)
+  const roll = screen.getByRole('button', { name: 'Rolar parada' })
+  expect(roll).toBeDisabled()
+  await userEvent.click(screen.getByRole('button', { name: 'Adicionar d6' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Adicionar d6' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Adicionar d12' }))
+  expect(screen.getByTestId('pool-builder-text')).toHaveTextContent('2d6 + 1d12')
+  await userEvent.click(roll)
+  expect(send).toHaveBeenCalledWith('roll.pool', { d6: 2, d10: 0, d12: 1 })
+  expect(await screen.findByText('Nenhum dado ainda')).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Adicionar d10' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Limpar' }))
+  expect(screen.getByText('Nenhum dado ainda')).toBeInTheDocument()
+})
+
+it('offers the Mestre generic shortcuts (d6, 2d6, d10, d12, d20) and hides the tools from players', async () => {
+  const { send } = setup(<RollLog campaignId="c1" isGm />)
+  await userEvent.click(screen.getByRole('button', { name: 'Rolar 2d6' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Rolar d20' }))
+  expect(send).toHaveBeenCalledWith('roll.generic', { expression: '2d6' })
+  expect(send).toHaveBeenCalledWith('roll.generic', { expression: 'd20' })
+  expect(screen.getAllByRole('button', { name: /^Rolar (d6|2d6|d10|d12|d20)$/ })).toHaveLength(5)
+})
+
+it('keeps the pool builder and loose dice away from players', () => {
+  setup(<RollLog campaignId="c1" isGm={false} />)
+  expect(screen.queryByRole('button', { name: 'Rolar parada' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Rolar d20' })).toBeNull()
 })
 
 it('renders generic rolls with the total', async () => {

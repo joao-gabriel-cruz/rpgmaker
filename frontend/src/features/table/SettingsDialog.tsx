@@ -3,6 +3,7 @@ import { InvitePanel } from '../campaigns/InvitePanel'
 import { MembersSection } from '../campaigns/MembersSection'
 import { SettingsPanel } from '../campaigns/SettingsPanel'
 import type { Campaign } from '../campaigns/campaigns'
+import { ActionsEditor } from '../actions/ActionsEditor'
 import { RulesEditor } from '../effects/RulesEditor'
 import { Modal } from './Modal'
 
@@ -10,6 +11,7 @@ const TABS = [
   { id: 'members', label: 'Membros e convites' },
   { id: 'settings', label: 'Configurações' },
   { id: 'rules', label: 'Regras de efeitos' },
+  { id: 'actions', label: 'Ações' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -23,6 +25,7 @@ function Body({ tab, campaign }: { tab: TabId; campaign: Campaign }) {
       </div>
     )
   }
+  if (tab === 'actions') return <ActionsEditor campaignId={campaign.id} />
   return tab === 'settings' ? <SettingsPanel campaign={campaign} /> : <RulesEditor campaignId={campaign.id} />
 }
 

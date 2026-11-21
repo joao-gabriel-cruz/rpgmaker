@@ -1,4 +1,4 @@
-export type DieKind = 'd6' | 'd10' | 'd12'
+export type DieKind = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20'
 export type Symbol = 'success' | 'adaptation' | 'pressure'
 export type DieVariant = 'normal' | 'difficulty'
 
@@ -30,13 +30,17 @@ const TABLE: Symbol[][] = [
   [P, P],
 ]
 
-const FACE_COUNT: Record<DieKind, number> = { d6: 6, d10: 10, d12: 12 }
+const FACE_COUNT: Record<DieKind, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 }
+
+/** Dice with numbers instead of Assimilação symbols (generic rolls). */
+export const isNumbered = (kind: DieKind) => kind === 'd4' || kind === 'd8' || kind === 'd20'
 
 export function faceCount(kind: DieKind): number {
   return FACE_COUNT[kind]
 }
 
 export function facesFor(kind: DieKind): Symbol[][] {
+  if (isNumbered(kind)) return Array.from({ length: FACE_COUNT[kind] }, () => [])
   return TABLE.slice(0, FACE_COUNT[kind]).map((symbols) => [...symbols])
 }
 
