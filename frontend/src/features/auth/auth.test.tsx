@@ -32,14 +32,14 @@ describe('auth flow', () => {
 
 describe('auth layout', () => {
   it('shows the user name in the layout when logged in', async () => {
-    stubApi(() => ({ status: 200, body: ana }))
+    stubApi((_m, path) => ({ status: 200, body: path === '/auth/me' ? ana : [] }))
     renderApp('/')
     expect(await screen.findByRole('button', { name: 'Sair' })).toBeInTheDocument()
     expect(screen.getAllByText('Ana').length).toBeGreaterThan(0)
   })
 
   it('keeps non-admins out of the admin page', async () => {
-    stubApi(() => ({ status: 200, body: ana }))
+    stubApi((_m, path) => ({ status: 200, body: path === '/auth/me' ? ana : [] }))
     renderApp('/admin')
     expect(await screen.findByRole('heading', { name: 'Olá, Ana' })).toBeInTheDocument()
   })

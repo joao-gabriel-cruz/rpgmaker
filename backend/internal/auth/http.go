@@ -122,6 +122,11 @@ func (h *Handlers) resetPassword(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"temporaryPassword": temp})
 }
 
+// SetSessionCookie starts a browser session for a token obtained from Service.Login.
+func SetSessionCookie(w http.ResponseWriter, r *http.Request, token string, expires time.Time) {
+	http.SetCookie(w, sessionCookie(token, expires, isSecure(r)))
+}
+
 func sessionCookie(value string, expires time.Time, secure bool) *http.Cookie {
 	//nolint:gosec // Secure is set per request: TLS or X-Forwarded-Proto https
 	c := &http.Cookie{Name: CookieName, Value: value, Path: "/", Expires: expires, HttpOnly: true,

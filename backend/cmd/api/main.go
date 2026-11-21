@@ -13,9 +13,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/migrations"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/platform/database"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
 )
 
 func main() {
@@ -41,7 +43,12 @@ func run() error {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/health", health.Handler(pool))
-	auth.NewHandlers(auth.NewService(auth.NewStore(pool))).Register(mux)
+	authSvc := auth.NewService(auth.NewStore(pool))
+	authHandlers := auth.NewHandlers(authSvc)
+	authHandlers.Register(mux)
+	reg := systems.Default()
+	systems.Register(mux, reg, authHandlers.RequireAuth)
+	campaigns.NewHandlers(campaigns.NewService(campaigns.NewStore(pool), authSvc, reg), authHandlers.RequireAuth).Register(mux)
 
 	addr := ":" + envOr("PORT", "8080")
 	return serve(ctx, &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second})

@@ -21,7 +21,10 @@ das regras e decisões). Tickets: `docs/tickets/0001-rpgmaker-mvp.md` + issues d
 - Auth: sessão em cookie httpOnly `rpg_session` (SameSite=Lax), sessões no Postgres; middleware
   injeta o usuário no context.
 - Migrations: goose em `internal/migrations/sql/NNNNN_desc.sql`, nunca editar migration já
-  mergeada. IDs `uuid` com `gen_random_uuid()`. Dados específicos de sistema em `jsonb`.
+  mergeada. Como tickets rodam em paralelo, a versão NNNNN é o **número do ticket** (ex.:
+  `00009_campaigns.sql`); precisando de mais de uma, use 10009, 20009… O provider usa
+  `WithAllowOutofOrder(true)` para aceitar versões mergeadas fora de ordem.
+  IDs `uuid` com `gen_random_uuid()`. Dados específicos de sistema em `jsonb`.
 - Tempo real: WebSocket por campanha em `GET /api/campaigns/{id}/ws`; servidor autoritativo;
   mensagens `{type, payload, reqId?}`; comandos validados no servidor; eventos filtrados por
   destinatário.
