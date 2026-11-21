@@ -17,8 +17,8 @@ var terrainNamesPT = map[string]string{
 type paintInput struct {
 	Shape       Shape  `json:"shape" jsonschema:"area to paint: rect, circle, line or cells"`
 	Terrain     string `json:"terrain,omitempty" jsonschema:"terrain id, see get_catalog"`
-	Height      *int   `json:"height,omitempty" jsonschema:"absolute height 0-10"`
-	HeightDelta *int   `json:"heightDelta,omitempty" jsonschema:"raise (+) or lower (-) the current height"`
+	Height      *int   `json:"height,omitempty" jsonschema:"absolute height 0-10; do not combine with heightDelta"`
+	HeightDelta *int   `json:"heightDelta,omitempty" jsonschema:"raise (+) or lower (-) the current height, result clamped to 0-10; do not combine with height"`
 }
 
 func registerTerrainTools(srv *sdk.Server, t Table, j *Journal, s Session) {

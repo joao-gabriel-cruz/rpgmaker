@@ -15,18 +15,18 @@ const (
 
 // Point is a grid position as sent by the MCP client.
 type Point struct {
-	X int `json:"x"`
-	Z int `json:"z"`
+	X int `json:"x" jsonschema:"column, 0-based"`
+	Z int `json:"z" jsonschema:"row, 0-based"`
 }
 
 // Shape describes an area of the grid: rect, circle, line or an explicit cell list.
 type Shape struct {
-	Kind   string  `json:"kind"`
-	From   *Point  `json:"from,omitempty"`
-	To     *Point  `json:"to,omitempty"`
-	Radius int     `json:"radius,omitempty"`
-	Width  int     `json:"width,omitempty"`
-	Cells  []Point `json:"cells,omitempty"`
+	Kind   string  `json:"kind" jsonschema:"rect, circle, line or cells"`
+	From   *Point  `json:"from,omitempty" jsonschema:"rect: first corner (inclusive); circle: the center; line: start"`
+	To     *Point  `json:"to,omitempty" jsonschema:"rect: opposite corner (inclusive); line: end; unused by circle and cells"`
+	Radius int     `json:"radius,omitempty" jsonschema:"circle only: radius in cells, 0-32"`
+	Width  int     `json:"width,omitempty" jsonschema:"line only: thickness in cells, 1-5 (default 1)"`
+	Cells  []Point `json:"cells,omitempty" jsonschema:"cells only: the explicit list of cells"`
 }
 
 // Rasterize returns the shape's cells clipped to a w×d grid, deduped, in row-major order.

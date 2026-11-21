@@ -1,3 +1,4 @@
+// Package mcp serves the Mestre's MCP endpoint: tools that let Claude edit the live table.
 package mcp
 
 import (

@@ -29,7 +29,7 @@ type createSceneInput struct {
 
 type activateSceneInput struct {
 	Scene   string `json:"scene" jsonschema:"scene id or name"`
-	Arrival *Point `json:"arrival,omitempty" jsonschema:"where the party arrives; default is the scene center"`
+	Arrival *Point `json:"arrival,omitempty" jsonschema:"where the party arrives; default is the scene center cell"`
 }
 
 func registerSceneTools(srv *sdk.Server, t Table, _ *Journal, s Session) {
