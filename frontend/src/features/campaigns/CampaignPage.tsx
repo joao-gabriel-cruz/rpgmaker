@@ -7,6 +7,7 @@ import { MapArea } from '../scenes/MapArea'
 import { OnlinePanel } from '../realtime/OnlinePanel'
 import { RollLog } from '../rolls/RollLog'
 import { RollTray } from '../rolls/RollTray'
+import { SessionBar } from '../sessions/SessionBar'
 import { RoundTracker } from '../rounds/RoundTracker'
 import { CharactersSection } from '../characters/CharactersSection'
 import { RefugeSection } from '../refuge/RefugeSection'
@@ -63,18 +64,25 @@ export function CampaignPage() {
   return <CampaignView campaign={campaign} />
 }
 
+function Heading({ campaign }: { campaign: Campaign }) {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
+      <p className="text-sm text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
+    </div>
+  )
+}
+
 function CampaignView({ campaign }: { campaign: Campaign }) {
   const { id } = campaign
   const isGm = campaign.role === 'gm'
   return (
     <section className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
-        <p className="text-sm text-zinc-400">{campaign.systemName} · Você é {roleLabel(campaign.role)}</p>
-      </div>
+      <Heading campaign={campaign} />
       <CampaignSocketProvider campaignId={id}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-6">
+            <SessionBar campaignId={id} isGm={isGm} />
             <RoundTracker campaignId={id} isGm={isGm} />
             <OnlinePanel />
             <MapArea campaignId={id} isGm={isGm} />

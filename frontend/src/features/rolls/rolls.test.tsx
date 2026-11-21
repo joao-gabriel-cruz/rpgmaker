@@ -122,3 +122,10 @@ it('renders generic rolls with the total', async () => {
   expect(screen.getByText('2d6+3')).toBeInTheDocument()
   expect(screen.getByText('8')).toBeInTheDocument()
 })
+
+it('shows the modifiers used in the log and the tray', async () => {
+  const modded = { ...entry, request: { ...entry.request!, effort: true, useOccupation: true, difficultyD12: 2 } }
+  getRolls.mockResolvedValue([modded])
+  setup(<><RollLog campaignId="k" isGm={false} /><RollTray /></>)
+  expect(await screen.findByText('Empenho, Ocupação, +2 d12 dificuldade')).toBeInTheDocument()
+})

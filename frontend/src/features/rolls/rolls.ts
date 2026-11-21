@@ -30,7 +30,15 @@ export interface RollEntry {
   dice: RolledDie[]
   keptCount?: number
   suggested?: number[]
-  request?: { instinct: InstinctKey; aptitude?: AptitudeKey }
+  request?: {
+    instinct: InstinctKey
+    aptitude?: AptitudeKey
+    secondInstinct?: InstinctKey
+    effort?: boolean
+    useOccupation?: boolean
+    useMarkingEvent?: boolean
+    difficultyD12?: number
+  }
   expression?: string
   total?: number
   result?: RollResult

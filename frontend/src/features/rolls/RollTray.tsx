@@ -3,6 +3,7 @@ import { useMe } from '../auth/auth'
 import { DiceTray } from '../dice3d/DiceTray'
 import type { DieKind, DieResult } from '../dice3d/faces'
 import { useRealtime } from '../realtime/realtimeContext'
+import { modifiersText } from './modifiers'
 import type { FinalizedEvent, RollEntry, RollResult } from './rolls'
 import { SymbolCounts } from './SymbolCounts'
 
@@ -58,6 +59,7 @@ function Body({ active, onClose }: { active: Active; onClose: () => void }) {
   const { selected, toggle } = useSelection(entry)
   const dice = useMemo(() => toDice(entry), [entry])
   const mine = me?.id === entry.userId
+  const mods = modifiersText(entry.request)
   const confirm = () => {
     setBusy(true)
     send('roll.keep', { rollId: entry.rollId, kept: selected }).catch((e: Error) => setError(e.message)).finally(() => setBusy(false))
@@ -66,6 +68,7 @@ function Body({ active, onClose }: { active: Active; onClose: () => void }) {
     <>
       <DiceTray dice={dice} rollId={entry.rollId} seed={entry.seed} selectable={mine && !result} selected={result?.kept ?? selected}
         onToggle={toggle} onSettled={() => setSettled(true)} />
+      {mods && <p className="text-xs text-amber-300">{mods}</p>}
       {result && <SymbolCounts result={result} />}
       {!result && mine && settled && <Picker entry={entry} selected={selected} onConfirm={confirm} busy={busy} />}
       {!result && mine && !settled && <p className="text-sm text-zinc-400">Rolando…</p>}

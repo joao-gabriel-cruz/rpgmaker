@@ -65,7 +65,7 @@ function Editor({ campaign, character, canEdit }: { campaign: Campaign; characte
       {depositError && <p role="alert" className="rounded bg-red-950 px-3 py-2 text-sm text-red-300">{depositError}</p>}
       {character.kind === 'npc'
         ? <NpcSheet sheet={asNpc(sheet)} onChange={(n) => onChange(asSheet(n))} readOnly={!canEdit} issues={toSheetIssues(issues)} />
-        : <RollableSheet characterId={character.id} isGm={campaign.role === 'gm'}
+        : <RollableSheet campaignId={campaign.id} characterId={character.id} isGm={campaign.role === 'gm'}
           sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)}
           onDepositItem={(from, index) => {
             setDepositError('')
