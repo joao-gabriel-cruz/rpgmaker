@@ -81,3 +81,12 @@ func PrefabIDs() []string {
 	sort.Strings(ids)
 	return ids
 }
+
+// PrefabRules returns a copy of the prefab catalog keyed by id.
+func PrefabRules() map[string]PrefabRule {
+	out := make(map[string]PrefabRule, len(prefabs))
+	for id, r := range prefabs {
+		out[id] = r
+	}
+	return out
+}
