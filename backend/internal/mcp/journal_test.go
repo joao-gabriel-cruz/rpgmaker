@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -146,7 +147,7 @@ func TestUndoInactiveSceneStillApplies(t *testing.T) {
 	r := newRig("s1", "s2")
 	r.sc.scenes["s2"].IsActive = true
 	v := r.j.Record("c1", "s1", "a", cellInverse("a"))
-	if _, err := r.j.Undo(context.Background(), r.t, r.s, v.ID); err != nil || len(r.sc.painted) != 1 {
+	if _, err := r.j.Undo(context.Background(), r.t, r.s, v.ID); err != nil || len(r.sc.painted) != 1 || r.sc.hit[0] != "s1" {
 		t.Fatalf("err=%v painted=%d", err, len(r.sc.painted))
 	}
 }
@@ -161,5 +162,49 @@ func TestUndoRefusesOpenDraft(t *testing.T) {
 	list := r.j.List("c1")
 	if len(list) != 2 || list[0].ID != b.ID || list[1].ID != a.ID || len(r.sc.painted) != 0 {
 		t.Fatalf("entry not kept in place: %+v", list)
+	}
+}
+
+func TestUndoGenericErrorKeepsEntry(t *testing.T) {
+	r := newRig("s1")
+	v := r.j.Record("c1", "s1", "a", cellInverse("a"))
+	r.sc.paintErr = errors.New("boom")
+	if _, err := r.j.Undo(context.Background(), r.t, r.s, v.ID); err == nil {
+		t.Fatal("want error")
+	}
+	if l := r.j.List("c1"); len(l) != 1 || l[0].ID != v.ID {
+		t.Fatalf("list = %+v", l)
+	}
+}
+
+func TestUndoNotFoundFromServiceDropsEntry(t *testing.T) {
+	r := newRig("s1")
+	v := r.j.Record("c1", "s1", "a", cellInverse("a"))
+	r.sc.paintErr = scenes.ErrNotFound
+	_, err := r.j.Undo(context.Background(), r.t, r.s, v.ID)
+	userErr(t, err, "A cena dessa mudança não existe mais")
+	if len(r.j.List("c1")) != 0 {
+		t.Fatal("entry must be dropped")
+	}
+	if _, has := r.n.last().Payload.(map[string]any)["latest"]; has {
+		t.Fatal("drop broadcast must not carry latest")
+	}
+}
+
+func TestPutBackKeepsTimeOrder(t *testing.T) {
+	r := newRig("s1")
+	tick := 0
+	r.j.now = func() time.Time { tick++; return time.Unix(int64(tick), 0) }
+	a := r.j.Record("c1", "s1", "a", cellInverse("a"))
+	b := r.j.Record("c1", "s1", "b", cellInverse("b"))
+	c := r.j.Record("c1", "s1", "c", cellInverse("c"))
+	taken, _ := r.j.take("c1", b.ID)
+	if _, err := r.j.Undo(context.Background(), r.t, r.s, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	r.j.putBack("c1", taken)
+	l := r.j.List("c1")
+	if len(l) != 2 || l[0].ID != b.ID || l[1].ID != a.ID {
+		t.Fatalf("list = %+v", l)
 	}
 }

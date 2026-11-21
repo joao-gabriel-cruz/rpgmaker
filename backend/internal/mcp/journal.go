@@ -84,10 +84,10 @@ func (j *Journal) Record(campaignID, sceneID, summary string, inv Inverse) Chang
 		list = list[:journalCap]
 	}
 	j.byCamp[campaignID] = list
-	views := viewsOf(list)
-	j.mu.Unlock()
+	// Broadcast never blocks; holding the lock keeps snapshots ordered.
 	j.notify.Broadcast(campaignID, realtime.ToGM, "mcp.changed",
-		map[string]any{"changes": views, "latest": v})
+		map[string]any{"changes": viewsOf(list), "latest": v})
+	j.mu.Unlock()
 	return v
 }
 
@@ -106,42 +106,58 @@ func viewsOf(list []entry) []ChangeView {
 	return out
 }
 
-// take removes an entry (id "" = newest) and reports its position.
-func (j *Journal) take(campaignID, id string) (entry, int, bool) {
+// take removes an entry (id "" = newest).
+func (j *Journal) take(campaignID, id string) (entry, bool) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	list := j.byCamp[campaignID]
 	for i, e := range list {
 		if id == "" || e.view.ID == id {
 			j.byCamp[campaignID] = append(append([]entry{}, list[:i]...), list[i+1:]...)
-			return e, i, true
+			return e, true
 		}
 	}
-	return entry{}, 0, false
+	return entry{}, false
 }
 
-func (j *Journal) putBack(campaignID string, e entry, at int) {
+// putBack reinserts by time, so undos that ran meanwhile cannot misplace it.
+func (j *Journal) putBack(campaignID string, e entry) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	list := j.byCamp[campaignID]
-	at = min(at, len(list))
-	j.byCamp[campaignID] = append(list[:at], append([]entry{e}, list[at:]...)...)
+	at := 0
+	for at < len(list) && !list[at].view.At.Before(e.view.At) {
+		at++
+	}
+	list = append(list[:at], append([]entry{e}, list[at:]...)...)
+	if len(list) > journalCap {
+		list = list[:journalCap]
+	}
+	j.byCamp[campaignID] = list
+}
+
+func (j *Journal) broadcastList(campaignID string) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.notify.Broadcast(campaignID, realtime.ToGM, "mcp.changed",
+		map[string]any{"changes": viewsOf(j.byCamp[campaignID])})
 }
 
 // Undo reverts a change (id "" = newest) and returns its summary.
 func (j *Journal) Undo(ctx context.Context, t Table, s Session, id string) (string, error) {
-	e, at, ok := j.take(s.CampaignID, id)
+	e, ok := j.take(s.CampaignID, id)
 	if !ok {
 		return "", realtime.UserError("Essa mudança não existe mais (talvez já tenha sido desfeita)")
 	}
 	if err := j.apply(ctx, t, s, e); err != nil {
-		if !errors.Is(err, errSceneGone) {
-			j.putBack(s.CampaignID, e, at)
+		if errors.Is(err, scenes.ErrNotFound) || errors.Is(err, errSceneGone) {
+			j.broadcastList(s.CampaignID)
+			return "", errSceneGone
 		}
+		j.putBack(s.CampaignID, e)
 		return "", err
 	}
-	j.notify.Broadcast(s.CampaignID, realtime.ToGM, "mcp.changed",
-		map[string]any{"changes": j.List(s.CampaignID)})
+	j.broadcastList(s.CampaignID)
 	return e.view.Summary, nil
 }
 

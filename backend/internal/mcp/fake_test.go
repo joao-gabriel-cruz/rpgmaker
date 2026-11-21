@@ -35,10 +35,12 @@ func (n *recNotifier) last() sent { return n.sent[len(n.sent)-1] }
 
 // fakeScenes keeps one scene per id and records the calls it receives.
 type fakeScenes struct {
-	scenes  map[string]*scenes.Scene
-	painted []maps.Patch
-	objects []scenes.ObjectPatch
-	origins []string
+	scenes   map[string]*scenes.Scene
+	painted  []maps.Patch
+	objects  []scenes.ObjectPatch
+	origins  []string
+	hit      []string
+	paintErr error
 }
 
 func newFakeScenes(ids ...string) *fakeScenes {
@@ -59,13 +61,18 @@ func (f *fakeScenes) Get(_ context.Context, _, id, _ string) (scenes.Scene, erro
 	return *sc, nil
 }
 
-func (f *fakeScenes) Paint(_ context.Context, _, _, origin string, p maps.Patch) error {
+func (f *fakeScenes) Paint(_ context.Context, _, sceneID, origin string, p maps.Patch) error {
+	if f.paintErr != nil {
+		return f.paintErr
+	}
+	f.hit = append(f.hit, sceneID)
 	f.painted = append(f.painted, p)
 	f.origins = append(f.origins, origin)
 	return nil
 }
 
-func (f *fakeScenes) EditObjects(_ context.Context, _, _, origin string, p scenes.ObjectPatch) error {
+func (f *fakeScenes) EditObjects(_ context.Context, _, sceneID, origin string, p scenes.ObjectPatch) error {
+	f.hit = append(f.hit, sceneID)
 	f.objects = append(f.objects, p)
 	f.origins = append(f.origins, origin)
 	return nil
