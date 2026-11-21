@@ -8,7 +8,7 @@ import { RealtimeContext } from '../realtime/realtimeContext'
 import type { CampaignSocketApi } from '../realtime/useCampaignSocket'
 import type { Token } from '../tokens/tokens'
 import { cellsWhere, decodeBits, hasBit, rectCells } from './bits'
-import { FogPanel } from './FogPanel'
+import { FogOptions } from '../table/options/FogOptions'
 import { useVision } from './useVision'
 import { applyEvent, fogCover, fogInstances, visibleTokens, type VisionState } from './vision'
 
@@ -112,13 +112,17 @@ it('lets the Mestre pick the mode, the radius and the brush', async () => {
   const { hook, send } = setupGm()
   await waitFor(() => expect(hook.result.current.state.mode).toBe('manual'))
   const user = userEvent.setup()
-  const Panel = () => <FogPanel vision={hook.result.current} />
+  const Panel = () => <FogOptions vision={hook.result.current} />
   const { rerender } = render(<Panel />)
-  await user.selectOptions(screen.getByLabelText('Névoa'), 'dynamic')
+  await user.click(screen.getByRole('button', { name: 'Visão dinâmica' }))
   expect(send).toHaveBeenCalledWith('fog.configure', { sceneId: 's1', mode: 'dynamic', visionRadius: 12 })
-  await user.click(screen.getByRole('button', { name: 'Revelar área' }))
   rerender(<Panel />)
   expect(hook.result.current.brush).toBe('reveal')
+  await user.click(screen.getByRole('button', { name: 'Esconder área' }))
+  rerender(<Panel />)
+  expect(hook.result.current.brush).toBe('hide')
+  await user.click(screen.getByRole('button', { name: 'Esconder tudo' }))
+  expect((send.mock.calls.at(-1)![1] as { cells: unknown[] }).cells).toHaveLength(256)
 })
 
 it('players get their sight from the vision.updated event', async () => {

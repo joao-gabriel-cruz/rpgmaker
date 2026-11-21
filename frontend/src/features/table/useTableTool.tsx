@@ -16,6 +16,12 @@ export interface TableToolApi {
   /** Whether the current scene is in draft mode (published by the map). */
   draftActive: boolean
   setDraftActive: (v: boolean) => void
+  /** Character armed in the Tokens tool: the next map click puts its token there. */
+  placing: string | null
+  setPlacing: (id: string | null) => void
+  /** Object picked with the Objects > Select mode (its panel lives in the options panel). */
+  selectedObjectId: string | null
+  setSelectedObjectId: (id: string | null) => void
   /** DOM node of the floating options panel; map tools portal their controls into it. */
   optionsHost: HTMLElement | null
   setOptionsHost: (el: HTMLElement | null) => void
@@ -44,10 +50,13 @@ export function TableToolProvider({ isGm, children }: { isGm: boolean; children:
   const [draftOpen, setDraftOpen] = useState(false)
   const [draftActive, setDraftActive] = useState(false)
   const [optionsHost, setOptionsHost] = useState<HTMLElement | null>(null)
+  const [placing, setPlacing] = useState<string | null>(null)
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
 
   const setTool = useCallback((t: TableToolId) => {
     if (!toolsFor(isGm).some((d) => d.id === t)) return
     setToolState(t)
+    setPlacing(null)
     if (t === 'terrain' || t === 'objects' || t === 'wall') setEditor((e) => ({ ...e, tool: editorToolFor(t, e.tool) }))
   }, [isGm])
   const toggleGrid = useCallback(() => setShowGrid((v) => !v), [])
@@ -55,7 +64,7 @@ export function TableToolProvider({ isGm, children }: { isGm: boolean; children:
 
   const value = useMemo<TableToolApi>(() => ({
     tool, setTool, editor, setEditor, showGrid, toggleGrid, draftOpen, toggleDraft, draftActive, setDraftActive,
-    optionsHost, setOptionsHost,
-  }), [tool, setTool, editor, showGrid, toggleGrid, draftOpen, toggleDraft, draftActive, optionsHost])
+    placing, setPlacing, selectedObjectId, setSelectedObjectId, optionsHost, setOptionsHost,
+  }), [tool, setTool, editor, showGrid, toggleGrid, draftOpen, toggleDraft, draftActive, placing, selectedObjectId, optionsHost])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

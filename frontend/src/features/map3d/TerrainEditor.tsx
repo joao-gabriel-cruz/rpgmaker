@@ -4,7 +4,7 @@ import type { Coord, MapGrid, MapPatch } from './grid'
 import type { MapObject, ObjectPatch } from './objects/model'
 import { ObjectGhost, SelectionBox } from './objects/ObjectGhost'
 import { ObjectPanel } from './objects/ObjectPanel'
-import { useObjectTools } from './objects/useObjectTools'
+import { useObjectTools, type Selection } from './objects/useObjectTools'
 import { TerrainScene } from './TerrainScene'
 import { Toolbar } from './Toolbar'
 import { usePainting } from './usePainting'
@@ -27,6 +27,8 @@ export interface EditorControl {
   state: ToolState
   onChange: (next: ToolState) => void
   showGrid: boolean
+  /** Selected object, owned by the table so its panel can live in the options panel. */
+  selection?: Selection
 }
 
 const NO_OBJECTS: readonly MapObject[] = []
@@ -80,7 +82,7 @@ function useEditorState(control?: EditorControl) {
 export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, children, control, enabled = true }: Props) {
   const { state, setState, update, showGrid, toggleGrid } = useEditorState(control)
   const { hover, ...paint } = usePainting(grid, state, onPatch)
-  const obj = useObjectTools(grid, objects, state, onObjectPatch)
+  const obj = useObjectTools(grid, objects, state, onObjectPatch, control?.selection)
   useShortcuts(update, !control ? 'standalone' : enabled ? 'external' : 'off')
   const objectMode = isObjectTool(state.tool)
   const pickable = enabled && (state.tool === 'select' || state.tool === 'removeObject')
@@ -98,7 +100,7 @@ export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPat
           {enabled && <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />}
           {children}
         </TerrainScene>
-        {enabled && obj.selected && state.tool === 'select' && (
+        {!control && enabled && obj.selected && state.tool === 'select' && (
           <ObjectPanel obj={obj.selected} objects={objects} grid={grid} emit={onObjectPatch} onDone={obj.clearSelection} />
         )}
       </div>

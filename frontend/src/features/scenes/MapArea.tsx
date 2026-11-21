@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { MapOptions } from '../table/options/MapOptions'
 import { OptionsPortal } from '../table/OptionsPortal'
 import { SURFACE } from '../table/surface'
 import { drawModeOf, isEditorTool } from '../table/tools'
 import { useTableTool } from '../table/useTableTool'
+import { CameraBridge } from '../table/camera/CameraBridge'
+import { CameraControls } from '../table/camera/CameraControls'
+import type { CameraHandle } from '../table/camera/cameraActions'
 import { TerrainEditor } from '../map3d/TerrainEditor'
+import { useEditHistory } from '../map3d/useEditHistory'
+import { useHistoryKeys } from '../map3d/useHistoryKeys'
 import { TerrainView } from '../map3d/TerrainView'
 import { useMe } from '../auth/auth'
 import { useLiveScene } from './useLiveScene'
@@ -75,43 +80,68 @@ interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
   loot: SceneLoot
   userId: string
   isGm: boolean
+  camera: CameraHandle
 }
 
 // The in-canvas layers; the rail tool decides which of them react to the pointer.
-function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog }: LayersProps) {
-  const { tool } = useTableTool()
+function MapLayers({ grid, objects, loot, tokens, userId, isGm, draw, fog, camera }: LayersProps) {
+  const { tool, placing, setPlacing } = useTableTool()
+  const place = useCallback((c: { x: number; z: number }) => {
+    if (placing) tokens.place(placing, c)
+    setPlacing(null)
+  }, [placing, tokens, setPlacing])
   return (
     <>
       <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
-        dragEnabled={tool === 'move' || tool === 'tokens'} />
+        dragEnabled={tool === 'move' || tool === 'tokens'} onPlaceAt={tool === 'tokens' && placing ? place : null} />
       <LootLayer grid={grid} objects={objects} tokens={tokens.tokens} loot={loot} userId={userId} isGm={isGm} />
+      <CameraBridge handleRef={camera} />
       <DrawingLayer grid={grid} draw={draw} />
       <VisionLayers grid={grid} vision={fog} isGm={isGm} />
     </>
   )
 }
 
-function SceneWithTokens(p: WithTokens) {
-  const { campaignId, sceneId, isGm, state, paint, editObjects, command, draft } = p
-  const { tool, editor, setEditor, showGrid, setDraftActive } = useTableTool()
-  const userId = useMe().data?.id ?? ''
-  const { vision, fog, tokens, draw } = useMapTools(p, userId)
+// The Mestre's edits go through the undo history; players never edit.
+function useEditing({ state, paint, editObjects, isGm }: WithTokens) {
+  const history = useEditHistory({ grid: state.grid, objects: state.objects, paint, editObjects })
+  useHistoryKeys(history, isGm)
+  return history
+}
+
+function usePublishDraft(draft: boolean, setDraftActive: (v: boolean) => void) {
   useEffect(() => {
     setDraftActive(draft)
     return () => setDraftActive(false)
   }, [draft, setDraftActive])
+}
+
+function SceneWithTokens(p: WithTokens) {
+  const { campaignId, sceneId, isGm, state, command, draft } = p
+  const { tool, editor, setEditor, showGrid, setDraftActive, selectedObjectId, setSelectedObjectId } = useTableTool()
+  const userId = useMe().data?.id ?? ''
+  const { vision, fog, tokens, draw } = useMapTools(p, userId)
+  const history = useEditing(p)
+  const camera = useRef<CameraHandle['current']>(null) as CameraHandle
+  usePublishDraft(draft, setDraftActive)
   const loot = useSceneLoot(campaignId, sceneId)
-  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog }} />
+  const layer = <MapLayers {...{ grid: state.grid, objects: state.objects, loot, tokens, userId, isGm, draw, fog, camera }} />
+  const mine = tokens.tokens.find((t) => t.ownerId === userId)
+  const opts = { campaignId, sceneId, isGm, grid: state.grid, objects: state.objects, onObjectPatch: history.editObjects,
+    history, draw, vision, tokens, draft, onCommand: command }
   return (
     <>
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><TokensError tokens={tokens} /></div>
       {!isGm && <PlayerTokenPrompt campaignId={campaignId} tokens={tokens} userId={userId} />}
       <OptionsPortal>
-        <MapOptions {...{ campaignId, sceneId, isGm, userId, draw, vision, tokens, draft, onCommand: command }} />
+        <MapOptions {...opts} />
       </OptionsPortal>
+      <CameraControls handle={camera} onCenterMap={() => tokens.focus(state.grid.width / 2, state.grid.depth / 2)}
+        onCenterToken={mine ? () => tokens.focus(mine.x + 0.5, mine.z + 0.5) : undefined} />
       {isGm
-        ? <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects}
-            control={{ state: editor, onChange: setEditor, showGrid }} enabled={isEditorTool(tool)}>{layer}</TerrainEditor>
+        ? <TerrainEditor grid={state.grid} onPatch={history.paint} objects={state.objects} onObjectPatch={history.editObjects}
+            control={{ state: editor, onChange: setEditor, showGrid, selection: [selectedObjectId, setSelectedObjectId] }}
+            enabled={isEditorTool(tool)}>{layer}</TerrainEditor>
         : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
     </>
   )
@@ -119,7 +149,7 @@ function SceneWithTokens(p: WithTokens) {
 
 // Players have no Tokens tool: the "place my token" button floats at the bottom-left of the map.
 function PlayerTokenPrompt(p: { campaignId: string; tokens: SceneTokens; userId: string }) {
-  return <div className={`absolute bottom-3 left-3 z-10 empty:hidden rounded-xl p-1 ${SURFACE}`}><TokensPanel {...p} isGm={false} /></div>
+  return <div className={`absolute bottom-3 left-3 z-10 empty:hidden rounded-xl p-1 ${SURFACE}`}><TokensPanel {...p} /></div>
 }
 
 function Empty({ children }: { children: ReactNode }) {

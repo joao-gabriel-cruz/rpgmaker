@@ -127,7 +127,7 @@ it('sends map.ping and camera.focusAll', async () => {
   expect(send).toHaveBeenCalledWith('camera.focusAll', { sceneId: 's1', x: 8, z: 8 })
 })
 
-function panel(isGm: boolean, send = vi.fn().mockResolvedValue(undefined) as CampaignSocketApi['send']) {
+function panel(send = vi.fn().mockResolvedValue(undefined) as CampaignSocketApi['send']) {
   const chars = [
     { id: 'c1', name: 'Ana', ownerId: 'u1', kind: 'pc' },
     { id: 'c2', name: 'Beto', ownerId: 'u2', kind: 'pc' },
@@ -136,7 +136,7 @@ function panel(isGm: boolean, send = vi.fn().mockResolvedValue(undefined) as Cam
   const sock = fakeSocket(send)
   const Harness = () => {
     const tokens = useSceneTokens('c', 's1', grid)
-    return <TokensPanel campaignId="c" tokens={tokens} userId="u1" isGm={isGm} />
+    return <TokensPanel campaignId="c" tokens={tokens} userId="u1" />
   }
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -147,17 +147,7 @@ function panel(isGm: boolean, send = vi.fn().mockResolvedValue(undefined) as Cam
 }
 
 it('offers players a button to place their own token', async () => {
-  const send = panel(false)
+  const send = panel()
   await userEvent.click(await screen.findByRole('button', { name: 'Colocar meu token' }))
   expect(send).toHaveBeenCalledWith('token.place', expect.objectContaining({ sceneId: 's1', characterId: 'c1' }))
-})
-
-it('lets the gm place any character and focus everyone', async () => {
-  const send = panel(true)
-  await screen.findByRole('option', { name: 'Ana' })
-  await userEvent.selectOptions(screen.getByLabelText('Personagem'), 'c2')
-  await userEvent.click(screen.getByRole('button', { name: 'Colocar na cena' }))
-  expect(send).toHaveBeenCalledWith('token.place', expect.objectContaining({ characterId: 'c2' }))
-  await userEvent.click(screen.getByRole('button', { name: 'Focar todos aqui' }))
-  expect(send).toHaveBeenCalledWith('camera.focusAll', expect.objectContaining({ sceneId: 's1' }))
 })

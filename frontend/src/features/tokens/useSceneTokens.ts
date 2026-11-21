@@ -39,7 +39,9 @@ function usePings(sceneId: string) {
       offFocus()
     }
   }, [subscribe, sceneId])
-  return { pings, camera }
+  // Local-only camera move (the camera controls), unlike camera.focusAll which reaches everyone.
+  const focus = useCallback((x: number, z: number) => setCamera({ x, z, n: ++seq.current }), [])
+  return { pings, camera, focus }
 }
 
 type Subscribe = ReturnType<typeof useRealtime>['subscribe']
@@ -99,9 +101,10 @@ function useMove(send: Send, tokensRef: { current: Token[] }, setTokens: Dispatc
 
 // Tries successive free cells while the server says the cell itself is unusable.
 function usePlace(send: Send, sceneId: string, grid: MapGrid, tokensRef: { current: Token[] }, report: Fail) {
-  return useCallback(async (characterId: string) => {
+  return useCallback(async (characterId: string, at?: { x: number; z: number }) => {
     let last: unknown
-    for (const c of spawnCandidates(grid, tokensRef.current)) {
+    // A chosen cell is tried alone: the server's refusal tells the Mestre why it cannot go there.
+    for (const c of at ? [at] : spawnCandidates(grid, tokensRef.current)) {
       try {
         await send('token.place', { sceneId, characterId, x: c.x, z: c.z })
         return
@@ -140,13 +143,13 @@ function useCommands(sceneId: string, grid: MapGrid, tokensRef: { current: Token
 /** Tokens of a scene kept live, with optimistic moves that roll back when the server refuses. */
 export function useSceneTokens(campaignId: string, sceneId: string, grid: MapGrid) {
   const { tokens, setTokens } = useRemoteTokens(campaignId, sceneId)
-  const { pings, camera } = usePings(sceneId)
+  const { pings, camera, focus } = usePings(sceneId)
   const [error, setError] = useState('')
   const tokensRef = useRef(tokens)
   useEffect(() => { tokensRef.current = tokens }, [tokens])
   const cmd = useCommands(sceneId, grid, tokensRef, setTokens, setError)
-  return useMemo(() => ({ tokens, pings, camera, error, ...cmd, clearError: () => setError('') }),
-    [tokens, pings, camera, error, cmd])
+  return useMemo(() => ({ tokens, pings, camera, error, focus, ...cmd, clearError: () => setError('') }),
+    [tokens, pings, camera, error, focus, cmd])
 }
 
 export type SceneTokens = ReturnType<typeof useSceneTokens>

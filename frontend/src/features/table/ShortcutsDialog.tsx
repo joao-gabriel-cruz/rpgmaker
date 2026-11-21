@@ -1,3 +1,4 @@
+import { CAMERA_KEYS } from './camera/cameraKeys'
 import { Modal } from './Modal'
 import { Kbd } from './Tip'
 import { toolsFor } from './tools'
@@ -13,6 +14,10 @@ const EXTRA: [string, string][] = [
 const OBJECT_KEYS: [string, string][] = [
   ['Shift + R', 'Girar o objeto (ferramentas Objetos e Muro)'],
   ['− / +', 'Diminuir / aumentar o pincel (Terreno)'],
+  ['1 – 6', 'Sub-ferramenta do Terreno (pintar, subir, descer, altura, preencher, apagar)'],
+  ['1 – 3', 'Modo dos Objetos (colocar, selecionar, remover)'],
+  ['Ctrl/⌘ + Z', 'Desfazer a última edição do mapa'],
+  ['Shift + Ctrl/⌘ + Z', 'Refazer'],
 ]
 
 function Row({ keys, label }: { keys: string; label: string }) {
@@ -30,7 +35,7 @@ export function ShortcutsDialog({ isGm, onClose }: { isGm: boolean; onClose: () 
   return (
     <Modal title="Atalhos de teclado" onClose={onClose}>
       <ul className="divide-y divide-zinc-800">
-        {[...tools, ...(isGm ? OBJECT_KEYS : []), ...EXTRA].map(([k, l]) => <Row key={k + l} keys={k} label={l} />)}
+        {[...tools, ...CAMERA_KEYS, ...(isGm ? OBJECT_KEYS : []), ...EXTRA].map(([k, l]) => <Row key={k + l} keys={k} label={l} />)}
       </ul>
       <p className="mt-3 text-xs text-zinc-500">Os atalhos de uma tecla são ignorados enquanto você digita em um campo.</p>
     </Modal>
