@@ -8,6 +8,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/conflict"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/drawings"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
@@ -62,6 +63,7 @@ func wireTable(d deps) {
 	wireRefuge(d)
 	wireDrawings(d)
 	wireVision(d)
+	wireConflict(d)
 }
 
 func wireRounds(d deps) {
@@ -114,4 +116,12 @@ func wireDrawings(d deps) {
 func wireVision(d deps) {
 	vision.RegisterHTTP(d.mux, d.vision, d.campaigns)
 	vision.RegisterCommands(d.hub, d.vision)
+}
+
+func wireConflict(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	rollSvc := rolls.NewService(rolls.NewStore(d.pool), chars, sessions.NewService(sessions.NewStore(d.pool), d.hub), d.hub)
+	svc := conflict.NewService(conflict.NewStore(d.pool), rollSvc, chars, d.hub)
+	conflict.RegisterCommands(d.hub, svc)
+	conflict.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
 }

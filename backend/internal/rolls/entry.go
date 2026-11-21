@@ -22,6 +22,12 @@ func toEntry(r Record) (Entry, error) {
 	if r.Kind == KindGeneric {
 		return e, decodeGeneric(r, &e)
 	}
+	if r.Kind == KindThreat {
+		var ts threatSpec
+		err := json.Unmarshal(r.Spec, &ts)
+		e.CharacterName, e.Expression = ts.Name, threatExpression(ts.Pool)
+		return e, err
+	}
 	var spec assimilacaoSpec
 	if err := json.Unmarshal(r.Spec, &spec); err != nil {
 		return Entry{}, err
@@ -44,4 +50,20 @@ func decodeGeneric(r Record, e *Entry) error {
 	e.Expression, e.Modifier, e.Total = spec.Expression, spec.Modifier, &res.Total
 	e.Result = nil
 	return nil
+}
+
+func threatExpression(p ThreatPool) string {
+	out := ""
+	for _, part := range []struct {
+		n    int
+		kind string
+	}{{p.D6, "d6"}, {p.D10, "d10"}, {p.D12, "d12"}} {
+		if part.n > 0 {
+			if out != "" {
+				out += " + "
+			}
+			out += itoa(part.n) + part.kind
+		}
+	}
+	return out
 }
