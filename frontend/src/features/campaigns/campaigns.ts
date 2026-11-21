@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 
+export type CreationLimits = 'warn' | 'block'
 export type Role = 'gm' | 'player'
 
 export type Campaign = {
@@ -9,6 +10,7 @@ export type Campaign = {
   systemId: string
   systemName: string
   role: Role
+  settings?: { creationLimits?: CreationLimits }
 }
 
 export type SystemInfo = { id: string; name: string; version: string }
@@ -35,3 +37,6 @@ export const removeMember = (campaignId: string, userId: string) =>
   api.delete<void>(`/campaigns/${campaignId}/members/${userId}`)
 
 export const inviteLink = (token: string) => `${window.location.origin}/invite/${token}`
+
+export const updateSettings = (campaignId: string, creationLimits: CreationLimits) =>
+  api.patch<Campaign>(`/campaigns/${campaignId}/settings`, { creationLimits })

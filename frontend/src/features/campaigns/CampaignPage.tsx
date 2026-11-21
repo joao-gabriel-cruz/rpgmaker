@@ -6,7 +6,9 @@ import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { MapArea } from '../scenes/MapArea'
 import { OnlinePanel } from '../realtime/OnlinePanel'
 import { RoundTracker } from '../rounds/RoundTracker'
+import { CharactersSection } from '../characters/CharactersSection'
 import { InvitePanel } from './InvitePanel'
+import { SettingsPanel } from './SettingsPanel'
 import { removeMember, roleLabel, type Campaign, type MemberInfo } from './campaigns'
 
 function Members({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
@@ -71,11 +73,13 @@ function CampaignView({ campaign }: { campaign: Campaign }) {
         <RoundTracker campaignId={id} isGm={isGm} />
         <OnlinePanel />
         <MapArea campaignId={id} isGm={isGm} />
+        <CharactersSection campaignId={id} />
       </CampaignSocketProvider>
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">Membros</h2>
         <Members campaignId={id} isGm={isGm} />
       </div>
+      {isGm && <SettingsPanel campaign={campaign} />}
       {isGm && <InvitePanel campaignId={id} />}
     </section>
   )

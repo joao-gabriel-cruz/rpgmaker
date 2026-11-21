@@ -224,3 +224,18 @@ func TestRoleIsPerCampaign(t *testing.T) {
 		t.Errorf("roles = %s", rec.Body)
 	}
 }
+
+func TestUpdateSettingsGMOnlyAndValidated(t *testing.T) {
+	e := newEnv(t)
+	id, ana := e.seedCampaign(t)
+	rec := e.do("PATCH", "/api/campaigns/"+id+"/settings", `{"creationLimits":"block"}`, ana)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"creationLimits":"block"`) {
+		t.Errorf("gm = %d %s", rec.Code, rec.Body)
+	}
+	if rec := e.do("PATCH", "/api/campaigns/"+id+"/settings", `{"creationLimits":"nope"}`, ana); rec.Code != 400 {
+		t.Errorf("invalid = %d", rec.Code)
+	}
+	if rec := e.do("PATCH", "/api/campaigns/"+id+"/settings", `{"creationLimits":"warn"}`, e.login(t, "bob")); rec.Code != 404 {
+		t.Errorf("non-member = %d", rec.Code)
+	}
+}

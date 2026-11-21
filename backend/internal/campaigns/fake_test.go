@@ -2,6 +2,7 @@ package campaigns
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -90,6 +91,19 @@ func (f *fakeRepo) Campaign(_ context.Context, id string) (Campaign, error) {
 		return c, nil
 	}
 	return Campaign{}, ErrNotFound
+}
+
+func (f *fakeRepo) MergeSettings(_ context.Context, id string, patch json.RawMessage) (Campaign, error) {
+	c, ok := f.campaigns[id]
+	if !ok {
+		return Campaign{}, ErrNotFound
+	}
+	cur := map[string]any{}
+	_ = json.Unmarshal(c.Settings, &cur)
+	_ = json.Unmarshal(patch, &cur)
+	c.Settings, _ = json.Marshal(cur)
+	f.campaigns[id] = c
+	return c, nil
 }
 
 func (f *fakeRepo) Member(_ context.Context, cid, uid string) (Member, error) {

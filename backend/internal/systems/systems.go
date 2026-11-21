@@ -10,11 +10,24 @@ type System interface {
 	Version() string
 }
 
-// Issue is a sheet validation finding; the GM decides whether it blocks or only warns.
+// Issue is a sheet validation finding. Severity is SeverityBlocking (always rejects) or
+// SeverityLimit (a creation limit the campaign may only warn about).
 type Issue struct {
+	Code     string `json:"code,omitempty"`
 	Severity string `json:"severity"`
 	Field    string `json:"field"`
 	Message  string `json:"message"`
+}
+
+// Issue severities.
+const (
+	SeverityBlocking = "blocking"
+	SeverityLimit    = "limit"
+)
+
+// SheetTemplater is optionally implemented by systems that can create a blank sheet.
+type SheetTemplater interface {
+	NewSheet(name string) (json.RawMessage, error)
 }
 
 // SheetValidator is optionally implemented by systems that validate character sheets.
