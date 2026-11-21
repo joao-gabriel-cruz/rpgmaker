@@ -11,7 +11,7 @@ lint:
 	cd frontend && npm run lint
 
 test:
-	cd backend && go test ./...
+	cd backend && go test -p 1 ./...
 	cd frontend && npm test
 
 build:

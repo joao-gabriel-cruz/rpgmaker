@@ -20,7 +20,7 @@ func Up(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("read embedded migrations: %w", err)
 	}
-	provider, err := goose.NewProvider(goose.DialectPostgres, db, dir)
+	provider, err := goose.NewProvider(goose.DialectPostgres, db, dir, goose.WithAllowOutofOrder(true))
 	if err != nil {
 		return fmt.Errorf("prepare migrations: %w", err)
 	}
