@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 )
 
@@ -48,4 +49,9 @@ type Repo interface {
 // SceneSource loads scenes (players only get the active one).
 type SceneSource interface {
 	Get(ctx context.Context, campaignID, id, role string) (scenes.Scene, error)
+}
+
+// Visibility filters the tokens a member may see (fog of war).
+type Visibility interface {
+	Filter(ctx context.Context, m campaigns.Member, sceneID string, list []Token) []Token
 }

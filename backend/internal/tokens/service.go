@@ -34,8 +34,12 @@ type Service struct {
 	repo   Repo
 	scenes SceneSource
 	notif  Notifier
+	vis    Visibility
 	mu     sync.Mutex
 }
+
+// SetVisibility installs the fog filter applied to token listings (nil keeps everything visible).
+func (s *Service) SetVisibility(v Visibility) { s.vis = v }
 
 // NewService builds the service.
 func NewService(repo Repo, sc SceneSource, notif Notifier) *Service {
@@ -65,7 +69,11 @@ func (s *Service) List(ctx context.Context, m campaigns.Member, sceneID string) 
 	if _, err := s.scenes.Get(ctx, m.CampaignID, sceneID, m.Role); err != nil {
 		return nil, mapScene(err)
 	}
-	return s.repo.List(ctx, m.CampaignID, sceneID)
+	list, err := s.repo.List(ctx, m.CampaignID, sceneID)
+	if err != nil || s.vis == nil {
+		return list, err
+	}
+	return s.vis.Filter(ctx, m, sceneID, list), nil
 }
 
 func mapScene(err error) error {
@@ -175,7 +183,7 @@ func (s *Service) Move(ctx context.Context, snd realtime.Sender, campaignID, tok
 		return err
 	}
 	s.notif.Broadcast(campaignID, realtime.ToAll, EventMoved,
-		map[string]any{"tokenId": t.ID, "x": x, "z": z, "by": snd.UserID})
+		map[string]any{"tokenId": t.ID, "sceneId": t.SceneID, "x": x, "z": z, "fromX": t.X, "fromZ": t.Z, "by": snd.UserID})
 	return nil
 }
 

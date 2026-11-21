@@ -42,10 +42,32 @@ function usePings(sceneId: string) {
   return { pings, camera }
 }
 
+type Subscribe = ReturnType<typeof useRealtime>['subscribe']
+
+function useTokenEvents(subscribe: Subscribe, sceneId: string, reload: () => void, known: { current: Token[] }, setTokens: Dispatch<SetStateAction<Token[]>>) {
+  useEffect(() => {
+    const offs = [
+      // Sight changed: the server's filtered list says which tokens appear or vanish.
+      subscribe('vision.updated', reload),
+      subscribe('token.placed', (p) => setTokens((l) => applyPlaced(l, sceneId, (p as { token: Token }).token))),
+      subscribe('token.removed', (p) => setTokens((l) => applyRemoved(l, (p as { tokenId: string }).tokenId))),
+      subscribe('token.moved', (p) => {
+        const e = p as { tokenId: string; x: number; z: number }
+        // A token we do not know yet just walked into sight.
+        if (!known.current.some((t) => t.id === e.tokenId)) reload()
+        setTokens((l) => applyMoved(l, e.tokenId, e.x, e.z))
+      }),
+    ]
+    return () => offs.forEach((off) => off())
+  }, [subscribe, sceneId, reload, known, setTokens])
+}
+
 function useRemoteTokens(campaignId: string, sceneId: string) {
   const { subscribe, status } = useRealtime()
   const [tokens, setTokens] = useState<Token[]>([])
   const wasOpen = useRef(false)
+  const known = useRef<Token[]>([])
+  useEffect(() => { known.current = tokens }, [tokens])
   const reload = useCallback(() => {
     loadTokens(campaignId, sceneId).then(setTokens, () => undefined)
   }, [campaignId, sceneId])
@@ -55,17 +77,7 @@ function useRemoteTokens(campaignId: string, sceneId: string) {
     if (status === 'open' && wasOpen.current) reload()
     if (status === 'open') wasOpen.current = true
   }, [status, reload])
-  useEffect(() => {
-    const offs = [
-      subscribe('token.placed', (p) => setTokens((l) => applyPlaced(l, sceneId, (p as { token: Token }).token))),
-      subscribe('token.removed', (p) => setTokens((l) => applyRemoved(l, (p as { tokenId: string }).tokenId))),
-      subscribe('token.moved', (p) => {
-        const e = p as { tokenId: string; x: number; z: number }
-        setTokens((l) => applyMoved(l, e.tokenId, e.x, e.z))
-      }),
-    ]
-    return () => offs.forEach((off) => off())
-  }, [subscribe, sceneId])
+  useTokenEvents(subscribe, sceneId, reload, known, setTokens)
   return { tokens, setTokens }
 }
 
