@@ -114,3 +114,23 @@ it('toast is not rendered for a non-GM slot', () => {
   act(() => rt.emit('mcp.changed', { changes: [c], latest: c }))
   expect(screen.queryByText(/Claude:/)).not.toBeInTheDocument()
 })
+
+function stubClipboard(writeText: () => Promise<void>) {
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+}
+
+it('shows Copiado! after copying the link', async () => {
+  stubClipboard(() => Promise.resolve())
+  setup()
+  await userEvent.click(await screen.findByRole('button', { name: 'Gerar link' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Copiar' }))
+  expect(await screen.findByRole('button', { name: 'Copiado!' })).toBeInTheDocument()
+})
+
+it('explains how to copy manually when the clipboard fails', async () => {
+  stubClipboard(() => Promise.reject(new Error('denied')))
+  setup()
+  await userEvent.click(await screen.findByRole('button', { name: 'Gerar link' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Copiar' }))
+  expect(await screen.findByText('Não foi possível copiar; selecione o link e copie manualmente.')).toBeInTheDocument()
+})
