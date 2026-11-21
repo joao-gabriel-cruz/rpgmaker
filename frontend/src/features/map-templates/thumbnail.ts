@@ -18,6 +18,8 @@ export interface Painter {
 const OBJECT_COLORS: Record<string, string> = {
   wall: '#3f3f46', door: '#a16207', barricade: '#a8a29e', fence: '#a8a29e', watchtower: '#78350f', post: '#d4d4d8',
   tree: '#14532d', bush: '#3f7d3a', rock: '#9ca3af', car: '#dc2626', crate: '#b45309', campfire: '#fb923c', volcano: '#7f1d1d',
+  tent: '#f5f5f4', barrel: '#92400e', bench: '#78350f', market_stall: '#e11d8f', lamp_post: '#facc15', sandbags: '#d6c58f',
+  ruined_wall: '#6b6b60', well: '#38bdf8', sign: '#fde68a', bridge: '#c08a4a', bunting: '#f472b6',
 }
 const FALLBACK_OBJECT = '#e4e4e7'
 
