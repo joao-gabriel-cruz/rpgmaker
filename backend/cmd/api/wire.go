@@ -38,6 +38,9 @@ type deps struct {
 	vision      *vision.Service
 	effects     *effects.Service
 	rolls       *rolls.Service // the instance that handles roll.keep, so hooks on it fire
+	scenes      *scenes.Service
+	tokens      *tokens.Service
+	ambience    *ambience.Service
 }
 
 func buildMux(pool *pgxpool.Pool) *http.ServeMux {
@@ -62,6 +65,9 @@ func wireTable(d deps) {
 	d.vision = vision.NewService(vision.NewStore(d.pool), scenes.NewService(scenes.NewStore(d.pool), d.hub), d.hub)
 	d.effects = newEffects(d)
 	d.rolls = newRolls(d)
+	d.scenes = scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
+	d.tokens = newTokens(d)
+	d.ambience = newAmbience(d)
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
@@ -85,9 +91,8 @@ func wireRounds(d deps) {
 }
 
 func wireScenes(d deps) {
-	svc := scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
-	scenes.NewHandlers(svc, d.campaigns).Register(d.mux)
-	scenes.RegisterCommands(d.hub, svc)
+	scenes.NewHandlers(d.scenes, d.campaigns).Register(d.mux)
+	scenes.RegisterCommands(d.hub, d.scenes)
 }
 
 func wireCharacters(d deps) {
@@ -110,12 +115,16 @@ func wireSessions(d deps) {
 	sessions.Register(d.mux, d.hub, svc, d.campaigns.RequireMember)
 }
 
-func wireTokens(d deps) {
+func newTokens(d deps) *tokens.Service {
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
 	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, effects.NewTap(d.vision.Tap(), d.effects))
 	svc.SetVisibility(d.vision)
-	tokens.Register(d.mux, svc, d.campaigns)
-	tokens.RegisterCommands(d.hub, svc)
+	return svc
+}
+
+func wireTokens(d deps) {
+	tokens.Register(d.mux, d.tokens, d.campaigns)
+	tokens.RegisterCommands(d.hub, d.tokens)
 }
 
 func wireRefuge(d deps) {
@@ -165,10 +174,14 @@ func wireItems(d deps) {
 	items.RegisterCommands(d.hub, svc)
 }
 
-func wireAmbience(d deps) {
+func newAmbience(d deps) *ambience.Service {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
-	ambience.Register(d.mux, d.hub, ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub), d.campaigns)
+	return ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub)
+}
+
+func wireAmbience(d deps) {
+	ambience.Register(d.mux, d.hub, d.ambience, d.campaigns)
 }
 
 func wireActions(d deps) {
