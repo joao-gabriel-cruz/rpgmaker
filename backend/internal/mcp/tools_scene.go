@@ -9,6 +9,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 )
@@ -96,33 +97,42 @@ func paintBase(ctx context.Context, t Table, s Session, sc scenes.Scene, terrain
 }
 
 func activateScene(ctx context.Context, t Table, s Session, in activateSceneInput) (string, error) {
+	sc, arrival, err := resolveActivation(ctx, t, s, in)
+	if err != nil {
+		return "", err
+	}
+	plan, err := loadParty(ctx, t, s, sc)
+	if err != nil {
+		return "", err
+	}
+	if err := t.Scenes.Activate(ctx, s.CampaignID, sc.ID); err != nil {
+		return "", err
+	}
+	brought, failed := placeParty(ctx, t, s, sc, plan, arrival)
+	return activateSummary(sc.Name, brought, failed), nil
+}
+
+func resolveActivation(ctx context.Context, t Table, s Session, in activateSceneInput) (scenes.Scene, maps.Coord, error) {
 	list, err := t.Scenes.List(ctx, s.CampaignID)
 	if err != nil {
-		return "", fmt.Errorf("list scenes: %w", err)
+		return scenes.Scene{}, maps.Coord{}, fmt.Errorf("list scenes: %w", err)
 	}
 	sum, err := pick(list, in.Scene, func(x scenes.Summary) string { return x.ID }, func(x scenes.Summary) string { return x.Name })
 	if err != nil {
-		return "", err
+		return scenes.Scene{}, maps.Coord{}, err
 	}
 	sc, err := t.Scenes.Get(ctx, s.CampaignID, sum.ID, campaigns.RoleGM)
 	if err != nil {
-		return "", err
+		return scenes.Scene{}, maps.Coord{}, err
 	}
 	arrival := maps.Coord{X: sc.Width / 2, Z: sc.Depth / 2}
 	if in.Arrival != nil {
 		arrival = maps.Coord{X: in.Arrival.X, Z: in.Arrival.Z}
 	}
 	if arrival.X < 0 || arrival.Z < 0 || arrival.X >= sc.Width || arrival.Z >= sc.Depth {
-		return "", newUserError(fmt.Sprintf("a chegada (%d,%d) fica fora da cena (%dx%d)", arrival.X, arrival.Z, sc.Width, sc.Depth))
+		return sc, arrival, newUserError(fmt.Sprintf("a chegada (%d,%d) fica fora da cena (%dx%d)", arrival.X, arrival.Z, sc.Width, sc.Depth))
 	}
-	if err := t.Scenes.Activate(ctx, s.CampaignID, sc.ID); err != nil {
-		return "", err
-	}
-	brought, failed, err := bringParty(ctx, t, s, sc, arrival)
-	if err != nil {
-		return "", err
-	}
-	return activateSummary(sc.Name, brought, failed), nil
+	return sc, arrival, nil
 }
 
 func activateSummary(name string, brought, failed []string) string {
@@ -136,40 +146,51 @@ func activateSummary(name string, brought, failed []string) string {
 	return out
 }
 
-// bringParty places each player character lacking a token on the free cell nearest to arrival.
-func bringParty(ctx context.Context, t Table, s Session, sc scenes.Scene, arrival maps.Coord) (brought, failed []string, err error) {
+// partyPlan is everything placement needs, loaded before the scene is activated.
+type partyPlan struct {
+	chars []characters.View
+	grid  *maps.Grid
+	taken map[maps.Coord]bool
+	has   map[string]bool
+}
+
+func loadParty(ctx context.Context, t Table, s Session, sc scenes.Scene) (partyPlan, error) {
 	m := campaigns.Member{CampaignID: s.CampaignID, UserID: s.Sender.UserID, Role: campaigns.RoleGM}
 	chars, err := t.Characters.List(ctx, m)
 	if err != nil {
-		return nil, nil, fmt.Errorf("list characters: %w", err)
+		return partyPlan{}, fmt.Errorf("list characters: %w", err)
 	}
 	present, err := sceneTokens(ctx, t, s, sc.ID)
 	if err != nil {
-		return nil, nil, err
+		return partyPlan{}, err
 	}
 	g, err := maps.Deserialize(sc.Grid)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode grid: %w", err)
+		return partyPlan{}, fmt.Errorf("decode grid: %w", err)
 	}
-	taken := map[maps.Coord]bool{}
-	has := map[string]bool{}
+	p := partyPlan{chars: chars, grid: g, taken: map[maps.Coord]bool{}, has: map[string]bool{}}
 	for _, tk := range present {
-		taken[maps.Coord{X: tk.X, Z: tk.Z}] = true
-		has[tk.CharacterID] = true
+		p.taken[maps.Coord{X: tk.X, Z: tk.Z}] = true
+		p.has[tk.CharacterID] = true
 	}
-	for _, ch := range chars {
-		if ch.OwnerID == nil || has[ch.ID] {
+	return p, nil
+}
+
+// placeParty puts each player character lacking a token on the free cell nearest to arrival.
+func placeParty(ctx context.Context, t Table, s Session, sc scenes.Scene, p partyPlan, arrival maps.Coord) (brought, failed []string) {
+	for _, ch := range p.chars {
+		if ch.OwnerID == nil || p.has[ch.ID] {
 			continue
 		}
-		at, ok := nearestFree(g, sc.Objects, taken, arrival)
+		at, ok := nearestFree(p.grid, sc.Objects, p.taken, arrival)
 		if !ok || t.Tokens.Place(ctx, s.Sender, s.CampaignID, sc.ID, ch.ID, at.X, at.Z) != nil {
 			failed = append(failed, ch.Name)
 			continue
 		}
-		taken[at] = true
+		p.taken[at] = true
 		brought = append(brought, fmt.Sprintf("%s em (%d,%d)", ch.Name, at.X, at.Z))
 	}
-	return brought, failed, nil
+	return brought, failed
 }
 
 // nearestFree walks Chebyshev rings outward from arrival, row-major inside each ring.
