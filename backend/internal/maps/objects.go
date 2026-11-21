@@ -1,5 +1,7 @@
 package maps
 
+import "sort"
+
 // Object is a prop placed on the map. X,Z is the min corner of its footprint.
 type Object struct {
 	ID       string         `json:"id"`
@@ -68,4 +70,14 @@ func Footprint(o Object) []Coord {
 func KnownPrefab(id string) bool {
 	_, ok := prefabs[id]
 	return ok
+}
+
+// PrefabIDs lists every prefab id of the catalog, sorted.
+func PrefabIDs() []string {
+	ids := make([]string, 0, len(prefabs))
+	for id := range prefabs {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
 }
