@@ -154,6 +154,10 @@ func (j *Journal) Undo(ctx context.Context, t Table, s Session, id string) (stri
 			j.broadcastList(s.CampaignID)
 			return "", errSceneGone
 		}
+		if reason, permanent := permanentReason(err); permanent {
+			j.broadcastList(s.CampaignID)
+			return "", realtime.UserError("não dá para desfazer: " + reason + " (removida da lista)")
+		}
 		j.putBack(s.CampaignID, e)
 		return "", err
 	}
@@ -161,7 +165,22 @@ func (j *Journal) Undo(ctx context.Context, t Table, s Session, id string) (stri
 	return e.view.Summary, nil
 }
 
-var errSceneGone = realtime.UserError("A cena dessa mudança não existe mais")
+var (
+	errSceneGone = realtime.UserError("A cena dessa mudança não existe mais")
+	errUndoDraft = realtime.UserError("há um rascunho aberto nesta cena; aplique ou descarte no editor antes")
+)
+
+// permanentReason tells whether retrying the undo can never succeed; the open draft and
+// internal errors are transient, so their entry stays in the journal.
+func permanentReason(err error) (string, bool) {
+	if errors.Is(err, errUndoDraft) {
+		return "", false
+	}
+	if errors.Is(err, scenes.ErrInvalidPatch) {
+		return toolError(err).Error(), true
+	}
+	return realtime.UserMessage(err)
+}
 
 func (j *Journal) apply(ctx context.Context, t Table, s Session, e entry) error {
 	if e.view.SceneID != "" {
@@ -173,7 +192,7 @@ func (j *Journal) apply(ctx context.Context, t Table, s Session, e entry) error 
 			return err
 		}
 		if sc.Draft != nil {
-			return realtime.UserError("há um rascunho aberto nesta cena; aplique ou descarte no editor antes")
+			return errUndoDraft
 		}
 	}
 	return applyInverse(ctx, t, s, e)

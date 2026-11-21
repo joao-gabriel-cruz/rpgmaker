@@ -37,6 +37,16 @@ var ptWords = map[string]string{
 	"clear": "limpo", "rain": "chuva", "storm": "tempestade", "fog": "neblina", "snow": "neve", "ash": "cinzas",
 }
 
+// ptConditions mirrors the labels in frontend/src/features/ambience/conditions.ts.
+var ptConditions = map[string]string{
+	"wounded": "Ferido", "debilitated": "Debilitado", "susceptible": "Suscetível", "scared": "Assustado",
+	"hidden": "Escondido", "infected": "Infectado", "unconscious": "Inconsciente",
+}
+
+type undoInput struct {
+	ChangeID string `json:"changeId,omitempty" jsonschema:"id of a change from get_scene/recent changes; omit to undo the newest"`
+}
+
 func registerTokenTools(srv *sdk.Server, t Table, j *Journal, s Session) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name: "move_token",
@@ -60,13 +70,13 @@ func registerTokenTools(srv *sdk.Server, t Table, j *Journal, s Session) {
 	sdk.AddTool(srv, &sdk.Tool{
 		Name:        "undo_last",
 		Description: "Undo the most recent change made through these tools.",
-	}, func(ctx context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, any, error) {
-		return summaryResult(undoLast(ctx, t, j, s))
+	}, func(ctx context.Context, _ *sdk.CallToolRequest, in undoInput) (*sdk.CallToolResult, any, error) {
+		return summaryResult(undoLast(ctx, t, j, s, in.ChangeID))
 	})
 }
 
-func undoLast(ctx context.Context, t Table, j *Journal, s Session) (string, error) {
-	summary, err := j.Undo(ctx, t, s, "")
+func undoLast(ctx context.Context, t Table, j *Journal, s Session, changeID string) (string, error) {
+	summary, err := j.Undo(ctx, t, s, changeID)
 	if err != nil {
 		return "", err
 	}
@@ -177,7 +187,7 @@ func setCondition(ctx context.Context, t Table, j *Journal, s Session, in condit
 		return "", err
 	}
 	state := map[bool]string{true: "ativada", false: "removida"}[in.Active]
-	summary := fmt.Sprintf("%s: condição %s %s", ch.Name, in.Condition, state)
+	summary := fmt.Sprintf("%s: condição %s %s", ch.Name, ptConditions[in.Condition], state)
 	j.Record(s.CampaignID, sc.ID, summary, Inverse{Condition: &ConditionState{CharacterID: ch.ID, Condition: in.Condition, Active: was}})
 	return summary, nil
 }

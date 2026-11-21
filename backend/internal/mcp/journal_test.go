@@ -208,3 +208,28 @@ func TestPutBackKeepsTimeOrder(t *testing.T) {
 		t.Fatalf("list = %+v", l)
 	}
 }
+
+func TestUndoPermanentUserErrorDropsEntry(t *testing.T) {
+	r := newRig("s1")
+	v := r.j.Record("c1", "s1", "move", Inverse{Token: &TokenPos{"tk", 1, 1}})
+	r.tk.moveErr = realtime.UserError("Token não encontrado")
+	_, err := r.j.Undo(context.Background(), r.t, r.s, v.ID)
+	userErr(t, err, "não dá para desfazer: Token não encontrado (removida da lista)")
+	if len(r.j.List("c1")) != 0 {
+		t.Fatal("entry must be dropped")
+	}
+	if _, has := r.n.last().Payload.(map[string]any)["latest"]; has {
+		t.Fatal("drop broadcast must not carry latest")
+	}
+}
+
+func TestUndoInvalidPatchDropsEntry(t *testing.T) {
+	r := newRig("s1")
+	v := r.j.Record("c1", "s1", "a", cellInverse("a"))
+	r.sc.paintErr = fmt.Errorf("%w: cell out of range", scenes.ErrInvalidPatch)
+	_, err := r.j.Undo(context.Background(), r.t, r.s, v.ID)
+	userErr(t, err, "(removida da lista)")
+	if len(r.j.List("c1")) != 0 {
+		t.Fatal("entry must be dropped")
+	}
+}

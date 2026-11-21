@@ -105,7 +105,7 @@ func TestSetConditionNoopNotRecorded(t *testing.T) {
 		t.Fatalf("err=%v text=%q", isErr, text)
 	}
 	text, isErr = callTool(t, r.t, r.j, "set_condition", map[string]any{"character": "Junior", "condition": "scared", "active": false})
-	if isErr || !strings.Contains(text, "Junior: condição scared removida") {
+	if isErr || !strings.Contains(text, "Junior: condição Assustado removida") {
 		t.Fatalf("err=%v text=%q", isErr, text)
 	}
 	if _, err := r.j.Undo(t.Context(), r.t, r.s, ""); err != nil {
@@ -139,5 +139,19 @@ func TestTokenToolsRefuseOpenDraft(t *testing.T) {
 	_, isErr2 := callTool(t, r.t, r.j, "set_ambience", map[string]any{"weather": "rain"})
 	if !isErr || !isErr2 {
 		t.Fatal("draft must refuse")
+	}
+}
+
+func TestUndoLastWithChangeID(t *testing.T) {
+	r := tokenRig()
+	callTool(t, r.t, r.j, "move_token", map[string]any{"token": "Junior", "x": 5, "z": 7})
+	callTool(t, r.t, r.j, "move_token", map[string]any{"token": "t2", "x": 6, "z": 6})
+	older := r.j.List("c1")[1]
+	text, isErr := callTool(t, r.t, r.j, "undo_last", map[string]any{"changeId": older.ID})
+	if isErr || text != "desfeito: Junior moveu para (5,7)" {
+		t.Fatalf("err=%v text=%q", isErr, text)
+	}
+	if l := r.j.List("c1"); len(l) != 1 || l[0].Summary != "Marta moveu para (6,6)" {
+		t.Fatalf("list = %+v", l)
 	}
 }

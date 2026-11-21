@@ -123,6 +123,7 @@ type fakeTokens struct {
 	list     []tokens.Token
 	placed   []placement
 	placeErr map[string]error
+	moveErr  error
 }
 
 // List returns tokens of the scene; tokens without a SceneID belong to every scene.
@@ -137,6 +138,9 @@ func (f *fakeTokens) List(_ context.Context, _ campaigns.Member, sceneID string)
 }
 
 func (f *fakeTokens) Move(_ context.Context, _ realtime.Sender, _, id string, x, z int, force bool) error {
+	if f.moveErr != nil {
+		return f.moveErr
+	}
 	if force {
 		f.moves = append(f.moves, TokenPos{id, x, z})
 	}

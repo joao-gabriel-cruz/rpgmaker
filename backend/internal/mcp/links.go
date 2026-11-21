@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
@@ -113,13 +114,21 @@ func (l *Links) Revoke(ctx context.Context, m campaigns.Member) error {
 func (l *Links) Resolve(ctx context.Context, secret string) (Session, error) {
 	link, err := l.repo.ByHash(ctx, hashSecret(secret))
 	if err != nil {
-		return Session{}, ErrInvalidLink
+		return Session{}, err
 	}
 	m, err := l.members.Membership(ctx, link.CampaignID, link.UserID)
-	if err != nil || m.Role != campaigns.RoleGM {
+	if errors.Is(err, campaigns.ErrNotFound) {
 		return Session{}, ErrInvalidLink
 	}
-	_ = l.repo.Touch(ctx, link.ID)
+	if err != nil {
+		return Session{}, err
+	}
+	if m.Role != campaigns.RoleGM {
+		return Session{}, ErrInvalidLink
+	}
+	if err := l.repo.Touch(ctx, link.ID); err != nil {
+		slog.Warn("mcp link touch", "err", err)
+	}
 	return Session{CampaignID: link.CampaignID, Sender: realtime.Sender{
 		UserID: link.UserID, Role: campaigns.RoleGM, Name: "Claude"}}, nil
 }

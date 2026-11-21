@@ -144,3 +144,20 @@ func TestGenerateRequiresGM(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+type failingMembers struct{ err error }
+
+func (f failingMembers) Membership(context.Context, string, string) (campaigns.Member, error) {
+	return campaigns.Member{}, f.err
+}
+
+func TestResolveSurfacesInfraErrors(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	secret, _, _ := NewLinks(repo, fakeMembers{campaigns.RoleGM}).Generate(ctx, gm)
+	boom := errors.New("db down")
+	_, err := NewLinks(repo, failingMembers{boom}).Resolve(ctx, secret)
+	if !errors.Is(err, boom) || errors.Is(err, ErrInvalidLink) {
+		t.Fatalf("err = %v", err)
+	}
+}
