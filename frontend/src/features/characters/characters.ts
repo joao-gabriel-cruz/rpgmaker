@@ -46,8 +46,8 @@ export const useCharacter = (campaignId: string, id: string) =>
     refetchOnWindowFocus: false,
   })
 
-export const createCharacter = (campaignId: string) =>
-  api.post<CharacterView>(`/campaigns/${campaignId}/characters`, {})
+export const createCharacter = (campaignId: string, kind: 'pc' | 'npc' = 'pc') =>
+  api.post<CharacterView>(`/campaigns/${campaignId}/characters`, kind === 'npc' ? { kind } : {})
 
 export const saveSheet = (campaignId: string, id: string, sheet: Sheet) =>
   api.put<CharacterView>(`/campaigns/${campaignId}/characters/${id}`, { sheet })

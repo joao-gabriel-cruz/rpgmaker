@@ -30,6 +30,13 @@ type SheetTemplater interface {
 	NewSheet(name string) (json.RawMessage, error)
 }
 
+// NPCSheeter is optionally implemented by systems with a simplified NPC sheet.
+type NPCSheeter interface {
+	NewNPCSheet(name string) (json.RawMessage, error)
+	ValidateNPCSheet(sheet json.RawMessage) []Issue
+	DeriveNPCSheet(sheet json.RawMessage) (json.RawMessage, error)
+}
+
 // SheetValidator is optionally implemented by systems that validate character sheets.
 type SheetValidator interface {
 	ValidateSheet(sheet, campaignSettings json.RawMessage) []Issue

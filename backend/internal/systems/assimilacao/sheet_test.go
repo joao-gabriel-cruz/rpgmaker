@@ -62,3 +62,14 @@ func TestNewSheetValid(t *testing.T) {
 		t.Fatalf("new sheet issues: %+v", issues)
 	}
 }
+
+func TestParseSheetAcceptsNPCJSON(t *testing.T) {
+	n := NewNPCSheet()
+	n.Instincts.Potency = 5
+	n.Practices.Weapons = 4
+	raw, _ := json.Marshal(n)
+	s, err := ParseSheet(raw)
+	if err != nil || s.Instincts.Potency != 5 || s.Practices.Weapons != 4 {
+		t.Fatalf("ParseSheet(npc) = %+v %v", s, err)
+	}
+}

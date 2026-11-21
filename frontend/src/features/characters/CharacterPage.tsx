@@ -8,6 +8,8 @@ import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { useRealtime } from '../realtime/realtimeContext'
 import { RollTray } from '../rolls/RollTray'
 import { RollableSheet } from '../rolls/RollableSheet'
+import { NpcSheet } from './NpcSheet'
+import { asNpc, asSheet } from './npc'
 import { deleteCharacter, toSheetIssues, useCharacter, type CharacterView } from './characters'
 import { useCharacterSync, type SaveStatus } from './useCharacterSync'
 
@@ -27,8 +29,8 @@ function Toolbar({ campaign, character, canEdit, status, onRemove }: {
       {canEdit && (
         <>
           <span role="status" aria-label="Estado do salvamento" className={`ml-auto text-sm ${status === 'error' ? 'text-red-400' : 'text-zinc-400'}`}>{STATUS_LABEL[status]}</span>
-          <button onClick={() => window.confirm('Apagar este personagem?') && onRemove()}
-            className="rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-red-900">Apagar personagem</button>
+          <button onClick={() => window.confirm(character.kind === 'npc' ? 'Apagar este NPC?' : 'Apagar este personagem?') && onRemove()}
+            className="rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-red-900">{character.kind === 'npc' ? 'Apagar NPC' : 'Apagar personagem'}</button>
         </>
       )}
     </div>
@@ -59,8 +61,10 @@ function Editor({ campaign, character, canEdit }: { campaign: Campaign; characte
     <section className="flex flex-col gap-4">
       <Toolbar campaign={campaign} character={character} canEdit={canEdit} status={status} onRemove={() => remove.mutate()} />
       {canEdit && <Banners status={status} error={error} hasIssues={issues.length > 0} />}
-      <RollableSheet characterId={character.id} isGm={campaign.role === 'gm'}
-        sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)} />
+      {character.kind === 'npc'
+        ? <NpcSheet sheet={asNpc(sheet)} onChange={(n) => onChange(asSheet(n))} readOnly={!canEdit} issues={toSheetIssues(issues)} />
+        : <RollableSheet characterId={character.id} isGm={campaign.role === 'gm'}
+          sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)} />}
       <RollTray />
     </section>
   )
