@@ -27,3 +27,9 @@ func oneOf(list []string, v string) bool {
 	}
 	return false
 }
+
+// TimesOfDay returns a copy of the accepted times of day.
+func TimesOfDay() []string { return append([]string(nil), timesOfDay...) }
+
+// Weathers returns a copy of the accepted weathers.
+func Weathers() []string { return append([]string(nil), weathers...) }

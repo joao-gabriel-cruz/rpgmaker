@@ -17,6 +17,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/items"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maptemplates"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/mcp"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rolls"
@@ -41,6 +42,8 @@ type deps struct {
 	effects     *effects.Service
 	rolls       *rolls.Service  // the instance that handles roll.keep, so hooks on it fire
 	scenes      *scenes.Service // the instance behind the scene routes, so template hooks on it fire
+	tokens      *tokens.Service
+	ambience    *ambience.Service
 }
 
 func buildMux(pool *pgxpool.Pool) *http.ServeMux {
@@ -66,6 +69,8 @@ func wireTable(d deps) {
 	d.scenes = scenes.NewService(scenes.NewStore(d.pool), d.vision.Tap())
 	d.effects = newEffects(d)
 	d.rolls = newRolls(d)
+	d.tokens = newTokens(d)
+	d.ambience = newAmbience(d)
 	wireRounds(d)
 	wireScenes(d)
 	wireCharacters(d)
@@ -80,6 +85,7 @@ func wireTable(d deps) {
 	wireItems(d)
 	wireAmbience(d)
 	wireActions(d)
+	wireMCP(d)
 }
 
 func wireRounds(d deps) {
@@ -114,12 +120,16 @@ func wireSessions(d deps) {
 	sessions.Register(d.mux, d.hub, svc, d.campaigns.RequireMember)
 }
 
-func wireTokens(d deps) {
+func newTokens(d deps) *tokens.Service {
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
 	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, effects.NewTap(d.vision.Tap(), d.effects))
 	svc.SetVisibility(d.vision)
-	tokens.Register(d.mux, svc, d.campaigns)
-	tokens.RegisterCommands(d.hub, svc)
+	return svc
+}
+
+func wireTokens(d deps) {
+	tokens.Register(d.mux, d.tokens, d.campaigns)
+	tokens.RegisterCommands(d.hub, d.tokens)
 }
 
 func wireRefuge(d deps) {
@@ -169,14 +179,18 @@ func wireItems(d deps) {
 	items.RegisterCommands(d.hub, svc)
 }
 
-func wireAmbience(d deps) {
+func newAmbience(d deps) *ambience.Service {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
 	svc := ambience.NewService(ambience.NewStore(d.pool), sceneSvc, chars, d.hub)
 	d.scenes.OnTemplateAmbience(func(ctx context.Context, campaignID, sceneID, timeOfDay, weather string) error {
 		return svc.Set(ctx, campaignID, ambience.Ambience{SceneID: sceneID, TimeOfDay: timeOfDay, Weather: weather})
 	})
-	ambience.Register(d.mux, d.hub, svc, d.campaigns)
+	return svc
+}
+
+func wireAmbience(d deps) {
+	ambience.Register(d.mux, d.hub, d.ambience, d.campaigns)
 }
 
 func wireActions(d deps) {
@@ -189,4 +203,15 @@ func wireActions(d deps) {
 	d.rolls.OnFinalized(svc.Finalized)
 	actions.RegisterHTTP(d.mux, svc, d.campaigns)
 	actions.RegisterCommands(d.hub, svc)
+}
+
+func wireMCP(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	j := mcp.NewJournal(d.hub)
+	t := mcp.Table{Scenes: d.scenes, Tokens: d.tokens, Ambience: d.ambience, Characters: chars}
+	links := mcp.NewLinks(mcp.NewLinkRepo(d.pool), d.campaignSvc)
+	d.mux.Handle("/api/mcp/{secret}", mcp.NewHandler(links, t, j))
+	mcp.RegisterLinkHTTP(d.mux, links, d.campaigns)
+	mcp.RegisterChangesHTTP(d.mux, j, d.campaigns)
+	mcp.RegisterUndo(d.hub, j, t)
 }

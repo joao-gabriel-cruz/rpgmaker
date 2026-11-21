@@ -5,6 +5,7 @@ import { SettingsPanel } from '../campaigns/SettingsPanel'
 import type { Campaign } from '../campaigns/campaigns'
 import { ActionsEditor } from '../actions/ActionsEditor'
 import { RulesEditor } from '../effects/RulesEditor'
+import { ClaudePanel } from '../mcp/ClaudePanel'
 import { Modal } from './Modal'
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'settings', label: 'Configurações' },
   { id: 'rules', label: 'Regras de efeitos' },
   { id: 'actions', label: 'Ações' },
+  { id: 'claude', label: 'Claude' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -26,6 +28,7 @@ function Body({ tab, campaign }: { tab: TabId; campaign: Campaign }) {
     )
   }
   if (tab === 'actions') return <ActionsEditor campaignId={campaign.id} />
+  if (tab === 'claude') return <ClaudePanel campaignId={campaign.id} />
   return tab === 'settings' ? <SettingsPanel campaign={campaign} /> : <RulesEditor campaignId={campaign.id} />
 }
 
