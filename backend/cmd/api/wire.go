@@ -8,6 +8,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/auth"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/drawings"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
@@ -54,6 +55,7 @@ func wireTable(d deps) {
 	wireRolls(d)
 	wireTokens(d)
 	wireRefuge(d)
+	wireDrawings(d)
 }
 
 func wireRounds(d deps) {
@@ -88,4 +90,11 @@ func wireTokens(d deps) {
 func wireRefuge(d deps) {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
 	refuge.Register(d.mux, d.hub, refuge.NewService(refuge.NewStore(d.pool), chars, d.hub), d.campaigns)
+}
+
+func wireDrawings(d deps) {
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	svc := drawings.NewService(drawings.NewStore(d.pool), sceneSvc, d.hub)
+	drawings.Register(d.mux, svc, d.campaigns)
+	drawings.RegisterCommands(d.hub, svc)
 }
