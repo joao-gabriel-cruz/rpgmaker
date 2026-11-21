@@ -64,6 +64,14 @@ type Item struct {
 	Scarcity int      `json:"scarcity"`
 	Pressure int      `json:"pressure"`
 	Traits   []string `json:"traits"`
+	// Optional fields set when the item comes from the campaign compendium.
+	ItemID          string          `json:"itemId,omitempty"`
+	Description     string          `json:"description,omitempty"`
+	Icon            string          `json:"icon,omitempty"`
+	Color           string          `json:"color,omitempty"`
+	Kind            string          `json:"kind,omitempty"`
+	AttackAnimation string          `json:"attackAnimation,omitempty"`
+	Effects         json.RawMessage `json:"effects,omitempty"`
 }
 
 // Inventory has body slots and backpack slots.

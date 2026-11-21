@@ -104,3 +104,31 @@ func writeMove(ctx context.Context, tx pgx.Tx, campaignID, charID string, sheet 
 	return scan(tx.QueryRow(ctx, `UPDATE refuges SET items=$2, updated_at=now() WHERE campaign_id=$1 RETURNING `+cols,
 		campaignID, raw))
 }
+
+// AddItem appends an item unless the refuge is full.
+func (s *Store) AddItem(ctx context.Context, campaignID string, item json.RawMessage) (Refuge, error) {
+	if _, err := s.Get(ctx, campaignID); err != nil {
+		return Refuge{}, err
+	}
+	r, err := scan(s.pool.QueryRow(ctx, `UPDATE refuges SET items = items || jsonb_build_array($2::jsonb), updated_at=now()
+		WHERE campaign_id=$1 AND jsonb_array_length(items) < $3 RETURNING `+cols, campaignID, []byte(item), maxItems))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Refuge{}, errRefugeMax
+	}
+	return r, err
+}
+
+var resourceCols = map[string]string{"water": "water", "food": "food", "wood": "wood"}
+
+// AddResource increments one resource column from a fixed whitelist.
+func (s *Store) AddResource(ctx context.Context, campaignID, resource string, amount int) (Refuge, error) {
+	col, ok := resourceCols[resource]
+	if !ok {
+		return Refuge{}, ErrInvalid
+	}
+	if _, err := s.Get(ctx, campaignID); err != nil {
+		return Refuge{}, err
+	}
+	return scan(s.pool.QueryRow(ctx, `UPDATE refuges SET `+col+` = `+col+` + $2, updated_at=now() WHERE campaign_id=$1 RETURNING `+cols,
+		campaignID, amount))
+}

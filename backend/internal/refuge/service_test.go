@@ -35,6 +35,15 @@ func (f *fakeRepo) Move(_ context.Context, _, _ string, fn MoveFunc) (Refuge, er
 	return f.r, nil
 }
 
+func (f *fakeRepo) AddItem(_ context.Context, _ string, item json.RawMessage) (Refuge, error) {
+	f.r.Items = append(f.r.Items, item)
+	return f.r, nil
+}
+func (f *fakeRepo) AddResource(_ context.Context, _, _ string, amount int) (Refuge, error) {
+	f.r.Water += amount
+	return f.r, nil
+}
+
 type fakeChars struct{ announced int }
 
 func (f *fakeChars) Announce(context.Context, string, string) error { f.announced++; return nil }
@@ -125,5 +134,18 @@ func TestUpdateGMOnlyAndValidation(t *testing.T) {
 	}
 	if r, err := s.Update(ctx, gm, d); err != nil || r.Water != 5 || len(ev.types) != 1 {
 		t.Errorf("update = %+v %v %v", r, err, ev.types)
+	}
+}
+
+func TestAddItemAndResourceBroadcast(t *testing.T) {
+	svc, repo, _, ev := setup(sheet)
+	if _, err := svc.AddItem(ctx, "c", json.RawMessage(`{"name":"Pé de cabra"}`)); err != nil || len(repo.r.Items) != 1 {
+		t.Fatalf("add item: %v %d", err, len(repo.r.Items))
+	}
+	if _, err := svc.AddResource(ctx, "c", "water", 0); err == nil {
+		t.Fatal("zero amount must be rejected")
+	}
+	if _, err := svc.AddResource(ctx, "c", "water", 2); err != nil || repo.r.Water != 2 || len(ev.types) != 2 {
+		t.Fatalf("add resource: %v %d %v", err, repo.r.Water, ev.types)
 	}
 }

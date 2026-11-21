@@ -1,5 +1,5 @@
-export type Trigger = 'on_enter' | 'on_turn_start'
-export type EffectKind = 'damage' | 'difficulty' | 'notice'
+export type Trigger = 'on_enter' | 'on_turn_start' | 'item_use'
+export type EffectKind = 'damage' | 'difficulty' | 'notice' | 'heal'
 
 export interface Rule {
   trigger: Trigger
@@ -34,11 +34,12 @@ export interface Suggestion {
   createdAt: string
 }
 
-export const TRIGGER_LABEL: Record<Trigger, string> = { on_enter: 'Ao entrar', on_turn_start: 'Ao começar o turno' }
-export const EFFECT_LABEL: Record<EffectKind, string> = { damage: 'Dano', difficulty: 'Dificuldade', notice: 'Aviso' }
+export const TRIGGER_LABEL: Record<Trigger, string> = { on_enter: 'Ao entrar', on_turn_start: 'Ao começar o turno', item_use: 'Item usado' }
+export const EFFECT_LABEL: Record<EffectKind, string> = { damage: 'Dano', difficulty: 'Dificuldade', notice: 'Aviso', heal: 'Cura' }
 
 export function describe(s: Pick<Suggestion, 'effect' | 'amount'>): string {
   if (s.effect === 'damage') return `+${s.amount} de dano`
+  if (s.effect === 'heal') return `curar ${s.amount}`
   if (s.effect === 'difficulty') return `+${s.amount}d12 de dificuldade na próxima rolagem`
   return 'Aviso'
 }

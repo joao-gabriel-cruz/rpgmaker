@@ -67,7 +67,11 @@ function SheetBody({ campaign, character, canEdit, sync }: {
           onDepositItem={(from, index) => {
             setDepositError('')
             send('refuge.item.deposit', { characterId: character.id, from, index }).catch((e: Error) => setDepositError(e.message))
-          }} />}
+          }}
+          onUseItem={canEdit ? (place, index) => {
+            setDepositError('')
+            send('item.use', { characterId: character.id, place, index }).catch((e: Error) => setDepositError(e.message))
+          } : undefined} />}
     </>
   )
 }

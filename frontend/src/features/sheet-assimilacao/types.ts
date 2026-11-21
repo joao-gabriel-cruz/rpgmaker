@@ -17,6 +17,14 @@ export interface Item {
   scarcity: number
   pressure: number
   traits: string[]
+  /** Optional fields set when the item comes from the campaign compendium. */
+  itemId?: string
+  description?: string
+  icon?: string
+  color?: string
+  kind?: string
+  effects?: Record<string, unknown>
+  attackAnimation?: string
 }
 
 export interface Characteristic {

@@ -4,6 +4,7 @@ import { CharactersSection } from '../characters/CharactersSection'
 import { ConflictPanel } from '../conflict/ConflictPanel'
 import { useConflict } from '../conflict/ConflictContext'
 import { PendingEffectsView, usePendingEffects } from '../effects/PendingEffects'
+import { ItemsPanel } from '../items/ItemsPanel'
 import { useRealtime } from '../realtime/realtimeContext'
 import { RefugeSection } from '../refuge/RefugeSection'
 import { RollLog } from '../rolls/RollLog'
@@ -58,6 +59,12 @@ function Panel({ id, active, children }: { id: SidebarTabId; active: boolean; ch
   )
 }
 
+function badgeOf(id: SidebarTabId, n: { unseenRolls: number; pending: number; conflict: boolean }): string {
+  if (id === 'rolls') return n.unseenRolls ? 'novo' : ''
+  if (id === 'effects') return n.pending ? String(n.pending) : ''
+  return id === 'conflict' && n.conflict ? '•' : ''
+}
+
 /**
  * Collapsible right sidebar (~360px). Every panel stays mounted (hidden when inactive) so live
  * subscriptions and badges keep working while the sidebar is collapsed.
@@ -67,8 +74,7 @@ export function Sidebar({ campaignId, isGm, sidebar }: Props) {
   const pending = usePendingEffects(campaignId)
   const conflict = useConflict()?.conflict
   const unseenRolls = useUnseenRolls(open && tab === 'rolls')
-  const badge = (id: SidebarTabId) =>
-    id === 'rolls' ? (unseenRolls ? 'novo' : '') : id === 'effects' ? (pending.list.length ? String(pending.list.length) : '') : id === 'conflict' ? (conflict ? '•' : '') : ''
+  const badge = (id: SidebarTabId) => badgeOf(id, { unseenRolls, pending: pending.list.length, conflict: !!conflict })
   const choose = (id: SidebarTabId) => (open && tab === id ? setOpen(false) : setTab(id))
   return (
     <aside aria-label="Barra lateral" className="z-20 flex shrink-0 border-l border-zinc-800 bg-zinc-950">
@@ -78,6 +84,7 @@ export function Sidebar({ campaignId, isGm, sidebar }: Props) {
         <Panel id="conflict" active={tab === 'conflict'}><ConflictTab /></Panel>
         <Panel id="refuge" active={tab === 'refuge'}><RefugeSection campaignId={campaignId} isGm={isGm} /></Panel>
         {isGm && <Panel id="effects" active={tab === 'effects'}><PendingEffectsView pending={pending} /></Panel>}
+        {isGm && <Panel id="items" active={tab === 'items'}><ItemsPanel campaignId={campaignId} /></Panel>}
       </div>
       <div className="flex w-14 shrink-0 flex-col items-center gap-1 border-l border-zinc-800/60 py-2">
         <button type="button" aria-label={open ? 'Recolher barra lateral' : 'Expandir barra lateral'} aria-expanded={open}

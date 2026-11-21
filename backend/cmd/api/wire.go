@@ -12,6 +12,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/drawings"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/effects"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/health"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/items"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rolls"
@@ -68,6 +69,7 @@ func wireTable(d deps) {
 	wireVision(d)
 	wireConflict(d)
 	wireEffects(d)
+	wireItems(d)
 }
 
 func wireRounds(d deps) {
@@ -142,4 +144,14 @@ func newEffects(d deps) *effects.Service {
 func wireEffects(d deps) {
 	effects.RegisterHTTP(d.mux, d.effects, d.campaigns)
 	effects.RegisterCommands(d.hub, d.effects)
+}
+
+func wireItems(d deps) {
+	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
+	rf := refuge.NewService(refuge.NewStore(d.pool), chars, d.hub)
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	tokenSvc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.vision.Tap())
+	svc := items.NewService(items.NewStore(d.pool), chars, rf, d.effects, tokenSvc, sceneSvc, d.hub)
+	items.RegisterHTTP(d.mux, svc, d.campaigns)
+	items.RegisterCommands(d.hub, svc)
 }

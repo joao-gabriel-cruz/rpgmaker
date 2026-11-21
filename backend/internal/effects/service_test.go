@@ -186,3 +186,20 @@ func TestRulesValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestConfirmHealReducesDamageWithoutScene(t *testing.T) {
+	r := newRig()
+	sg, err := r.svc.Suggest(bg, Suggestion{CampaignID: camp, CharacterID: charA, CharacterName: "Ana", Source: "Bandagem",
+		Trigger: TriggerItemUse, Effect: EffectHeal, Amount: 5, Message: "Usou Bandagem: curar 5"})
+	if err != nil || r.ev.count(EventSuggested) != 1 {
+		t.Fatalf("suggest: %v", err)
+	}
+	if err := r.svc.Confirm(bg, camp, gm, sg.ID); err != nil {
+		t.Fatal(err)
+	}
+	var doc struct{ Health struct{ Damage int } }
+	_ = json.Unmarshal(r.chars.sheet, &doc)
+	if doc.Health.Damage != 0 {
+		t.Fatalf("damage must floor at 0, sheet = %s", r.chars.sheet)
+	}
+}

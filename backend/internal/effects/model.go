@@ -10,6 +10,7 @@ import (
 const (
 	TriggerEnter     = "on_enter"
 	TriggerTurnStart = "on_turn_start"
+	TriggerItemUse   = "item_use"
 )
 
 // Rule effects.
@@ -17,6 +18,7 @@ const (
 	EffectDamage     = "damage"
 	EffectDifficulty = "difficulty"
 	EffectNotice     = "notice"
+	EffectHeal       = "heal"
 )
 
 // Rule sources.
