@@ -79,3 +79,36 @@ it('badges pending effects (Mestre) and new rolls while the Rolagens tab is clos
   await openTab('Rolagens')
   expect(screen.getByRole('tab', { name: 'Rolagens' })).toBeInTheDocument()
 })
+
+it('lays the floating zones out in flow: options and drawer on top; dock, hotbar and camera share the bottom row', async () => {
+  await open('gm')
+  const zones = document.querySelector('[data-zones]') as HTMLElement
+  const top = zones.querySelector('[data-zone="top"]') as HTMLElement
+  const bottom = zones.querySelector('[data-zone="bottom"]') as HTMLElement
+  expect(top.querySelector('section[aria-label="Opções da ferramenta"]')).not.toBeNull()
+  expect(top.querySelector('[data-slot="drawer"]')).not.toBeNull()
+  expect(['presence', 'hotbar', 'camera'].map((s) => bottom.querySelector(`[data-slot="${s}"]`) !== null)).toEqual([true, true, true])
+  expect(bottom.className).toContain('grid-cols-[auto_minmax(0,1fr)_auto]')
+})
+
+it('keeps the top bar labels in the DOM but icon-only at compact widths (no wrapping)', async () => {
+  await open('gm')
+  const header = screen.getByRole('banner')
+  expect(header.className).toContain('whitespace-nowrap')
+  const session = within(header).getByRole('button', { name: /sessão/i })
+  expect(session).toHaveAttribute('title')
+  expect(within(session).getByText('Sem sessão ativa')).toHaveClass('compact:sr-only')
+  expect(within(header).getByRole('button', { name: 'Cenas' })).toHaveAttribute('title', expect.stringContaining('Cenas'))
+})
+
+it('returns focus to the trigger when a dialog closes', async () => {
+  await open('gm')
+  const gear = await screen.findByRole('button', { name: 'Gerenciar campanha' })
+  gear.focus()
+  await userEvent.click(gear)
+  const dialog = await screen.findByRole('dialog')
+  expect(dialog).toHaveFocus()
+  await userEvent.keyboard('{Escape}')
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(gear).toHaveFocus()
+})

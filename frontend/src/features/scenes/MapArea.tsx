@@ -13,6 +13,7 @@ import { drawModeOf, isEditorTool } from '../table/tools'
 import { useTableTool } from '../table/useTableTool'
 import { CameraBridge } from '../table/camera/CameraBridge'
 import { CameraControls } from '../table/camera/CameraControls'
+import { CameraPortal } from '../table/CameraPortal'
 import type { CameraHandle } from '../table/camera/cameraActions'
 import { TerrainEditor } from '../map3d/TerrainEditor'
 import { useEditHistory } from '../map3d/useEditHistory'
@@ -176,8 +177,10 @@ function SceneWithTokens(p: WithTokens) {
       <OptionsPortal>
         <MapOptions {...opts} />
       </OptionsPortal>
-      <CameraControls handle={camera} onCenterMap={() => tokens.focus(state.grid.width / 2, state.grid.depth / 2)}
-        onCenterToken={mine ? () => tokens.focus(mine.x + 0.5, mine.z + 0.5) : undefined} />
+      <CameraPortal>
+        <CameraControls handle={camera} onCenterMap={() => tokens.focus(state.grid.width / 2, state.grid.depth / 2)}
+          onCenterToken={mine ? () => tokens.focus(mine.x + 0.5, mine.z + 0.5) : undefined} />
+      </CameraPortal>
       {isGm
         ? <TerrainEditor grid={state.grid} onPatch={history.paint} objects={state.objects} onObjectPatch={history.editObjects}
             control={{ state: editor, onChange: setEditor, showGrid, selection: [selectedObjectId, setSelectedObjectId] }}

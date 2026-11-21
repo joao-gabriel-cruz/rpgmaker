@@ -15,13 +15,13 @@ import { useSceneTokensBridge, useTableCharacter } from './TableCharacterContext
 import { useActiveCharacter } from './useActiveCharacter'
 import { vitalsOf } from './vitals'
 
-const ACTION = 'flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-[background-color,color,transform] active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400'
+const ACTION = 'flex h-10 shrink-0 whitespace-nowrap disabled:opacity-40 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-[background-color,color,transform] active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400'
 const lastText = (p: RollPayload) => `${INSTINCT_LABELS[p.instinct]}${p.aptitude ? ` + ${APTITUDE_LABELS[p.aptitude]}` : ''}`
 
 function Selector({ options, value, onChange }: { options: CharacterView[]; value: string; onChange: (id: string) => void }) {
   return (
     <select aria-label="Personagem ativo" value={value} onChange={(e) => onChange(e.target.value)}
-      className="max-w-40 truncate rounded-md bg-zinc-800 px-1.5 py-0.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-emerald-400">
+      className="min-w-40 max-w-52 truncate rounded-md bg-zinc-800 px-1.5 py-0.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-emerald-400">
       {!value && <option value="">Escolher personagem…</option>}
       {options.map((c) => <option key={c.id} value={c.id}>{c.name || 'Sem nome'}</option>)}
     </select>
@@ -101,7 +101,7 @@ export function Hotbar({ campaignId, isGm }: { campaignId: string; isGm: boolean
   const canRoll = !!active && active.kind !== 'npc'
   const canPlace = !!active && !!tokens && !tokens.tokens.some((t) => t.characterId === active.id) && (isGm || active.ownerId === userId)
   return (
-    <section aria-label="Hotbar do personagem" className={`pointer-events-auto relative max-w-[calc(100%-1.5rem)] rounded-2xl p-1 ${SURFACE}`}>
+    <section aria-label="Hotbar do personagem" className={`pointer-events-auto relative w-fit min-w-0 max-w-[60rem] rounded-2xl p-1 ${SURFACE}`}>
       {tc.composerOpen && canRoll && (
         <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2">
           <RollComposer key={active.id} campaignId={campaignId} character={active} isGm={isGm} onRoll={a.remember}

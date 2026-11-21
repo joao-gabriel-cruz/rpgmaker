@@ -50,7 +50,7 @@ function usePresenceShortcuts() {
 
 function Frame({ campaign, scenes, map, hotbar, drawer, overlay, presence, toasts }: TableLayoutProps) {
   const isGm = campaign.role === 'gm'
-  const { setTool } = useTableTool()
+  const { setTool, setCameraHost } = useTableTool()
   const sidebar = useSidebarState()
   const [dialog, setDialog] = useState<Dialog>(null)
   const closeDialog = useCallback(() => setDialog(null), [])
@@ -61,19 +61,40 @@ function Frame({ campaign, scenes, map, hotbar, drawer, overlay, presence, toast
       <TopBar campaign={campaign} scenes={scenes} onOpenHelp={openHelp} onOpenSettings={() => setDialog('settings')} />
       <div className="flex min-h-0 flex-1">
         <ToolRail isGm={isGm} />
-        <main aria-label="Mesa" className="relative min-w-0 flex-1 bg-zinc-900">
+        <main aria-label="Mesa" className="@container relative min-w-0 flex-1 bg-zinc-900">
           {map}
-          <OptionsPanel />
-          <div data-slot="overlay" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">{overlay}</div>
-          <div data-slot="drawer" className="pointer-events-none absolute bottom-[6.75rem] right-3 top-3 z-10 flex">{drawer}</div>
-          <div data-slot="presence" className="pointer-events-none absolute bottom-[6.25rem] left-3 z-10">{presence}</div>
-          <div data-slot="hotbar" className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">{hotbar}</div>
+          <div data-slot="overlay" className="pointer-events-none absolute inset-x-3 bottom-40 top-3 z-20 flex items-center justify-center">{overlay}</div>
+          <Zones drawer={drawer} presence={presence} hotbar={hotbar} setCameraHost={setCameraHost} />
         </main>
         <Sidebar campaignId={campaign.id} isGm={isGm} sidebar={sidebar} />
       </div>
       <div data-slot="toasts">{toasts}</div>
       {dialog === 'settings' && isGm && <SettingsDialog campaign={campaign} onClose={closeDialog} />}
       {dialog === 'help' && <ShortcutsDialog isGm={isGm} onClose={closeDialog} />}
+    </div>
+  )
+}
+
+interface ZonesProps extends Pick<TableLayoutProps, 'drawer' | 'presence' | 'hotbar'> {
+  setCameraHost: (el: HTMLElement | null) => void
+}
+
+/**
+ * Floating zones over the map, laid out in flow so they never overlap: the options panel (left) and
+ * the sheet drawer (right) share the top row; dock, hotbar and camera share the bottom row.
+ */
+function Zones({ drawer, presence, hotbar, setCameraHost }: ZonesProps) {
+  return (
+    <div data-zones className="pointer-events-none absolute inset-3 z-10 flex flex-col gap-3">
+      <div data-zone="top" className="flex min-h-0 flex-1 items-start gap-3">
+        <OptionsPanel />
+        <div data-slot="drawer" className="flex h-full min-h-0 min-w-0 flex-1 justify-end">{drawer}</div>
+      </div>
+      <div data-zone="bottom" className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-end gap-3">
+        <div data-slot="presence" className="min-w-0">{presence}</div>
+        <div data-slot="hotbar" className="flex min-w-0 justify-center">{hotbar}</div>
+        <div data-slot="camera" ref={setCameraHost} className="flex items-end" />
+      </div>
     </div>
   )
 }

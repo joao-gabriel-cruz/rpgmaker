@@ -4,10 +4,12 @@ import { Link } from 'react-router'
 import type { Campaign } from '../campaigns/campaigns'
 import { CharacterEditor } from '../characters/CharacterEditor'
 import { SURFACE } from '../table/surface'
+import { useReturnFocus } from '../table/useReturnFocus'
 import { useTableCharacter } from './TableCharacterContext'
 
 function Sheet({ campaign, id, onClose }: { campaign: Campaign; id: string; onClose: () => void }) {
   const box = useRef<HTMLElement>(null)
+  useReturnFocus()
   useEffect(() => {
     box.current?.focus()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -21,7 +23,7 @@ function Sheet({ campaign, id, onClose }: { campaign: Campaign; id: string; onCl
   )
   return (
     <aside ref={box} tabIndex={-1} aria-label="Ficha do personagem"
-      className={`pointer-events-auto flex h-full w-[min(36rem,calc(100vw-5rem))] flex-col rounded-2xl p-1 outline-none ${SURFACE}`}>
+      className={`pointer-events-auto flex h-full w-[36rem] max-w-full flex-col rounded-2xl p-1 outline-none ${SURFACE}`}>
       <header className="flex items-center justify-between px-3 py-1.5">
         <h2 className="text-sm font-semibold">Ficha</h2>
         <button type="button" aria-label="Fechar ficha" onClick={onClose}

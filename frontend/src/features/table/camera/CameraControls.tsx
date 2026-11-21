@@ -54,7 +54,7 @@ function useCameraKeys(items: Item[]) {
   }, [items])
 }
 
-/** Bottom-right map buttons (and their keys) for everyone: recenter, zoom, rotate and top-down view. */
+/** Bottom-right zone buttons (and their keys) for everyone: recenter, zoom, rotate and top-down view. */
 export function CameraControls({ handle, onCenterMap, onCenterToken }: CameraControlsProps) {
   const [topDown, setTopDown] = useState(false)
   const act = (f: (a: NonNullable<CameraHandle['current']>) => void) => () => handle.current && f(handle.current)
@@ -69,7 +69,7 @@ export function CameraControls({ handle, onCenterMap, onCenterToken }: CameraCon
   ]
   useCameraKeys(items)
   return (
-    <div role="toolbar" aria-label="Câmera" className={`absolute bottom-3 right-3 z-10 flex flex-col gap-0.5 rounded-xl p-1 ${SURFACE}`}>
+    <div role="toolbar" aria-label="Câmera" className={`pointer-events-auto flex flex-col gap-0.5 rounded-xl p-1 ${SURFACE}`}>
       {items.map(({ run, ...b }) => <CamButton key={b.label} {...b} onClick={run} />)}
     </div>
   )

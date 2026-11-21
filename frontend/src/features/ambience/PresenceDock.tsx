@@ -37,15 +37,15 @@ interface ButtonsProps {
 function DockButtons({ p, active, isGm, hidden, btn, onHide }: ButtonsProps) {
   return (
       <div role="group" aria-label="Presença" className={`flex items-center gap-0.5 rounded-2xl p-1 ${SURFACE}`}>
-        <button type="button" disabled={!active} aria-expanded={p.speakOpen} aria-keyshortcuts="'" onClick={() => p.setSpeakOpen(!p.speakOpen)} className={BTN}>
-          <MessageCircle size={16} aria-hidden /> Falar<Kbd>'</Kbd>
+        <button type="button" title="Falar (')" disabled={!active} aria-expanded={p.speakOpen} aria-keyshortcuts="'" onClick={() => p.setSpeakOpen(!p.speakOpen)} className={BTN}>
+          <MessageCircle size={16} aria-hidden /><span className="@max-[68rem]:sr-only">Falar</span><span className="@max-[68rem]:hidden"><Kbd>'</Kbd></span>
         </button>
-        <button type="button" disabled={!active} aria-haspopup="menu" aria-expanded={p.reactOpen} ref={btn} aria-keyshortcuts="G" onClick={() => p.setReactOpen(!p.reactOpen)} className={BTN}>
-          <SmilePlus size={16} aria-hidden /> Reagir<Kbd>G</Kbd>
+        <button type="button" title="Reagir (G)" disabled={!active} aria-haspopup="menu" aria-expanded={p.reactOpen} ref={btn} aria-keyshortcuts="G" onClick={() => p.setReactOpen(!p.reactOpen)} className={BTN}>
+          <SmilePlus size={16} aria-hidden /><span className="@max-[68rem]:sr-only">Reagir</span><span className="@max-[68rem]:hidden"><Kbd>G</Kbd></span>
         </button>
         {!isGm && (
           <button type="button" disabled={!active} aria-pressed={hidden} onClick={onHide} title="Marcar o personagem como Escondido"
-            className={`${BTN} ${hidden ? 'bg-zinc-700 text-white' : ''}`}><EyeOff size={16} aria-hidden /> Esconder-me</button>
+            className={`${BTN} ${hidden ? 'bg-zinc-700 text-white' : ''}`}><EyeOff size={16} aria-hidden /><span className="@max-[68rem]:sr-only">Esconder-me</span></button>
         )}
       </div>
   )
@@ -68,7 +68,9 @@ export function PresenceDock({ campaignId, isGm }: { campaignId: string; isGm: b
   if (!p) return null
   return (
     <div className="pointer-events-auto relative flex flex-col items-start gap-2">
-      {p.speakOpen && active && <SpeakBox name={active.name || 'personagem'} onSay={act.say} onClose={() => p.setSpeakOpen(false)} />}
+      {p.speakOpen && active && (
+        <div className="absolute bottom-full left-0 mb-2"><SpeakBox name={active.name || 'personagem'} onSay={act.say} onClose={() => p.setSpeakOpen(false)} /></div>
+      )}
       <DockButtons {...{ p, active: !!active, isGm, hidden, btn: reactBtn, onHide: act.toggleHidden }} />
       {p.reactOpen && active && <ReactionWheel x={anchor.x} y={anchor.y} onPick={(e) => act.react(e)} onClose={() => p.setReactOpen(false)} />}
       {p.wheel && <ReactionWheel x={p.wheel.x} y={p.wheel.y} onPick={(e) => act.react(e, p.wheel?.characterId)} onClose={p.closeWheel} />}

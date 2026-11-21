@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useReturnFocus } from './useReturnFocus'
 
 interface Props {
   title: string
@@ -11,6 +12,7 @@ interface Props {
 /** Minimal accessible dialog: Esc and backdrop click close it; focus moves into it on open. */
 export function Modal({ title, onClose, children, wide }: Props) {
   const box = useRef<HTMLDivElement>(null)
+  useReturnFocus()
   useEffect(() => {
     box.current?.focus()
     const onKey = (e: KeyboardEvent) => {
@@ -28,7 +30,7 @@ export function Modal({ title, onClose, children, wide }: Props) {
         <header className="flex items-center justify-between px-3 py-2">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button type="button" aria-label="Fechar" onClick={onClose}
-            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white active:scale-[0.96]">
+            className="rounded-lg p-1.5 text-zinc-400 transition-[background-color,color,transform] hover:bg-zinc-800 hover:text-white active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400">
             <X size={18} aria-hidden />
           </button>
         </header>

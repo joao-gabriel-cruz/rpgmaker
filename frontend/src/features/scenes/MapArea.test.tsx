@@ -32,7 +32,7 @@ it('shows the active scene to players, follows live patches and scene changes', 
   const active = { current: 'a' }
   mockServer(active)
   renderApp('/campaigns/c1')
-  await waitFor(() => expect(screen.getByTitle('Cena atual')).toHaveTextContent('Cena a'))
+  await waitFor(() => expect(screen.getByTitle(/Cena atual/)).toHaveTextContent('Cena a'))
   const view = await screen.findByTestId('view')
   expect(view).toHaveTextContent('1')
   const ws = FakeWebSocket.last
@@ -41,7 +41,7 @@ it('shows the active scene to players, follows live patches and scene changes', 
   expect(await screen.findByText('5')).toBeInTheDocument()
   active.current = 'b'
   act(() => ws.receive({ type: 'scenes.changed', payload: {} }))
-  await waitFor(() => expect(screen.getByTitle('Cena atual')).toHaveTextContent('Cena b'))
+  await waitFor(() => expect(screen.getByTitle(/Cena atual/)).toHaveTextContent('Cena b'))
   expect(await screen.findByTestId('view')).toHaveTextContent('1')
   expect(screen.queryByTestId('editor')).toBeNull()
 })

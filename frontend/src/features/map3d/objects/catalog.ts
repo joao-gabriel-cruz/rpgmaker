@@ -1,5 +1,6 @@
 import { PREFAB_META, type PrefabMeta } from './catalogData'
-import { BigRock, Bush, Tree, Volcano } from './nature'
+import { BigRock, Bush, Tree } from './nature'
+import { Volcano } from './Volcano'
 import { Campfire, Car, Crate } from './props'
 import { Barricade, Door, Fence, Post, Wall, Watchtower } from './structures'
 import type { PrefabComponent } from './types'
