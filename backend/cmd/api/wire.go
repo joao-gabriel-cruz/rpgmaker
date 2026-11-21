@@ -14,6 +14,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/rounds"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
 )
 
 // deps carries the shared building blocks that table modules wire themselves onto.
@@ -50,6 +51,7 @@ func wireTable(d deps) {
 	wireScenes(d)
 	wireCharacters(d)
 	wireRolls(d)
+	wireTokens(d)
 }
 
 func wireRounds(d deps) {
@@ -72,4 +74,11 @@ func wireRolls(d deps) {
 	svc := rolls.NewService(rolls.NewStore(d.pool), chars, d.hub)
 	rolls.RegisterCommands(d.hub, svc)
 	rolls.RegisterHTTP(d.mux, svc, d.campaigns.RequireMember)
+}
+
+func wireTokens(d deps) {
+	sceneSvc := scenes.NewService(scenes.NewStore(d.pool), d.hub)
+	svc := tokens.NewService(tokens.NewStore(d.pool), sceneSvc, d.hub)
+	tokens.Register(d.mux, svc, d.campaigns)
+	tokens.RegisterCommands(d.hub, svc)
 }

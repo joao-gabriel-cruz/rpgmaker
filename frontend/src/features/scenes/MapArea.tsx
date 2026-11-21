@@ -2,11 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { TerrainEditor } from '../map3d/TerrainEditor'
 import { TerrainView } from '../map3d/TerrainView'
+import { useMe } from '../auth/auth'
 import { useRealtime } from '../realtime/realtimeContext'
 import { GmPanel } from './GmPanel'
 import { SceneSelector } from './SceneSelector'
 import { activateScene, createScene, deleteScene, listScenes, renameScene } from './scenes'
 import { useLiveScene } from './useLiveScene'
+import { TokenLayer } from '../tokens/TokenLayer'
+import { TokensPanel } from '../tokens/TokensPanel'
+import { useSceneTokens } from '../tokens/useSceneTokens'
+import type { MapState } from './scenes'
 
 function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneId: string; isGm: boolean }) {
   const { state, error, paint, editObjects, command, replacedAt } = useLiveScene(campaignId, sceneId)
@@ -19,12 +24,35 @@ function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneI
     <div className="flex flex-col gap-1">
       {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       {isGm && state && <GmPanel campaignId={campaignId} sceneId={sceneId} draft={!!state.draft} onCommand={command} />}
-      <div ref={box} className="h-[70vh] overflow-hidden rounded border border-zinc-800">
-        {!state && !error && <p className="p-4 text-zinc-400">Carregando mapa…</p>}
-        {state && isGm && <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects} />}
-        {state && !isGm && <TerrainView grid={state.grid} objects={state.objects} />}
+      <div ref={box}>
+      {state && <SceneWithTokens campaignId={campaignId} sceneId={sceneId} isGm={isGm} state={state} paint={paint} editObjects={editObjects} />}
+      {!state && !error && <p className="p-4 text-zinc-400">Carregando mapa…</p>}
       </div>
     </div>
+  )
+}
+
+type Live = ReturnType<typeof useLiveScene>
+interface WithTokens extends Pick<Live, 'paint' | 'editObjects'> {
+  campaignId: string
+  sceneId: string
+  isGm: boolean
+  state: MapState
+}
+
+function SceneWithTokens({ campaignId, sceneId, isGm, state, paint, editObjects }: WithTokens) {
+  const userId = useMe().data?.id ?? ''
+  const tokens = useSceneTokens(campaignId, sceneId, state.grid)
+  const layer = <TokenLayer grid={state.grid} tokens={tokens} userId={userId} isGm={isGm} />
+  return (
+    <>
+      <TokensPanel campaignId={campaignId} tokens={tokens} userId={userId} isGm={isGm} />
+      <div className="h-[70vh] overflow-hidden rounded border border-zinc-800">
+        {isGm
+          ? <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects}>{layer}</TerrainEditor>
+          : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
+      </div>
+    </>
   )
 }
 
