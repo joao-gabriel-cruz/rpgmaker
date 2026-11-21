@@ -4,7 +4,7 @@ import { describe, type Suggestion } from './effects'
 
 type Applied = Pick<Suggestion, 'characterName' | 'source' | 'effect' | 'amount' | 'message'>
 
-/** Tells a player that the Mestre applied a terrain effect to their character. */
+/** Toast (slot: toasts) telling a player that the Mestre applied a terrain effect to their character. */
 export function AppliedToast() {
   const { subscribe } = useRealtime()
   const [msg, setMsg] = useState('')
@@ -20,5 +20,5 @@ export function AppliedToast() {
   }, [msg])
 
   if (!msg) return null
-  return <div role="status" className="fixed bottom-4 left-4 z-50 rounded bg-amber-600 px-4 py-2 text-sm text-black shadow">{msg}</div>
+  return <div role="status" className="fixed left-1/2 top-16 z-50 -translate-x-1/2 rounded-xl bg-amber-600 px-4 py-2 text-sm text-black shadow-lg">{msg}</div>
 }

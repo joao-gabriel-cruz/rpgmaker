@@ -40,7 +40,7 @@ function Outcome({ e }: { e: RollEntry }) {
 function Entry({ e }: { e: RollEntry }) {
   const mods = modifiersText(e.request)
   return (
-    <li className="flex flex-col gap-0.5 rounded bg-zinc-900 px-3 py-2">
+    <li className="flex flex-col gap-0.5 rounded-xl bg-zinc-800/60 px-3 py-2">
       <p className="text-sm">
         <span className="font-medium">{e.userName}</span>
         {e.characterName && <span className="text-zinc-400"> · {e.characterName}</span>}
@@ -78,10 +78,10 @@ function CommandBox() {
 export function RollLog({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   const entries = useRollLog(campaignId, isGm)
   return (
-    <aside aria-label="Log de rolagens" className="flex flex-col gap-2">
-      <h2 className="text-xl font-semibold">Rolagens</h2>
+    <aside aria-label="Log de rolagens" className="flex min-h-0 flex-col gap-2">
+      <h2 className="text-lg font-semibold">Rolagens</h2>
       <CommandBox />
-      <ul className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto">
+      <ul className="flex flex-col gap-2">
         {entries.map((e) => <Entry key={e.rollId} e={e} />)}
         {entries.length === 0 && <li className="text-sm text-zinc-400">Nenhuma rolagem ainda.</li>}
       </ul>

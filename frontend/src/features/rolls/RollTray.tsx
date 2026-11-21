@@ -82,13 +82,13 @@ function Body({ active, onClose }: { active: Active; onClose: () => void }) {
   )
 }
 
-/** Fixed panel showing the dice of the roll in progress, for everyone who received it. */
+/** Overlay (slot: overlay) showing the dice of the roll in progress, for everyone who received it. */
 export function RollTray() {
   const { active, close } = useActiveRoll()
   if (!active) return null
   const { entry } = active
   return (
-    <aside aria-label="Bandeja de dados" className="fixed bottom-4 right-4 z-50 flex w-[26rem] max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 p-3 shadow-xl">
+    <aside aria-label="Bandeja de dados" className="pointer-events-auto flex w-[28rem] max-w-[calc(100%-2rem)] flex-col gap-2 rounded-2xl bg-zinc-900/90 p-3 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
       <h2 className="text-sm font-semibold">
         {entry.userName}{entry.characterName ? ` · ${entry.characterName}` : ''}{entry.visibility === 'gm' ? ' · Secreta' : ''}
       </h2>

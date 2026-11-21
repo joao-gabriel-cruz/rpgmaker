@@ -38,6 +38,7 @@ it('toggles draft, shows the banner and applies/discards', async () => {
   const draft = { current: false }
   mockServer(draft)
   renderApp('/campaigns/c1')
+  await userEvent.click(await screen.findByRole('button', { name: 'Painel de rascunho' }))
   const toggle = await screen.findByLabelText('Rascunho')
   const ws = FakeWebSocket.last
   act(() => ws.open())
@@ -57,6 +58,7 @@ it('toggles draft, shows the banner and applies/discards', async () => {
 it('saves, fires and deletes saved states', async () => {
   mockServer({ current: false })
   renderApp('/campaigns/c1')
+  await userEvent.click(await screen.findByRole('button', { name: 'Painel de rascunho' }))
   await screen.findByText('erupção')
   const ws = FakeWebSocket.last
   act(() => ws.open())
@@ -69,6 +71,7 @@ it('shows players no draft tools and applies map.replaced', async () => {
   mockServer({ current: false })
   renderApp('/campaigns/c1')
   expect(await screen.findByTestId('view')).toHaveTextContent('0')
+  expect(screen.queryByRole('button', { name: 'Painel de rascunho' })).toBeNull()
   expect(screen.queryByLabelText('Rascunho')).toBeNull()
   expect(screen.queryByText('Estados salvos')).toBeNull()
   act(() => FakeWebSocket.last.receive({ type: 'map.replaced', payload: { sceneId: 'a', grid, objects: [volcano] } }))

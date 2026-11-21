@@ -16,9 +16,9 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/invite/:token" element={<InvitePage />} />
       <Route element={<RequireAuth />}>
+        <Route path="campaigns/:id" element={<CampaignPage />} />
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
-          <Route path="campaigns/:id" element={<CampaignPage />} />
           <Route path="campaigns/:id/characters/:charId" element={<CharacterPage />} />
           <Route element={<RequireAdmin />}>
             <Route path="admin" element={<AdminPage />} />

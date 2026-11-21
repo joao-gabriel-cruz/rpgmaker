@@ -18,9 +18,6 @@ function DraftBar({ draft, onCommand }: DraftProps) {
       </label>
       {draft && (
         <>
-          <p role="status" className="rounded bg-amber-900/60 px-3 py-1 text-sm text-amber-200">
-            Editando rascunho — jogadores não veem
-          </p>
           <button type="button" className={btn} onClick={() => onCommand('map.draft.apply')}>Aplicar</button>
           <button type="button" className={btn} onClick={() => onCommand('map.draft.discard')}>Descartar</button>
         </>
@@ -75,10 +72,10 @@ interface Props extends DraftProps {
   sceneId: string
 }
 
-/** Mestre-only tools under the map: hidden draft mode and saved states. */
+/** Mestre-only draft mode and saved states, shown in the options panel (the banner lives over the map). */
 export function GmPanel(props: Props) {
   return (
-    <div className="flex flex-col gap-2 rounded border border-zinc-800 p-2">
+    <div className="flex flex-col gap-3">
       <DraftBar draft={props.draft} onCommand={props.onCommand} />
       <Snapshots {...props} />
     </div>

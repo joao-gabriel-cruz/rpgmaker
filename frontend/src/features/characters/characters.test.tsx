@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { FakeWebSocket } from '../../test/fakeWebSocket'
 import { renderApp, stubApi } from '../../test/renderApp'
+import { openManage } from '../../test/table'
 import { resetSockets } from '../realtime/useCampaignSocket'
 import { newSheet } from '../sheet-assimilacao/types'
 
@@ -120,6 +121,7 @@ it('lets only the gm change the creation limits mode', async () => {
     return { status: 200, body: [] }
   })
   renderApp('/campaigns/c1')
+  await openManage('Configurações')
   await userEvent.selectOptions(await screen.findByLabelText('Limites de criação de personagem'), 'block')
   await waitFor(() => expect(patches).toEqual(['{"creationLimits":"block"}']))
 })

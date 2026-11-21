@@ -48,6 +48,7 @@ function PlayerControls({ campaignId, tokens, userId }: { campaignId: string; to
   const chars = useCharacters(campaignId)
   const onScene = new Set(tokens.tokens.map((t) => t.characterId))
   const mine = (Array.isArray(chars.data) ? chars.data : []).filter((c) => c.ownerId === userId && !onScene.has(c.id))
+  if (mine.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-2">
       {mine.map((c) => (
@@ -59,13 +60,18 @@ function PlayerControls({ campaignId, tokens, userId }: { campaignId: string; to
   )
 }
 
-/** DOM controls over the map: placing tokens, focusing everyone and the error toast. */
+/** Error toast for failed token commands; shown over the map whatever the active tool. */
+export function TokensError({ tokens }: { tokens: SceneTokens }) {
+  return tokens.error ? <Toast message={tokens.error} onClose={tokens.clearError} /> : null
+}
+
+/** Mestre: placing tokens and focusing everyone. Players: placing their own token. */
 export function TokensPanel({ campaignId, tokens, userId, isGm }: Props) {
+  if (!isGm) return <PlayerControls campaignId={campaignId} tokens={tokens} userId={userId} />
   return (
     <div className="flex flex-col gap-2">
-      {tokens.error && <Toast message={tokens.error} onClose={tokens.clearError} />}
-      {isGm ? <GmControls campaignId={campaignId} tokens={tokens} /> : <PlayerControls campaignId={campaignId} tokens={tokens} userId={userId} />}
-      <p className="text-xs text-zinc-500">Alt+clique no mapa para chamar a atenção de todos. Arraste seu token para movê-lo.</p>
+      <GmControls campaignId={campaignId} tokens={tokens} />
+      <p className="text-xs text-zinc-500">Alt+clique no mapa (ou a ferramenta Ping) chama a atenção de todos.</p>
     </div>
   )
 }
