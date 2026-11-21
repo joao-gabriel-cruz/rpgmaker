@@ -85,6 +85,7 @@ function Objects({ selectedId = null, emit = vi.fn(), initial = { ...DEFAULT_TOO
     <>
       <ObjectOptions editor={state} setEditor={setState} grid={grid} objects={[door]} onObjectPatch={emit} selectedId={selectedId} onSelect={() => {}} history={history()} />
       <output aria-label="estado">{`${state.tool}|${state.prefab}|${state.rotation}`}</output>
+      <output aria-label="props">{`${state.color}|${state.wallHeight}`}</output>
     </>
   )
 }
@@ -92,12 +93,12 @@ function Objects({ selectedId = null, emit = vi.fn(), initial = { ...DEFAULT_TOO
 it('objects panel: catalog filters by search and category, picks a prefab and rotates', async () => {
   render(<Objects />)
   const catalog = within(screen.getByRole('list', { name: 'Catálogo de objetos' }))
-  expect(catalog.getAllByRole('button')).toHaveLength(13)
+  expect(catalog.getAllByRole('button')).toHaveLength(24)
   await userEvent.type(screen.getByRole('searchbox', { name: 'Buscar objeto' }), 'arvore')
   expect(catalog.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Árvore'])
   await userEvent.clear(screen.getByRole('searchbox'))
   await userEvent.click(screen.getByRole('button', { name: 'Estruturas' }))
-  expect(catalog.getAllByRole('button')).toHaveLength(6)
+  expect(catalog.getAllByRole('button')).toHaveLength(10)
   await userEvent.click(catalog.getByRole('button', { name: 'Porta' }))
   expect(screen.getByLabelText('estado')).toHaveTextContent('object|door|0')
   await userEvent.click(screen.getByRole('button', { name: 'Girar objeto' }))
@@ -121,7 +122,9 @@ it('objects panel: modes switch and the selected object offers rotate, door togg
 
 it('filters the catalog ignoring accents and case', () => {
   expect(filterPrefabs('ÁRVORE', 'all').map((p) => p.id)).toEqual(['tree'])
-  expect(filterPrefabs('', 'objeto').map((p) => p.id)).toEqual(['car', 'crate', 'campfire'])
+  expect(filterPrefabs('', 'objeto').map((p) => p.id)).toEqual(
+    ['car', 'crate', 'campfire', 'tent', 'barrel', 'bench', 'market_stall', 'sandbags', 'well', 'sign'],
+  )
   expect(filterPrefabs('zzz', 'all')).toEqual([])
 })
 
@@ -278,4 +281,13 @@ it('tokens panel: lists characters, arms a map click, places automatically, remo
   expect(tokens.remove).toHaveBeenCalledWith('t2')
   await userEvent.click(screen.getByRole('button', { name: 'Focar todos aqui' }))
   expect(tokens.focusAll).toHaveBeenCalled()
+})
+
+it('objects panel: stall color and ruined wall height pickers feed the tool state', async () => {
+  render(<Objects initial={{ ...DEFAULT_TOOL_STATE, tool: 'object', prefab: 'market_stall' }} />)
+  await userEvent.click(screen.getByRole('button', { name: 'Azul' }))
+  expect(screen.getByLabelText('props')).toHaveTextContent('blue|undefined')
+  await userEvent.click(screen.getByRole('button', { name: 'Muro quebrado' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Alto (2)' }))
+  expect(screen.getByLabelText('props')).toHaveTextContent('blue|2')
 })

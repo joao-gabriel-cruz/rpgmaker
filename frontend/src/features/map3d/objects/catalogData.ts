@@ -52,6 +52,17 @@ export const PREFAB_META: PrefabMeta[] = [
   m('car', 'Carro abandonado', 'objeto', [2, 1, 1], BOTH),
   m('crate', 'Caixote', 'objeto', [1, 1, 1], BOTH),
   m('campfire', 'Fogueira', 'objeto', [1, 1, 1], NONE),
+  m('tent', 'Barraca', 'objeto', [2, 2, 2], MOVE),
+  m('barrel', 'Barril', 'objeto', [1, 1, 1], NONE),
+  m('bench', 'Banco', 'objeto', [2, 1, 1], MOVE),
+  m('market_stall', 'Barraca de feira', 'objeto', [2, 2, 2], NONE, { color: 'red' }),
+  m('lamp_post', 'Poste de luz', 'estrutura', [1, 1, 3], NONE),
+  m('sandbags', 'Sacos de areia', 'objeto', [1, 1, 1], MOVE),
+  m('ruined_wall', 'Muro quebrado', 'estrutura', [1, 1, 2], BOTH, { height: 1 }),
+  m('well', 'Poço', 'objeto', [1, 1, 1], MOVE),
+  m('sign', 'Placa', 'objeto', [1, 1, 1], NONE),
+  m('bridge', 'Ponte', 'estrutura', [1, 1, 1], NONE),
+  m('bunting', 'Bandeirolas', 'estrutura', [2, 1, 2], NONE),
 ]
 
 export const PREFAB_META_BY_ID: Record<string, PrefabMeta> = Object.fromEntries(

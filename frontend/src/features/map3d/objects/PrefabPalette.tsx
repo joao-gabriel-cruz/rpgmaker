@@ -1,5 +1,6 @@
 import { CATALOG } from './catalog'
 import { CATEGORY_LABELS, type Category } from './catalogData'
+import { AWNING_OPTIONS, WALL_HEIGHT_OPTIONS } from './toolProps'
 
 type Variant = 'pine' | 'round'
 
@@ -8,6 +9,10 @@ interface Props {
   onChange: (id: string) => void
   variant: Variant
   onVariant: (v: Variant) => void
+  color?: string
+  onColor?: (c: string) => void
+  wallHeight?: 1 | 2
+  onWallHeight?: (h: 1 | 2) => void
 }
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[]
@@ -42,12 +47,26 @@ function Category({ cat, value, onChange }: { cat: Category } & Pick<Props, 'val
   )
 }
 
-export function PrefabPalette({ value, onChange, variant, onVariant }: Props) {
+function Choices({ items, current, onPick }: { items: { id: string; label: string }[]; current: string; onPick: (id: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1 text-xs">
+      {items.map((o) => (
+        <button key={o.id} onClick={() => onPick(o.id)} className={`rounded px-1 py-1 ${pick(current === o.id)}`}>{o.label}</button>
+      ))}
+    </div>
+  )
+}
+
+export function PrefabPalette({ value, onChange, variant, onVariant, color, onColor, wallHeight, onWallHeight }: Props) {
   return (
     <div className="flex flex-col gap-2">
       {CATEGORIES.map((cat) => (
         <Category key={cat} cat={cat} value={value} onChange={onChange} />
       ))}
+      {value === 'market_stall' && onColor && <Choices items={AWNING_OPTIONS} current={color ?? 'red'} onPick={onColor} />}
+      {value === 'ruined_wall' && onWallHeight && (
+        <Choices items={WALL_HEIGHT_OPTIONS} current={String(wallHeight ?? 1)} onPick={(h) => onWallHeight(h === '2' ? 2 : 1)} />
+      )}
       {value === 'tree' && <TreeVariants variant={variant} onVariant={onVariant} />}
     </div>
   )
