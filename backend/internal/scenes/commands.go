@@ -36,6 +36,29 @@ func RegisterCommands(r Registrar, svc *Service) {
 	handle(r, "scene.activate", func(ctx context.Context, cmd realtime.Command, in activate) error {
 		return svc.Activate(ctx, cmd.CampaignID, in.SceneID)
 	})
+	registerDraftCommands(r, svc)
+}
+
+func registerDraftCommands(r Registrar, svc *Service) {
+	type scene struct {
+		SceneID string `json:"sceneId"`
+	}
+	type snap struct {
+		SceneID    string `json:"sceneId"`
+		SnapshotID string `json:"snapshotId"`
+	}
+	handle(r, "map.draft.start", func(ctx context.Context, cmd realtime.Command, in scene) error {
+		return svc.StartDraft(ctx, cmd.CampaignID, in.SceneID)
+	})
+	handle(r, "map.draft.apply", func(ctx context.Context, cmd realtime.Command, in scene) error {
+		return svc.ApplyDraft(ctx, cmd.CampaignID, in.SceneID)
+	})
+	handle(r, "map.draft.discard", func(ctx context.Context, cmd realtime.Command, in scene) error {
+		return svc.DiscardDraft(ctx, cmd.CampaignID, in.SceneID)
+	})
+	handle(r, "map.snapshot.apply", func(ctx context.Context, cmd realtime.Command, in snap) error {
+		return svc.ApplySnapshot(ctx, cmd.CampaignID, in.SceneID, in.SnapshotID)
+	})
 }
 
 // handle registers a GM-only command that decodes its payload into T.
@@ -56,6 +79,8 @@ func commandError(err error) error {
 		return nil
 	case errors.Is(err, ErrNotFound):
 		return realtime.UserError("Cena não encontrada")
+	case errors.Is(err, ErrDraftState):
+		return realtime.UserError("Estado do rascunho inválido para esta ação (rascunho ausente, já ativo ou pendente)")
 	case errors.Is(err, ErrInvalidPatch):
 		return realtime.UserError("Alteração inválida: " + trimPrefix(err))
 	}

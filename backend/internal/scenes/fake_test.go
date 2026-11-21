@@ -15,9 +15,12 @@ type fakeRepo struct {
 	mu     sync.Mutex
 	scenes map[string]*Scene
 	order  []string
+	snaps  map[string]SnapshotData
 }
 
-func newFakeRepo() *fakeRepo { return &fakeRepo{scenes: map[string]*Scene{}} }
+func newFakeRepo() *fakeRepo {
+	return &fakeRepo{scenes: map[string]*Scene{}, snaps: map[string]SnapshotData{}}
+}
 
 func (f *fakeRepo) Create(_ context.Context, campaignID, name string, w, d int, grid string) (Scene, error) {
 	f.mu.Lock()
@@ -58,6 +61,11 @@ func (f *fakeRepo) Get(_ context.Context, campaignID, id string) (Scene, error) 
 	}
 	cp := *sc
 	cp.Objects = append([]maps.Object{}, sc.Objects...)
+	if sc.Draft != nil {
+		d := *sc.Draft
+		d.Objects = append([]maps.Object{}, d.Objects...)
+		cp.Draft = &d
+	}
 	return cp, nil
 }
 

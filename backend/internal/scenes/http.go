@@ -29,6 +29,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.Handle("PATCH "+base+"/{sceneId}", h.cmp.RequireGM(http.HandlerFunc(h.rename)))
 	mux.Handle("DELETE "+base+"/{sceneId}", h.cmp.RequireGM(http.HandlerFunc(h.remove)))
 	mux.Handle("POST "+base+"/{sceneId}/activate", h.cmp.RequireGM(http.HandlerFunc(h.activate)))
+	h.registerSnapshots(mux, base)
 }
 
 func (h *Handlers) list(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +106,8 @@ func fail(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		writeError(w, http.StatusNotFound, "Cena não encontrada")
+	case errors.Is(err, ErrTooManySnapshots):
+		writeError(w, http.StatusConflict, "Limite de estados salvos desta cena atingido")
 	case errors.Is(err, ErrInvalidName):
 		writeError(w, http.StatusBadRequest, "Informe um nome para a cena (até 80 caracteres)")
 	case errors.Is(err, ErrInvalidSize):

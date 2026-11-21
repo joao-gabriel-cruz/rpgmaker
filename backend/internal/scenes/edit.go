@@ -34,7 +34,7 @@ func (s *Service) Paint(ctx context.Context, campaignID, sceneID, origin string,
 	if err != nil {
 		return err
 	}
-	g, err := maps.Deserialize(sc.Grid)
+	g, err := maps.Deserialize(working(sc).Grid)
 	if err != nil {
 		return err
 	}
@@ -44,10 +44,10 @@ func (s *Service) Paint(ctx context.Context, campaignID, sceneID, origin string,
 	if err := g.ApplyPatch(patch); err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidPatch, err.Error())
 	}
-	if err := s.repo.SaveGrid(ctx, sceneID, g.Serialize().Data); err != nil {
+	if err := s.saveGrid(ctx, sc, g.Serialize().Data); err != nil {
 		return err
 	}
-	s.notif.Broadcast(campaignID, audience(sc, origin), EventPatched, map[string]any{"sceneId": sceneID, "patch": patch})
+	s.notif.Broadcast(campaignID, editAudience(sc, origin), eventName(sc, EventPatched, EventDraftPatched), map[string]any{"sceneId": sceneID, "patch": patch})
 	return nil
 }
 
@@ -60,14 +60,14 @@ func (s *Service) EditObjects(ctx context.Context, campaignID, sceneID, origin s
 	if err != nil {
 		return err
 	}
-	next, err := applyObjects(sc, patch)
+	next, err := applyObjects(working(sc), patch)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidPatch, err.Error())
 	}
-	if err := s.repo.SaveObjects(ctx, sceneID, next); err != nil {
+	if err := s.saveObjects(ctx, sc, next); err != nil {
 		return err
 	}
-	s.notif.Broadcast(campaignID, audience(sc, origin), EventObjectsPatched, map[string]any{"sceneId": sceneID, "patch": normalize(patch)})
+	s.notif.Broadcast(campaignID, editAudience(sc, origin), eventName(sc, EventObjectsPatched, EventDraftObjectsPatched), map[string]any{"sceneId": sceneID, "patch": normalize(patch)})
 	return nil
 }
 
