@@ -6,7 +6,8 @@ import { useMe } from '../auth/auth'
 import type { Campaign } from '../campaigns/campaigns'
 import { CampaignSocketProvider } from '../realtime/CampaignSocketProvider'
 import { useRealtime } from '../realtime/realtimeContext'
-import { AssimilacaoSheet } from '../sheet-assimilacao/AssimilacaoSheet'
+import { RollTray } from '../rolls/RollTray'
+import { RollableSheet } from '../rolls/RollableSheet'
 import { deleteCharacter, toSheetIssues, useCharacter, type CharacterView } from './characters'
 import { useCharacterSync, type SaveStatus } from './useCharacterSync'
 
@@ -58,8 +59,9 @@ function Editor({ campaign, character, canEdit }: { campaign: Campaign; characte
     <section className="flex flex-col gap-4">
       <Toolbar campaign={campaign} character={character} canEdit={canEdit} status={status} onRemove={() => remove.mutate()} />
       {canEdit && <Banners status={status} error={error} hasIssues={issues.length > 0} />}
-      {/* TODO(#14): pass onRollRequest once the dice roll flow exists. */}
-      <AssimilacaoSheet sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)} />
+      <RollableSheet characterId={character.id} isGm={campaign.role === 'gm'}
+        sheet={sheet} onChange={onChange} readOnly={!canEdit} issues={toSheetIssues(issues)} />
+      <RollTray />
     </section>
   )
 }
