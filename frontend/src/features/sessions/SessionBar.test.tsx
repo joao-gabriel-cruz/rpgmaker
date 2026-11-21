@@ -18,11 +18,11 @@ function setup(isGm: boolean) {
 it('lets the Mestre start and end, and shows the indicator', async () => {
   const { send, emit } = setup(true)
   expect(await screen.findByText('Sem sessão ativa')).toBeInTheDocument()
-  await userEvent.click(screen.getByText('Iniciar sessão'))
+  await userEvent.click(screen.getByRole('button', { name: 'Iniciar sessão' }))
   expect(send).toHaveBeenCalledWith('session.start')
   emit({ active: true, startedAt: '2026-01-01T00:00:00Z' })
   expect(screen.getByText('Sessão ativa')).toBeInTheDocument()
-  await userEvent.click(screen.getByText('Encerrar sessão'))
+  await userEvent.click(screen.getByRole('button', { name: 'Encerrar sessão' }))
   expect(send).toHaveBeenCalledWith('session.end')
 })
 
@@ -30,5 +30,5 @@ it('shows only the indicator to players', async () => {
   const { emit } = setup(false)
   emit({ active: true, startedAt: '2026-01-01T00:00:00Z' })
   expect(screen.getByText('Sessão ativa')).toBeInTheDocument()
-  expect(screen.queryByText('Encerrar sessão')).toBeNull()
+  expect(screen.queryByRole('button')).toBeNull()
 })

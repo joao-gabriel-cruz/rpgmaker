@@ -14,6 +14,10 @@ interface Props {
   tokens: SceneTokens
   userId: string
   isGm: boolean
+  /** The Ping tool is active: a plain click pings instead of dragging tokens. */
+  pingTool?: boolean
+  /** Tokens can be dragged (false while painting or measuring, so gestures never collide). */
+  dragEnabled?: boolean
 }
 
 interface Drag {
@@ -59,31 +63,31 @@ function useDrag(grid: MapGrid, onDrop: (id: string, c: Coord) => void) {
   return { drag, start: (t: Token) => setDrag({ id: t.id, at: { x: t.x, z: t.z } }) }
 }
 
-// Alt+click pings; the capture on the canvas keeps the editor from also painting.
-function useAltPing(grid: MapGrid, ping: (x: number, z: number) => void) {
+// Alt+click (or any click with the Ping tool) pings; the capture keeps the editor from also painting.
+function useAltPing(grid: MapGrid, ping: (x: number, z: number) => void, always: boolean) {
   const dom = useThree((s) => s.gl.domElement)
   const camera = useThree((s) => s.camera)
   const ndc = useNdc()
   useEffect(() => {
     const down = (e: PointerEvent) => {
-      if (!e.altKey || e.button !== 0) return
+      if ((!e.altKey && !always) || e.button !== 0) return
       e.stopPropagation()
       const p = pickPoint(grid, ndc(e), camera)
       if (p) ping(p.x, p.z)
     }
     dom.addEventListener('pointerdown', down)
     return () => dom.removeEventListener('pointerdown', down)
-  }, [dom, camera, grid, ndc, ping])
+  }, [dom, camera, grid, ndc, ping, always])
 }
 
 /** In-canvas part of the tokens feature: figures, drag preview, pings and camera moves. */
-export function TokenLayer({ grid, tokens, userId, isGm }: Props) {
+export function TokenLayer({ grid, tokens, userId, isGm, pingTool = false, dragEnabled = true }: Props) {
   const { move, ping } = tokens
   const onDrop = useCallback((id: string, c: Coord) => move(id, c.x, c.z), [move])
   const { drag, start } = useDrag(grid, onDrop)
-  useAltPing(grid, ping)
+  useAltPing(grid, ping, pingTool)
   const down = (t: Token) => (e: ThreeEvent<PointerEvent>) => {
-    if (e.button !== 0 || e.altKey || !canMoveToken(t, userId, isGm)) return
+    if (!dragEnabled || pingTool || e.button !== 0 || e.altKey || !canMoveToken(t, userId, isGm)) return
     e.stopPropagation()
     start(t)
   }

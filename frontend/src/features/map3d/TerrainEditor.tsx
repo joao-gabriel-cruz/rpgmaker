@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { HoverCursor } from './HoverCursor'
 import type { Coord, MapGrid, MapPatch } from './grid'
 import type { MapObject, ObjectPatch } from './objects/model'
@@ -17,6 +17,16 @@ interface Props {
   objects?: readonly MapObject[]
   onObjectPatch?: (patch: ObjectPatch) => void
   children?: ReactNode
+  /** Table mode: tool state lives outside (rail + options panel) and the inline toolbar is hidden. */
+  control?: EditorControl
+  /** When false, clicks never paint or place objects (the map behaves like the player view). */
+  enabled?: boolean
+}
+
+export interface EditorControl {
+  state: ToolState
+  onChange: (next: ToolState) => void
+  showGrid: boolean
 }
 
 const NO_OBJECTS: readonly MapObject[] = []
@@ -55,28 +65,40 @@ function combineHandlers(objectMode: boolean, paint: Paint, obj: Obj) {
   }
 }
 
-export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, children }: Props) {
-  const [state, setState] = useState<ToolState>(DEFAULT_TOOL_STATE)
-  const [showGrid, setShowGrid] = useState(true)
+function useEditorState(control?: EditorControl) {
+  const [own, setOwn] = useState<ToolState>(DEFAULT_TOOL_STATE)
+  const [ownGrid, setOwnGrid] = useState(true)
+  const state = control?.state ?? own
+  const onChange = control?.onChange
+  const update = useCallback((f: (s: ToolState) => ToolState) => {
+    if (onChange) onChange(f(state))
+    else setOwn(f)
+  }, [onChange, state])
+  return { state, setState: onChange ?? setOwn, update, showGrid: control?.showGrid ?? ownGrid, toggleGrid: () => setOwnGrid((v) => !v) }
+}
+
+export function TerrainEditor({ grid, onPatch, objects = NO_OBJECTS, onObjectPatch = noop, children, control, enabled = true }: Props) {
+  const { state, setState, update, showGrid, toggleGrid } = useEditorState(control)
   const { hover, ...paint } = usePainting(grid, state, onPatch)
   const obj = useObjectTools(grid, objects, state, onObjectPatch)
-  useShortcuts(setState)
+  useShortcuts(update, !control ? 'standalone' : enabled ? 'external' : 'off')
   const objectMode = isObjectTool(state.tool)
-  const pickable = state.tool === 'select' || state.tool === 'removeObject'
+  const pickable = enabled && (state.tool === 'select' || state.tool === 'removeObject')
   const size = state.tool === 'fill' ? 1 : state.brushSize
-
-  const handlers = combineHandlers(objectMode, paint, obj)
+  const all = combineHandlers(objectMode, paint, obj)
+  const handlers = enabled ? all : { onUp: all.onUp }
+  const at = enabled ? hover : null
 
   return (
     <div className="flex h-full w-full">
-      <Toolbar state={state} onChange={setState} showGrid={showGrid} onToggleGrid={() => setShowGrid((v) => !v)} />
+      {!control && <Toolbar state={state} onChange={setState} showGrid={showGrid} onToggleGrid={toggleGrid} />}
       <div className="relative flex-1">
-        <TerrainScene grid={grid} showGrid={showGrid} editable objects={objects} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
-          {hover && (!objectMode || state.tool === 'wall') && <HoverCursor grid={grid} at={hover} size={size} />}
-          <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />
+        <TerrainScene grid={grid} showGrid={showGrid} editable={enabled} objects={objects} onObjectPick={pickable ? obj.onPick : undefined} {...handlers}>
+          {at && (!objectMode || state.tool === 'wall') && <HoverCursor grid={grid} at={at} size={size} />}
+          {enabled && <ObjectOverlay grid={grid} state={state} hover={hover} obj={obj} />}
           {children}
         </TerrainScene>
-        {obj.selected && state.tool === 'select' && (
+        {enabled && obj.selected && state.tool === 'select' && (
           <ObjectPanel obj={obj.selected} objects={objects} grid={grid} emit={onObjectPatch} onDone={obj.clearSelection} />
         )}
       </div>

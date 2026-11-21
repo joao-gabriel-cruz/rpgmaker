@@ -7,7 +7,7 @@ const btn = 'rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-zinc-700'
 
 function Item({ s, act }: { s: Suggestion; act: (type: string, id: string) => void }) {
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded bg-zinc-800 px-3 py-2">
+    <li className="flex flex-wrap items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2">
       <div className="min-w-0 flex-1 text-sm">
         <p><strong>{s.characterName}</strong> · {s.source} · {TRIGGER_LABEL[s.trigger]}</p>
         <p className="text-zinc-300">{describe(s)}{s.message ? ` — ${s.message}` : ''}</p>
@@ -24,7 +24,8 @@ function merge(loaded: Suggestion[], cur: Suggestion[]) {
   return [...loaded, ...cur.filter((c) => !loaded.some((x) => x.id === c.id))]
 }
 
-function usePending(campaignId: string) {
+/** Pending terrain-effect suggestions kept live; lets the sidebar badge share the list with the panel. */
+export function usePendingEffects(campaignId: string) {
   const { status, subscribe } = useRealtime()
   const [list, setList] = useState<Suggestion[]>([])
   const [fresh, setFresh] = useState(false)
@@ -46,10 +47,12 @@ function usePending(campaignId: string) {
   return { list, fresh, setFresh }
 }
 
+export type PendingState = ReturnType<typeof usePendingEffects>
+
 /** The Mestre's inbox of terrain effects waiting to be applied or dismissed. */
-export function PendingEffects({ campaignId }: { campaignId: string }) {
+export function PendingEffectsView({ pending }: { pending: PendingState }) {
   const { send } = useRealtime()
-  const { list, fresh, setFresh } = usePending(campaignId)
+  const { list, fresh, setFresh } = pending
   const [error, setError] = useState('')
 
   const act = (type: string, id: string) => {
@@ -60,7 +63,7 @@ export function PendingEffects({ campaignId }: { campaignId: string }) {
 
   return (
     <section aria-label="Efeitos pendentes" onMouseEnter={() => setFresh(false)}
-      className={`flex flex-col gap-2 rounded bg-zinc-900 px-4 py-3 ${fresh ? 'ring-2 ring-amber-400' : ''}`}>
+      className={`flex flex-col gap-2 rounded-xl bg-zinc-900 px-3 py-3 ${fresh ? 'ring-2 ring-amber-400' : ''}`}>
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         Efeitos pendentes
         <span data-testid="pending-count" className={`rounded-full px-2 text-sm ${list.length ? 'bg-amber-500 text-black' : 'bg-zinc-700'}`}>
@@ -72,4 +75,8 @@ export function PendingEffects({ campaignId }: { campaignId: string }) {
       {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
     </section>
   )
+}
+
+export function PendingEffects({ campaignId }: { campaignId: string }) {
+  return <PendingEffectsView pending={usePendingEffects(campaignId)} />
 }

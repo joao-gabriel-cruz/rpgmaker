@@ -1,18 +1,19 @@
+import { ChevronLeft, ChevronRight, Play, Square } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import { useRealtime } from '../realtime/realtimeContext'
 import { IDLE, PHASES, type RoundState } from './rounds'
 
-const btn = 'rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-zinc-700 disabled:opacity-50'
+const iconBtn = 'flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800 text-zinc-200 transition-[background-color,transform] hover:bg-zinc-700 active:scale-[0.96]'
 
 function Phases({ state }: { state: RoundState }) {
   return (
-    <ol className="flex gap-2">
+    <ol className="hidden items-center gap-1 lg:flex">
       {PHASES.map((p) => {
         const current = state.active && state.phase === p.id
         return (
           <li key={p.id} aria-current={current ? 'step' : undefined}
-            className={`rounded px-3 py-1 text-sm ${current ? 'bg-emerald-600 font-semibold text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+            className={`rounded-md px-2 py-0.5 text-xs ${current ? 'bg-emerald-600 font-semibold text-white' : 'bg-zinc-800/80 text-zinc-400'}`}>
             {p.label}
           </li>
         )
@@ -22,17 +23,19 @@ function Phases({ state }: { state: RoundState }) {
 }
 
 function Controls({ active, run }: { active: boolean; run: (type: string) => void }) {
-  if (!active) return <button className={btn} onClick={() => run('round.start')}>Iniciar</button>
+  if (!active) {
+    return <button type="button" className={`${iconBtn} w-auto gap-1 px-2 text-xs`} onClick={() => run('round.start')}><Play size={14} aria-hidden />Iniciar</button>
+  }
   return (
     <>
-      <button className={btn} onClick={() => run('round.prev')}>Voltar</button>
-      <button className={btn} onClick={() => run('round.next')}>Avançar</button>
-      <button className={btn} onClick={() => run('round.end')}>Encerrar</button>
+      <button type="button" className={iconBtn} aria-label="Voltar" title="Fase anterior" onClick={() => run('round.prev')}><ChevronLeft size={16} aria-hidden /></button>
+      <button type="button" className={iconBtn} aria-label="Avançar" title="Próxima fase" onClick={() => run('round.next')}><ChevronRight size={16} aria-hidden /></button>
+      <button type="button" className={iconBtn} aria-label="Encerrar" title="Encerrar a rodada" onClick={() => run('round.end')}><Square size={14} aria-hidden /></button>
     </>
   )
 }
 
-/** Round and phase bar shared live with the whole table; the Mestre also gets the controls. */
+/** Compact round and phase bar shared live with the table; the Mestre also gets ◀ ▶ and start/end. */
 export function RoundTracker({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   const { status, send, subscribe } = useRealtime()
   const [state, setState] = useState<RoundState>(IDLE)
@@ -50,11 +53,11 @@ export function RoundTracker({ campaignId, isGm }: { campaignId: string; isGm: b
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded bg-zinc-900 px-4 py-3" aria-label="Controle de rodada">
-      <span className="font-semibold">{state.active ? `Rodada ${state.round}` : 'Sem conflito'}</span>
+    <div className="flex items-center gap-2" aria-label="Controle de rodada">
+      <span className="whitespace-nowrap text-sm font-semibold">{state.active ? `Rodada ${state.round}` : 'Sem conflito'}</span>
       <Phases state={state} />
-      {isGm && <div className="ml-auto flex gap-2"><Controls active={state.active} run={run} /></div>}
-      {error && <span role="alert" className="text-sm text-red-400">{error}</span>}
+      {isGm && <div className="flex items-center gap-1"><Controls active={state.active} run={run} /></div>}
+      {error && <span role="alert" className="text-xs text-red-400">{error}</span>}
     </div>
   )
 }

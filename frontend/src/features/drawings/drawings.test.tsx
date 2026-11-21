@@ -7,7 +7,7 @@ import { createGrid, type MapGrid } from '../map3d/grid'
 import { RealtimeContext } from '../realtime/realtimeContext'
 import type { CampaignSocketApi } from '../realtime/useCampaignSocket'
 import { applyAdded, applyRemoved, formatMeasure, MAX_POINTS, measure, projectStroke, simplify, type Drawing } from './drawings'
-import { DrawingToolbar } from './DrawingToolbar'
+import { DrawingOptions } from './DrawingOptions'
 import { useDrawings } from './useDrawings'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -107,14 +107,15 @@ it('shows remote rulers and drops them on release', async () => {
   expect(hook.result.current.rulers).toHaveLength(0)
 })
 
-it('toolbar toggles modes for players and offers clear only to the Mestre', async () => {
+it('options offer erase-mine to everyone and clear only to the Mestre', async () => {
   const { hook } = setup([drawing()])
   await waitFor(() => expect(hook.result.current.drawings).toHaveLength(1))
-  const Bar = ({ gm }: { gm: boolean }) => <DrawingToolbar draw={hook.result.current} isGm={gm} />
+  const Bar = ({ gm }: { gm: boolean }) => <DrawingOptions draw={hook.result.current} isGm={gm} />
   const { rerender } = render(<Bar gm={false} />)
   expect(screen.queryByRole('button', { name: 'Limpar desenhos' })).toBeNull()
-  await userEvent.click(screen.getByRole('button', { name: 'Régua' }))
-  expect(hook.result.current.mode).toBe('ruler')
+  expect(screen.getByRole('button', { name: 'Apagar meus desenhos' })).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Cor #34d399' }))
+  expect(hook.result.current.color).toBe('#34d399')
   rerender(<Bar gm />)
   expect(screen.getByRole('button', { name: 'Limpar desenhos' })).toBeEnabled()
 })

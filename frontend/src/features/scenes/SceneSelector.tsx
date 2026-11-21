@@ -11,8 +11,8 @@ interface Props {
   onActivate: (id: string) => void
 }
 
-const btn = 'rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-zinc-700 disabled:opacity-50'
-const input = 'rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm'
+const btn = 'rounded-lg bg-zinc-800 px-2.5 py-1 text-xs transition-[background-color,transform] hover:bg-zinc-700 active:scale-[0.96] disabled:opacity-50'
+const input = 'rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm'
 
 function CreateForm({ onCreate }: Pick<Props, 'onCreate'>) {
   const [name, setName] = useState('')
@@ -44,13 +44,13 @@ function SceneRow({ scene, selected, ...p }: { scene: SceneSummary; selected: bo
     if (window.confirm(`Apagar a cena "${scene.name}"?`)) p.onDelete(scene.id)
   }
   return (
-    <li className={`flex flex-wrap items-center gap-2 rounded px-3 py-2 ${selected ? 'bg-zinc-800' : 'bg-zinc-900'}`}>
-      <button onClick={() => p.onSelect(scene.id)} aria-pressed={selected} className="font-medium hover:underline">
+    <li className={`flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-1.5 ${selected ? 'bg-zinc-800' : 'bg-zinc-900/60'}`}>
+      <button onClick={() => p.onSelect(scene.id)} aria-pressed={selected} className="text-sm font-medium hover:underline">
         {scene.name}
       </button>
       <span className="text-xs text-zinc-400">{scene.width}×{scene.depth}</span>
       {scene.isActive && <span className="rounded bg-emerald-900 px-2 py-0.5 text-xs text-emerald-300">Ativa</span>}
-      <span className="ml-auto flex gap-2">
+      <span className="ml-auto flex gap-1.5">
         {!scene.isActive && <button className={btn} onClick={() => p.onActivate(scene.id)} aria-label={`Ativar ${scene.name}`}>Ativar</button>}
         <button className={btn} onClick={rename} aria-label={`Renomear ${scene.name}`}>Renomear</button>
         <button className={`${btn} hover:bg-red-900`} onClick={remove} aria-label={`Apagar ${scene.name}`}>Apagar</button>
@@ -64,7 +64,7 @@ export function SceneSelector({ scenes, selectedId, onCreate, ...rest }: Props) 
     <div className="flex flex-col gap-3">
       <CreateForm onCreate={onCreate} />
       {scenes.length === 0 && <p className="text-sm text-zinc-400">Nenhuma cena ainda. Crie a primeira.</p>}
-      <ul className="flex max-w-3xl flex-col gap-2">
+      <ul className="flex flex-col gap-1.5">
         {scenes.map((s) => <SceneRow key={s.id} scene={s} selected={s.id === selectedId} {...rest} />)}
       </ul>
     </div>

@@ -1,25 +1,32 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { MapOptions } from '../table/options/MapOptions'
+import { OptionsPortal } from '../table/OptionsPortal'
+import { SURFACE } from '../table/surface'
+import { drawModeOf, isEditorTool } from '../table/tools'
+import { useTableTool } from '../table/useTableTool'
 import { TerrainEditor } from '../map3d/TerrainEditor'
 import { TerrainView } from '../map3d/TerrainView'
 import { useMe } from '../auth/auth'
-import { useRealtime } from '../realtime/realtimeContext'
-import { GmPanel } from './GmPanel'
-import { SceneSelector } from './SceneSelector'
-import { activateScene, createScene, deleteScene, listScenes, renameScene } from './scenes'
 import { useLiveScene } from './useLiveScene'
+import type { SceneControls } from './useSceneControls'
 import { DrawingLayer } from '../drawings/DrawingLayer'
-import { DrawingToolbar } from '../drawings/DrawingToolbar'
 import { useDrawings } from '../drawings/useDrawings'
 import { TokenLayer } from '../tokens/TokenLayer'
-import { TokensPanel } from '../tokens/TokensPanel'
-import { useSceneTokens } from '../tokens/useSceneTokens'
-import { FogPanel } from '../vision/FogPanel'
+import { TokensError, TokensPanel } from '../tokens/TokensPanel'
+import { useSceneTokens, type SceneTokens } from '../tokens/useSceneTokens'
 import { useShownTokens, useVision } from '../vision/useVision'
 import { VisionLayers } from '../vision/VisionLayers'
 import type { MapState } from './scenes'
 
-function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneId: string; isGm: boolean }) {
+type Live = ReturnType<typeof useLiveScene>
+
+interface SceneProps {
+  campaignId: string
+  sceneId: string
+  isGm: boolean
+}
+
+function SceneCanvas({ campaignId, sceneId, isGm }: SceneProps) {
   const { state, error, paint, editObjects, command, replacedAt } = useLiveScene(campaignId, sceneId)
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -27,104 +34,97 @@ function SceneCanvas({ campaignId, sceneId, isGm }: { campaignId: string; sceneI
     if (replacedAt) box.current?.animate?.([{ opacity: 0.2, transform: 'scale(0.97)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 400, easing: 'ease-out' })
   }, [replacedAt])
   return (
-    <div className="flex flex-col gap-1">
-      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-      {isGm && state && <GmPanel campaignId={campaignId} sceneId={sceneId} draft={!!state.draft} onCommand={command} />}
-      <div ref={box}>
-      {state && <SceneWithTokens campaignId={campaignId} sceneId={sceneId} isGm={isGm} state={state} paint={paint} editObjects={editObjects} />}
-      {!state && !error && <p className="p-4 text-zinc-400">Carregando mapa…</p>}
+    <div className="relative h-full w-full">
+      {error && <p role="alert" className="absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-lg bg-red-950/90 px-3 py-1 text-sm text-red-300 shadow-lg">{error}</p>}
+      {isGm && state?.draft && (
+        <p role="status" className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-lg bg-amber-900/90 px-4 py-1.5 text-sm font-medium text-amber-100 shadow-lg ring-1 ring-amber-400/40">
+          Editando rascunho — jogadores não veem
+        </p>
+      )}
+      <div ref={box} className="h-full w-full">
+        {state && <SceneWithTokens {...{ campaignId, sceneId, isGm, state, paint, editObjects, command, draft: !!state.draft }} />}
+        {!state && !error && <Empty>Carregando mapa…</Empty>}
       </div>
     </div>
   )
 }
 
-type Live = ReturnType<typeof useLiveScene>
-interface WithTokens extends Pick<Live, 'paint' | 'editObjects'> {
-  campaignId: string
-  sceneId: string
-  isGm: boolean
+interface WithTokens extends SceneProps, Pick<Live, 'paint' | 'editObjects' | 'command'> {
   state: MapState
+  draft: boolean
 }
 
-function SceneWithTokens({ campaignId, sceneId, isGm, state, paint, editObjects }: WithTokens) {
-  const userId = useMe().data?.id ?? ''
+// Everything the active rail tool needs: drawings, fog and tokens, with the tool deciding their mode.
+function useMapTools({ campaignId, sceneId, isGm, state }: WithTokens, userId: string) {
+  const { tool } = useTableTool()
   const vision = useVision(campaignId, sceneId, state.grid, isGm)
   const tokens = useShownTokens(useSceneTokens(campaignId, sceneId, state.grid), vision, state.grid, userId, isGm)
-  const draw = useDrawings(campaignId, sceneId, userId)
-  const layer = (
-    <>
-      <TokenLayer grid={state.grid} tokens={tokens} userId={userId} isGm={isGm} />
-      <DrawingLayer grid={state.grid} draw={draw} />
-      <VisionLayers grid={state.grid} vision={vision} isGm={isGm} />
-    </>
-  )
+  const drawing = useDrawings(campaignId, sceneId, userId)
+  const draw = useMemo(() => ({ ...drawing, mode: drawModeOf(tool) }), [drawing, tool])
+  const fog = useMemo(() => ({ ...vision, brush: tool === 'fog' ? vision.brush : null }), [vision, tool])
+  return { vision, fog, tokens, draw }
+}
+
+type Tools = ReturnType<typeof useMapTools>
+
+interface LayersProps extends Pick<Tools, 'tokens' | 'draw' | 'fog'> {
+  grid: MapState['grid']
+  userId: string
+  isGm: boolean
+}
+
+// The in-canvas layers; the rail tool decides which of them react to the pointer.
+function MapLayers({ grid, tokens, userId, isGm, draw, fog }: LayersProps) {
+  const { tool } = useTableTool()
   return (
     <>
-      {isGm && <FogPanel vision={vision} />}
-      <TokensPanel campaignId={campaignId} tokens={tokens} userId={userId} isGm={isGm} />
-      <DrawingToolbar draw={draw} isGm={isGm} />
-      <div className="h-[70vh] overflow-hidden rounded border border-zinc-800">
-        {isGm
-          ? <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects}>{layer}</TerrainEditor>
-          : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
-      </div>
+      <TokenLayer grid={grid} tokens={tokens} userId={userId} isGm={isGm} pingTool={tool === 'ping'}
+        dragEnabled={tool === 'move' || tool === 'tokens'} />
+      <DrawingLayer grid={grid} draw={draw} />
+      <VisionLayers grid={grid} vision={fog} isGm={isGm} />
     </>
   )
 }
 
-const scenesKey = (campaignId: string) => ['campaigns', campaignId, 'scenes']
-
-function useSceneList(campaignId: string) {
-  const queryClient = useQueryClient()
-  const { subscribe } = useRealtime()
-  const query = useQuery({ queryKey: scenesKey(campaignId), queryFn: () => listScenes(campaignId) })
-  useEffect(() => subscribe('scenes.changed', () => queryClient.invalidateQueries({ queryKey: scenesKey(campaignId) })),
-    [subscribe, queryClient, campaignId])
-  const refresh = () => queryClient.invalidateQueries({ queryKey: scenesKey(campaignId) })
-  return { scenes: Array.isArray(query.data) ? query.data : [], loading: query.isPending, refresh }
-}
-
-function GmMap({ campaignId }: { campaignId: string }) {
-  const { scenes, refresh } = useSceneList(campaignId)
-  const [picked, setPicked] = useState<string | null>(null)
-  const selectedId = scenes.find((s) => s.id === picked)?.id ?? scenes.find((s) => s.isActive)?.id ?? scenes[0]?.id ?? null
-  const act = useMutation({ mutationFn: (fn: () => Promise<unknown>) => fn(), onSuccess: refresh })
+function SceneWithTokens(p: WithTokens) {
+  const { campaignId, sceneId, isGm, state, paint, editObjects, command, draft } = p
+  const { tool, editor, setEditor, showGrid, setDraftActive } = useTableTool()
+  const userId = useMe().data?.id ?? ''
+  const { vision, fog, tokens, draw } = useMapTools(p, userId)
+  useEffect(() => {
+    setDraftActive(draft)
+    return () => setDraftActive(false)
+  }, [draft, setDraftActive])
+  const layer = <MapLayers {...{ grid: state.grid, tokens, userId, isGm, draw, fog }} />
   return (
-    <div className="flex flex-col gap-3">
-      <SceneSelector
-        scenes={scenes}
-        selectedId={selectedId}
-        onSelect={setPicked}
-        onCreate={(name, size) => act.mutate(async () => setPicked((await createScene(campaignId, name, size)).id))}
-        onRename={(id, name) => act.mutate(() => renameScene(campaignId, id, name))}
-        onDelete={(id) => act.mutate(() => deleteScene(campaignId, id))}
-        onActivate={(id) => act.mutate(async () => { await activateScene(campaignId, id); setPicked(id) })}
-      />
-      {act.error && <p role="alert" className="text-sm text-red-400">{act.error.message}</p>}
-      {selectedId && <SceneCanvas key={selectedId} campaignId={campaignId} sceneId={selectedId} isGm />}
-    </div>
+    <>
+      <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><TokensError tokens={tokens} /></div>
+      {!isGm && <PlayerTokenPrompt campaignId={campaignId} tokens={tokens} userId={userId} />}
+      <OptionsPortal>
+        <MapOptions {...{ campaignId, sceneId, isGm, userId, draw, vision, tokens, draft, onCommand: command }} />
+      </OptionsPortal>
+      {isGm
+        ? <TerrainEditor grid={state.grid} onPatch={paint} objects={state.objects} onObjectPatch={editObjects}
+            control={{ state: editor, onChange: setEditor, showGrid }} enabled={isEditorTool(tool)}>{layer}</TerrainEditor>
+        : <TerrainView grid={state.grid} objects={state.objects}>{layer}</TerrainView>}
+    </>
   )
 }
 
-function PlayerMap({ campaignId }: { campaignId: string }) {
-  const { scenes, loading } = useSceneList(campaignId)
-  const active = scenes.find((s) => s.isActive)
-  if (loading) return <p className="text-zinc-400">Carregando…</p>
-  if (!active) return <p className="text-zinc-400">O Mestre ainda não ativou nenhuma cena.</p>
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm text-zinc-400">Cena atual: {active.name}</p>
-      <SceneCanvas key={active.id} campaignId={campaignId} sceneId={active.id} isGm={false} />
-    </div>
-  )
+// Players have no Tokens tool: the "place my token" button floats at the bottom-left of the map.
+function PlayerTokenPrompt(p: { campaignId: string; tokens: SceneTokens; userId: string }) {
+  return <div className={`absolute bottom-3 left-3 z-10 empty:hidden rounded-xl p-1 ${SURFACE}`}><TokensPanel {...p} isGm={false} /></div>
 }
 
-/** The "Mapa" area of the campaign page; must render inside CampaignSocketProvider. */
-export function MapArea({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-xl font-semibold">Mapa</h2>
-      {isGm ? <GmMap campaignId={campaignId} /> : <PlayerMap campaignId={campaignId} />}
-    </div>
-  )
+function Empty({ children }: { children: ReactNode }) {
+  return <p className="flex h-full items-center justify-center p-4 text-zinc-400">{children}</p>
+}
+
+/** The map: fills its parent; shows the scene picked in the top bar. Must render inside CampaignSocketProvider. */
+export function MapArea({ campaignId, isGm, scenes }: { campaignId: string; isGm: boolean; scenes: SceneControls }) {
+  if (scenes.loading) return <Empty>Carregando…</Empty>
+  if (!scenes.selectedId) {
+    return <Empty>{isGm ? 'Nenhuma cena ainda. Crie a primeira no seletor de cenas.' : 'O Mestre ainda não ativou nenhuma cena.'}</Empty>
+  }
+  return <SceneCanvas key={scenes.selectedId} campaignId={campaignId} sceneId={scenes.selectedId} isGm={isGm} />
 }

@@ -1,4 +1,5 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { FakeWebSocket } from '../../test/fakeWebSocket'
 import { renderApp, stubApi } from '../../test/renderApp'
@@ -31,7 +32,7 @@ it('shows the active scene to players, follows live patches and scene changes', 
   const active = { current: 'a' }
   mockServer(active)
   renderApp('/campaigns/c1')
-  expect(await screen.findByText('Cena atual: Cena a')).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByTitle('Cena atual')).toHaveTextContent('Cena a'))
   const view = await screen.findByTestId('view')
   expect(view).toHaveTextContent('1')
   const ws = FakeWebSocket.last
@@ -40,7 +41,7 @@ it('shows the active scene to players, follows live patches and scene changes', 
   expect(await screen.findByText('5')).toBeInTheDocument()
   active.current = 'b'
   act(() => ws.receive({ type: 'scenes.changed', payload: {} }))
-  expect(await screen.findByText('Cena atual: Cena b')).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByTitle('Cena atual')).toHaveTextContent('Cena b'))
   expect(await screen.findByTestId('view')).toHaveTextContent('1')
   expect(screen.queryByTestId('editor')).toBeNull()
 })
@@ -49,6 +50,7 @@ it('gives the gm the scene selector and the editor', async () => {
   mockServer({ current: 'a' })
   camp.role = 'gm'
   renderApp('/campaigns/c1')
+  await userEvent.click(await screen.findByRole('button', { name: 'Cenas' }))
   expect(await screen.findByRole('button', { name: 'Criar cena' })).toBeInTheDocument()
   expect(await screen.findByTestId('editor')).toBeInTheDocument()
   camp.role = 'player'

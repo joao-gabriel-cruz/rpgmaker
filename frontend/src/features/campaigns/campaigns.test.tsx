@@ -1,8 +1,9 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { FakeWebSocket } from '../../test/fakeWebSocket'
 import { renderApp, stubApi } from '../../test/renderApp'
+import { openManage } from '../../test/table'
 
 const ana = { id: 'u1', email: 'a@x.com', displayName: 'Ana', isAdmin: false, createdAt: '' }
 const camp = { id: 'c1', name: 'Teste', systemId: 'assimilacao', systemName: 'Assimilação RPG', role: 'gm' }
@@ -49,6 +50,7 @@ it('lets the gm generate a copyable invite link and remove a player', async () =
     return { status: 200, body: {} }
   })
   renderApp('/campaigns/c1')
+  await openManage()
   expect(await screen.findByRole('button', { name: 'Remover Bob' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Remover Ana' })).toBeNull()
   await userEvent.click(screen.getByRole('button', { name: 'Gerar convite' }))
@@ -97,7 +99,7 @@ it('shows who is online and the connection state on the campaign page', async ()
   act(() => ws.open())
   act(() => ws.receive({ type: 'presence.updated', payload: { users: [{ userId: 'u1', displayName: 'Ana', role: 'gm' }] } }))
   expect(await screen.findByText('Conectado')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Online agora' }).parentElement?.nextElementSibling).toHaveTextContent('Ana')
+  expect(within(screen.getByRole('list', { name: 'Online agora' })).getByLabelText('Ana (Mestre)')).toBeInTheDocument()
   act(() => ws.drop())
   expect(await screen.findByText('Reconectando…')).toBeInTheDocument()
 })
