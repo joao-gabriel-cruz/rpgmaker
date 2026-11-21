@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -23,6 +24,7 @@ type Repository interface {
 	CreateCampaign(ctx context.Context, name, systemID, ownerID string) (Campaign, error)
 	ListByUser(ctx context.Context, userID string) ([]Summary, error)
 	Campaign(ctx context.Context, id string) (Campaign, error)
+	MergeSettings(ctx context.Context, id string, patch json.RawMessage) (Campaign, error)
 	Member(ctx context.Context, campaignID, userID string) (Member, error)
 	Members(ctx context.Context, campaignID string) ([]MemberInfo, error)
 	RemoveMember(ctx context.Context, campaignID, userID string) error
@@ -74,6 +76,28 @@ func (s *Service) List(ctx context.Context, userID string) ([]Summary, error) {
 // Detail returns a campaign as seen by a member.
 func (s *Service) Detail(ctx context.Context, m Member) (Summary, error) {
 	c, err := s.repo.Campaign(ctx, m.CampaignID)
+	if err != nil {
+		return Summary{}, err
+	}
+	return Summary{Campaign: c, Role: m.Role, SystemName: s.systemName(c.SystemID)}, nil
+}
+
+// Creation-limit modes stored in settings.creationLimits.
+const (
+	LimitsWarn  = "warn"
+	LimitsBlock = "block"
+)
+
+// UpdateSettings lets the gm change the campaign settings; today only creationLimits.
+func (s *Service) UpdateSettings(ctx context.Context, m Member, creationLimits string) (Summary, error) {
+	if creationLimits != LimitsWarn && creationLimits != LimitsBlock {
+		return Summary{}, ErrInvalidInput
+	}
+	patch, err := json.Marshal(map[string]string{"creationLimits": creationLimits})
+	if err != nil {
+		return Summary{}, err
+	}
+	c, err := s.repo.MergeSettings(ctx, m.CampaignID, patch)
 	if err != nil {
 		return Summary{}, err
 	}

@@ -2,6 +2,7 @@ package campaigns
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -69,6 +70,13 @@ func (s *Store) ListByUser(ctx context.Context, userID string) ([]Summary, error
 // Campaign loads a campaign by id.
 func (s *Store) Campaign(ctx context.Context, id string) (Campaign, error) {
 	return scanCampaign(s.pool.QueryRow(ctx, `SELECT `+campaignCols+` FROM campaigns c WHERE c.id = $1`, id))
+}
+
+// MergeSettings shallow-merges a JSON object into the campaign settings.
+func (s *Store) MergeSettings(ctx context.Context, id string, patch json.RawMessage) (Campaign, error) {
+	return scanCampaign(s.pool.QueryRow(ctx,
+		`UPDATE campaigns AS c SET settings = c.settings || $2::jsonb WHERE c.id = $1 RETURNING `+campaignCols,
+		id, string(patch)))
 }
 
 // Member returns the user's membership, or ErrNotFound.

@@ -24,6 +24,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.Handle("POST /api/campaigns", h.requireAuth(http.HandlerFunc(h.create)))
 	mux.Handle("GET /api/campaigns", h.requireAuth(http.HandlerFunc(h.list)))
 	mux.Handle("GET /api/campaigns/{id}", h.RequireMember(http.HandlerFunc(h.detail)))
+	mux.Handle("PATCH /api/campaigns/{id}/settings", h.RequireGM(http.HandlerFunc(h.updateSettings)))
 	mux.Handle("GET /api/campaigns/{id}/members", h.RequireMember(http.HandlerFunc(h.members)))
 	mux.Handle("DELETE /api/campaigns/{id}/members/{userId}", h.RequireGM(http.HandlerFunc(h.removeMember)))
 	mux.Handle("POST /api/campaigns/{id}/invites", h.RequireGM(http.HandlerFunc(h.createInvite)))
@@ -59,6 +60,22 @@ func (h *Handlers) list(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) detail(w http.ResponseWriter, r *http.Request) {
 	m, _ := MemberFrom(r)
 	d, err := h.svc.Detail(r.Context(), m)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
+}
+
+func (h *Handlers) updateSettings(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CreationLimits string `json:"creationLimits"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	m, _ := MemberFrom(r)
+	d, err := h.svc.UpdateSettings(r.Context(), m, in.CreationLimits)
 	if err != nil {
 		fail(w, err)
 		return

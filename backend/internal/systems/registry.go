@@ -19,7 +19,7 @@ func NewRegistry(list ...System) *Registry {
 }
 
 // Default returns the registry with every built-in system.
-func Default() *Registry { return NewRegistry(assimilacao.New()) }
+func Default() *Registry { return NewRegistry(assimilacaoModule{assimilacao.New()}) }
 
 // Get returns the system with the given ID.
 func (r *Registry) Get(id string) (System, bool) {
