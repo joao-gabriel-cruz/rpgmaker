@@ -3,6 +3,9 @@ import { OrbitControls } from '@react-three/drei'
 import type { ReactNode } from 'react'
 import { MOUSE } from 'three'
 import type { Coord, MapGrid } from './grid'
+import { GridLines } from './GridLines'
+import { ObjectsLayer } from './objects/ObjectsLayer'
+import type { MapObject } from './objects/model'
 import { TerrainBlocks } from './TerrainBlocks'
 
 export interface PointerHandlers {
@@ -15,6 +18,8 @@ interface Props extends PointerHandlers {
   grid: MapGrid
   showGrid?: boolean
   editable?: boolean
+  objects?: readonly MapObject[]
+  onObjectPick?: (id: string) => void
   children?: ReactNode
 }
 
@@ -63,7 +68,7 @@ function Controls({ grid, editable }: { grid: MapGrid; editable?: boolean }) {
   )
 }
 
-export function TerrainScene({ grid, showGrid, editable, children, onCellDown, onCellMove, onUp }: Props) {
+export function TerrainScene({ grid, showGrid, editable, objects, onObjectPick, children, onCellDown, onCellMove, onUp }: Props) {
   const cx = grid.width / 2
   const cz = grid.depth / 2
   const span = Math.max(grid.width, grid.depth)
@@ -82,7 +87,8 @@ export function TerrainScene({ grid, showGrid, editable, children, onCellDown, o
         <TerrainBlocks grid={grid} />
         <Ground grid={grid} />
       </group>
-      {showGrid && <gridHelper args={[span, span, '#52525b', '#3f3f46']} position={[cx, 0.02, cz]} />}
+      {objects && <ObjectsLayer grid={grid} objects={objects} onPick={onObjectPick} />}
+      {showGrid && <GridLines grid={grid} />}
       {children}
       <Controls grid={grid} editable={editable} />
     </Canvas>

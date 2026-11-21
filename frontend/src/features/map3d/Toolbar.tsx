@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { MAX_HEIGHT, MIN_HEIGHT } from './grid'
 import { TERRAIN_LIST } from './terrainTypes'
-import { BRUSH_SIZES, TOOLS, type ToolState } from './tools'
+import { PrefabPalette } from './objects/PrefabPalette'
+import { BRUSH_SIZES, OBJECT_TOOLS, TERRAIN_TOOLS, type ToolState } from './tools'
 
 interface Props {
   state: ToolState
@@ -26,8 +27,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function ToolButtons({ state, set }: { state: ToolState; set: SetFn }) {
-  return TOOLS.map((t) => (
+function ToolButtons({ state, set, tools }: { state: ToolState; set: SetFn; tools: typeof TERRAIN_TOOLS | typeof OBJECT_TOOLS }) {
+  return tools.map((t) => (
     <button key={t.id} className={btn(state.tool === t.id)} onClick={() => set({ tool: t.id })}>
       {t.label} <kbd className="float-right text-xs opacity-60">{t.key.toUpperCase()}</kbd>
     </button>
@@ -59,24 +60,41 @@ function BrushButtons({ state, set }: { state: ToolState; set: SetFn }) {
   )
 }
 
+function HeightInput({ state, set }: { state: ToolState; set: SetFn }) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="text-xs uppercase text-zinc-400">Altura ({MIN_HEIGHT}–{MAX_HEIGHT})</span>
+      <input
+        type="number"
+        min={MIN_HEIGHT}
+        max={MAX_HEIGHT}
+        value={state.height}
+        onChange={(e) => set({ height: Number(e.target.value) })}
+        className="rounded bg-zinc-800 px-2 py-1"
+      />
+    </label>
+  )
+}
+
 export function Toolbar({ state, onChange, showGrid, onToggleGrid }: Props) {
   const set: SetFn = (p) => onChange({ ...state, ...p })
   return (
     <div className="flex w-52 flex-col gap-4 overflow-y-auto bg-zinc-900 p-3 text-zinc-100">
-      <Section title="Ferramentas"><ToolButtons state={state} set={set} /></Section>
+      <Section title="Ferramentas"><ToolButtons state={state} set={set} tools={TERRAIN_TOOLS} /></Section>
+      <Section title="Objetos"><ToolButtons state={state} set={set} tools={OBJECT_TOOLS} /></Section>
+      {state.tool === 'object' && (
+        <Section title="Paleta (R gira)">
+          <PrefabPalette
+            value={state.prefab}
+            variant={state.variant}
+            onChange={(prefab) => set({ prefab })}
+            onVariant={(variant) => set({ variant })}
+          />
+        </Section>
+      )}
       <Section title="Terreno"><TerrainButtons state={state} set={set} /></Section>
       <Section title="Tamanho do pincel"><BrushButtons state={state} set={set} /></Section>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs uppercase text-zinc-400">Altura ({MIN_HEIGHT}–{MAX_HEIGHT})</span>
-        <input
-          type="number"
-          min={MIN_HEIGHT}
-          max={MAX_HEIGHT}
-          value={state.height}
-          onChange={(e) => set({ height: Number(e.target.value) })}
-          className="rounded bg-zinc-800 px-2 py-1"
-        />
-      </label>
+      <HeightInput state={state} set={set} />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={showGrid} onChange={onToggleGrid} /> Mostrar grade
       </label>
