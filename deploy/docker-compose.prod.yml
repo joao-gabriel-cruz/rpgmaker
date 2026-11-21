@@ -1,0 +1,64 @@
+# Produção na VPS compartilhada: nenhuma porta publicada no host. O web entra na
+# rede bootstrap_default (a do Caddy da VPS) com nome fixo e o Caddy faz o TLS.
+name: rpgmaker
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rpgmaker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+      POSTGRES_DB: rpgmaker
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rpgmaker -d rpgmaker"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  api:
+    image: rpgmaker-api:${RPG_VERSION:?defina no .env}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://rpgmaker:${POSTGRES_PASSWORD}@db:5432/rpgmaker?sslmode=disable
+      PORT: "8080"
+      WS_ALLOWED_ORIGINS: ${WS_ALLOWED_ORIGINS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      default:
+        # Unique name: on the VPS the web container also joins a shared network where
+        # other projects answer to "api".
+        aliases: [rpgmaker-api]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  web:
+    image: rpgmaker-web:${RPG_VERSION}
+    container_name: rpgmaker-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - default
+      - bootstrap_default
+    deploy:
+      resources:
+        limits:
+          memory: 96m
+
+volumes:
+  db-data:
+
+networks:
+  bootstrap_default:
+    external: true

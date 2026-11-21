@@ -25,6 +25,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      default:
+        # Unique name: on the VPS the web container also joins a shared network where
+        # other projects answer to "api".
+        aliases: [rpgmaker-api]
 
   web:
     build: ./frontend
