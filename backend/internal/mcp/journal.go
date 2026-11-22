@@ -23,6 +23,12 @@ type TokenPos struct {
 	X, Z    int
 }
 
+// TokenSpot is a character token to put back on a cell.
+type TokenSpot struct {
+	CharacterID string
+	X, Z        int
+}
+
 // ConditionState is a character condition to restore.
 type ConditionState struct {
 	CharacterID, Condition string
@@ -36,6 +42,10 @@ type Inverse struct {
 	Token     *TokenPos
 	Ambience  *ambience.Ambience
 	Condition *ConditionState
+	// RemoveCharacters (character ids) and PlaceTokens revert token placement by character, since a
+	// character has one token per scene but its token id changes when re-placed; applied after the fields above.
+	RemoveCharacters []string
+	PlaceTokens      []TokenSpot
 }
 
 // ChangeView is the public face of a journal entry.
@@ -196,33 +206,4 @@ func (j *Journal) apply(ctx context.Context, t Table, s Session, e entry) error 
 		}
 	}
 	return applyInverse(ctx, t, s, e)
-}
-
-func applyInverse(ctx context.Context, t Table, s Session, e entry) error {
-	inv, c, sc := e.inv, s.CampaignID, e.view.SceneID
-	if len(inv.Cells) > 0 {
-		if err := t.Scenes.Paint(ctx, c, sc, "", maps.Patch{Cells: inv.Cells}); err != nil {
-			return err
-		}
-	}
-	if inv.Objects != nil {
-		if err := t.Scenes.EditObjects(ctx, c, sc, "", *inv.Objects); err != nil {
-			return err
-		}
-	}
-	if inv.Token != nil {
-		if err := t.Tokens.Move(ctx, s.Sender, c, inv.Token.TokenID, inv.Token.X, inv.Token.Z, true); err != nil {
-			return err
-		}
-	}
-	if inv.Ambience != nil {
-		if err := t.Ambience.Set(ctx, c, *inv.Ambience); err != nil {
-			return err
-		}
-	}
-	if inv.Condition != nil {
-		k := inv.Condition
-		return t.Ambience.SetCondition(ctx, s.Sender, c, k.CharacterID, k.Condition, k.Active)
-	}
-	return nil
 }

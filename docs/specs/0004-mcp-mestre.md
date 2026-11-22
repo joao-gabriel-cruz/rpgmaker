@@ -1,6 +1,6 @@
 # 0004 — Claude como narrador da mesa (MCP do Mestre)
 
-Status: READY · 2026-11-21
+Status: DONE (v1) · extensão de NPCs READY · 2026-11-22
 
 ## Intenção
 
@@ -186,3 +186,22 @@ Cada ferramenta de escrita devolve um resumo curto do que mudou ("14 células �
 - Como as ferramentas reaproveitam os serviços: chamar direto `scenes.Service`, `tokens.Service` e
   `ambience.Service` com o Sender do Mestre, expondo o mínimo necessário (ex.: um método que aplica um
   patch sempre na cena ao vivo).
+
+## Extensão: NPCs vilões (2026-11-22, aprovada)
+
+O Mestre narra *"surge um infectado brutamontes"* ou *"três infectados saem da mata ao norte"* e o Claude cria
+os NPCs já prontos para combate e os põe na cena ativa.
+
+- **`create_npc`**: `{name, count? (1–10), instincts?, knowledge?, practices?, boxesPerLevel?, threats?, notes?, at? {x,z}}`.
+  Cria NPC(s) pela rota de personagens já existente (só o Mestre cria NPC). Os campos da ficha não informados ficam no
+  padrão da ficha de NPC (Instintos 1, aptidões 0, 3 caixas por nível). Com `count > 1`, os nomes ficam "Nome 1…N",
+  porque cada token na cena é de um personagem diferente. Com `at`, coloca os tokens nas células livres mais próximas
+  (mesma busca em anéis do `activate_scene`), e a colocação entra no desfazer.
+- **`place_token`**: `{character, x, z}`: põe um personagem existente (NPC ou jogador) na cena ativa, numa célula
+  livre e transitável. Entra no desfazer (inverso: remover o token).
+- **`remove_token`**: `{token}`: tira um token da cena ativa. Entra no desfazer (inverso: recolocar na mesma célula).
+- **Desfazer uma criação** remove os tokens que ela colocou e **mantém o NPC na lista de personagens**: apagar a ficha
+  automaticamente poderia levar junto ajustes do Mestre.
+- Regras de sempre: só a cena ativa, recusa com rascunho aberto, célula bloqueada ou ocupada recusada, mensagens em PT-BR,
+  mudança ao vivo para os jogadores e aviso com "Desfazer" só para o Mestre.
+- Fora: retrato/miniatura do NPC e rolagens do NPC.

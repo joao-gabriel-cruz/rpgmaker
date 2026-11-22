@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/ambience"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
@@ -27,6 +28,7 @@ type Tokens interface {
 	List(ctx context.Context, m campaigns.Member, sceneID string) ([]tokens.Token, error)
 	Move(ctx context.Context, snd realtime.Sender, campaignID, tokenID string, x, z int, force bool) error
 	Place(ctx context.Context, snd realtime.Sender, campaignID, sceneID, charID string, x, z int) error
+	Remove(ctx context.Context, snd realtime.Sender, campaignID, tokenID string) error
 }
 
 // Ambience is the slice of ambience.Service the MCP tools need.
@@ -39,6 +41,8 @@ type Ambience interface {
 // Characters is the slice of characters.Service the MCP tools need.
 type Characters interface {
 	List(ctx context.Context, m campaigns.Member) ([]characters.View, error)
+	Create(ctx context.Context, m campaigns.Member, in characters.CreateInput) (characters.View, error)
+	Save(ctx context.Context, m campaigns.Member, id string, sheet json.RawMessage) (characters.View, error)
 }
 
 // Table bundles the services the MCP tools act on.
