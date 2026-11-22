@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/systems/assimilacao"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
 )
 
@@ -124,6 +127,7 @@ type fakeTokens struct {
 	placed   []placement
 	placeErr map[string]error
 	moveErr  error
+	removed  []string
 }
 
 // List returns tokens of the scene; tokens without a SceneID belong to every scene.
@@ -152,8 +156,20 @@ func (f *fakeTokens) Place(_ context.Context, _ realtime.Sender, _, sceneID, cha
 		return err
 	}
 	f.placed = append(f.placed, placement{sceneID, charID, x, z})
-	f.list = append(f.list, tokens.Token{SceneID: sceneID, CharacterID: charID, X: x, Z: z})
+	id := fmt.Sprintf("tk%d", len(f.placed))
+	f.list = append(f.list, tokens.Token{ID: id, SceneID: sceneID, CharacterID: charID, Name: charID, X: x, Z: z})
 	return nil
+}
+
+func (f *fakeTokens) Remove(_ context.Context, _ realtime.Sender, _, id string) error {
+	for i, tk := range f.list {
+		if tk.ID == id {
+			f.list = append(f.list[:i], f.list[i+1:]...)
+			f.removed = append(f.removed, id)
+			return nil
+		}
+	}
+	return realtime.UserError("Token não encontrado")
 }
 
 type fakeAmbience struct {
@@ -178,7 +194,28 @@ func (f *fakeAmbience) SetCondition(_ context.Context, snd realtime.Sender, _, c
 	return nil
 }
 
-type fakeCharacters struct{ list []characters.View }
+type fakeCharacters struct {
+	list  []characters.View
+	saved map[string]json.RawMessage
+}
+
+func (f *fakeCharacters) Create(_ context.Context, _ campaigns.Member, in characters.CreateInput) (characters.View, error) {
+	sheet := assimilacao.NewNPCSheet()
+	sheet.Identity.Name = in.Name
+	raw, _ := json.Marshal(sheet)
+	v := characters.View{Character: characters.Character{
+		ID: fmt.Sprintf("npc%d", len(f.list)+1), Kind: in.Kind, Name: in.Name, Sheet: raw}}
+	f.list = append(f.list, v)
+	return v, nil
+}
+
+func (f *fakeCharacters) Save(_ context.Context, _ campaigns.Member, id string, sheet json.RawMessage) (characters.View, error) {
+	if f.saved == nil {
+		f.saved = map[string]json.RawMessage{}
+	}
+	f.saved[id] = sheet
+	return characters.View{}, nil
+}
 
 func (f *fakeCharacters) List(context.Context, campaigns.Member) ([]characters.View, error) {
 	return f.list, nil

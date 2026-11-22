@@ -42,6 +42,7 @@ func newServer(t Table, j *Journal, s Session) *sdk.Server {
 	registerObjectTools(srv, t, j, s)
 	registerTokenTools(srv, t, j, s)
 	registerSceneTools(srv, t, j, s)
+	registerNPCTools(srv, t, j, s)
 	return srv
 }
 
