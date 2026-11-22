@@ -29,13 +29,16 @@ function Population({ refuge, isGm, onChange }: Props) {
   return (
     <Card icon={<Users size={16} />} title="População">
       <div className="flex items-center justify-between text-sm">Nível
-        <Stepper label="Nível de População" value={p.level} max={p.max} editable={isGm} onChange={(level) => set({ level })} /></div>
+        <Stepper label="Nível de População" value={p.level} max={100} editable={isGm} onChange={(level) => set({ level })} /></div>
       <div className="flex items-center justify-between text-sm">Teto
-        <Stepper label="Teto de População" value={p.max} min={Math.max(1, p.level)} max={100} editable={isGm} onChange={(max) => set({ max })} /></div>
+        <Stepper label="Teto de População" value={p.max} min={1} max={100} editable={isGm} onChange={(max) => set({ max })} /></div>
       <p className="text-xs text-zinc-400">
         ~<span aria-label="Habitantes">{refuge.derived.inhabitants}</span> habitantes ·{' '}
         <span aria-label="Trabalhadores">{refuge.derived.workers}</span> trabalhadores
       </p>
+      {refuge.derived.overcrowded && (
+        <p role="alert" className="text-xs font-medium text-amber-400">Superlotação: a População ({p.level}) passa do teto ({p.max}).</p>
+      )}
     </Card>
   )
 }

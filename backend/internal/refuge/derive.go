@@ -36,6 +36,7 @@ type Derived struct {
 	ReservesTotal     int    `json:"reservesTotal"`
 	ReservesFree      int    `json:"reservesFree"`
 	ReservesOverflow  int    `json:"reservesOverflow"`
+	Overcrowded       bool   `json:"overcrowded"`
 }
 
 // IsResource reports whether key is one of the 12 resources.
@@ -77,6 +78,7 @@ func (s Sheet) Derive() Derived {
 		Inhabitants:       s.Population.Level * 10,
 		Workers:           Workers(s.Population.Level),
 		ReservesTotal:     total,
+		Overcrowded:       s.Population.Level > s.Population.Max,
 	}
 	if total > s.ReservesMax {
 		d.ReservesOverflow = total - s.ReservesMax

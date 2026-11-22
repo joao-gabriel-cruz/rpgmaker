@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMe } from '../auth/auth'
 import { useCharacters } from '../characters/characters'
 import { useRealtime } from '../realtime/realtimeContext'
@@ -10,15 +10,9 @@ import { RegionPanel } from './RegionPanel'
 import { ReservesPanel } from './ReservesPanel'
 import { WeekPanel } from './WeekPanel'
 import { WorkAllocation } from './WorkAllocation'
+import { RefugeLife } from './RefugeLife'
+import { useLiveRefuge } from './useLiveRefuge'
 import { editableOf, refugeKey, saveRefuge, useRefuge, type Refuge, type RefugeEditable } from './refuge'
-
-function useLiveRefuge(campaignId: string) {
-  const queryClient = useQueryClient()
-  const { subscribe } = useRealtime()
-  useEffect(() => subscribe('refuge.updated', (p) => {
-    queryClient.setQueryData(refugeKey(campaignId), (p as { refuge: Refuge }).refuge)
-  }), [subscribe, queryClient, campaignId])
-}
 
 function useSaveRefuge(campaignId: string) {
   const queryClient = useQueryClient()
@@ -55,21 +49,26 @@ function Header({ refuge, isGm, onChange }: { refuge: Refuge; isGm: boolean; onC
   )
 }
 
+function useTake() {
+  const { send } = useRealtime()
+  const [error, setError] = useState('')
+  const take = (characterId: string, to: Place, refugeIndex: number) => {
+    setError('')
+    send('refuge.item.withdraw', { characterId, to, refugeIndex }).catch((e: Error) => setError(e.message))
+  }
+  return { take, error }
+}
+
 export function RefugeSection({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   const { data: refuge } = useRefuge(campaignId)
   const { data: chars } = useCharacters(campaignId)
   const { data: me } = useMe()
-  const { send } = useRealtime()
-  const [error, setError] = useState('')
+  const { take, error } = useTake()
   useLiveRefuge(campaignId)
   const save = useSaveRefuge(campaignId)
   if (!refuge || !Array.isArray(refuge.items)) return null
   const mine = (Array.isArray(chars) ? chars : []).filter((c) => c.kind === 'pc' && (isGm || c.ownerId === me?.id))
   const change = (patch: Partial<RefugeEditable>) => save.mutate({ ...editableOf(refuge), ...patch })
-  const take = (characterId: string, to: Place, refugeIndex: number) => {
-    setError('')
-    send('refuge.item.withdraw', { characterId, to, refugeIndex }).catch((e: Error) => setError(e.message))
-  }
   return (
     <div className="flex flex-col gap-3">
       <Header refuge={refuge} isGm={isGm} onChange={change} />
@@ -79,6 +78,7 @@ export function RefugeSection({ campaignId, isGm }: { campaignId: string; isGm: 
       <WeekPanel campaignId={campaignId} refuge={refuge} isGm={isGm} />
       <BuildingsSection refuge={refuge} isGm={isGm} />
       <WorkAllocation refuge={refuge} isGm={isGm} />
+      <RefugeLife campaignId={campaignId} refuge={refuge} isGm={isGm} />
       <Notes refuge={refuge} isGm={isGm} onSave={(notes) => change({ notes })} />
       {save.isError && <p role="alert" className="text-sm text-red-400">{save.error.message}</p>}
       <RefugeItems items={refuge.items} characters={mine} error={error} onTake={take} />

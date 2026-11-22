@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import type { Item } from '../sheet-assimilacao/types'
 import type { Building, Proposal, WeekReport } from './buildings'
+import type { Crisis, Expedition, Resident } from './crises'
 
 export type ResourceKey = 'water' | 'food' | 'medicine' | 'clothing' | 'plants' | 'animals' | 'wood' | 'biomass' | 'minerals' | 'fuel' | 'ammo' | 'buildingMaterial'
 export type NaturalKey = 'water' | 'plants' | 'animals' | 'wood' | 'minerals' | 'biomass'
@@ -39,6 +40,7 @@ export interface Derived {
   reservesTotal: number
   reservesFree: number
   reservesOverflow: number
+  overcrowded: boolean
 }
 
 export interface Refuge extends RefugeEditable {
@@ -47,8 +49,12 @@ export interface Refuge extends RefugeEditable {
   buildings: Building[]
   proposals: Proposal[]
   history: WeekReport[]
-  crises: unknown[]
-  residents: unknown[]
+  crises: Crisis[]
+  residents: Resident[]
+  expeditions: Expedition[]
+  crisisSettings: { moralePenalty: boolean }
+  /** Derived alerts, e.g. `disease`. */
+  conditions: string[]
   updatedAt: string
   derived: Derived
 }

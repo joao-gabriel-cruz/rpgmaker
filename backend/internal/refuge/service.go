@@ -37,12 +37,15 @@ type Service struct {
 	repo   Repository
 	chars  Characters
 	events Events
+	links  Links
 	hooks  []func(ctx context.Context, campaignID string, report WeekReport)
 }
 
 // NewService builds a Service.
 func NewService(repo Repository, chars Characters, ev Events) *Service {
-	return &Service{repo: repo, chars: chars, events: ev}
+	s := &Service{repo: repo, chars: chars, events: ev}
+	s.OnWeekAdvanced(s.onWeekAdvanced)
+	return s
 }
 
 // Get returns the campaign's refuge with its derived values.
@@ -53,6 +56,7 @@ func (s *Service) Get(ctx context.Context, campaignID string) (Refuge, error) {
 
 func withDerived(r Refuge) Refuge {
 	r.Derived = r.Derive()
+	r.Conditions = r.conditions()
 	return r
 }
 

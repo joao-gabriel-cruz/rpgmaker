@@ -22,8 +22,8 @@ const refuge: Refuge = {
   region: { size: 2, danger: 1, habitation: 0, naturalResources: 1, contamination: 0, travel: 0,
     abundance: { water: 'none', plants: 'medium', animals: 'none', wood: 'abundant', minerals: 'none', biomass: 'none' } },
   buildings: [mill, fort], proposals: [{ id: 'p1', kind: 'sawmill', userId: 'u2', by: 'Bia' }], history: [report(2), report(3)],
-  crises: [], residents: [], items: [],
-  derived: { defenseLabel: '', moraleLabel: '', belligerenceLabel: '', inhabitants: 70, workers: 6, reservesTotal: 8, reservesFree: 42, reservesOverflow: 0 },
+  crises: [], expeditions: [], crisisSettings: { moralePenalty: true }, conditions: [], residents: [], items: [],
+  derived: { defenseLabel: '', moraleLabel: '', belligerenceLabel: '', inhabitants: 70, workers: 6, reservesTotal: 8, reservesFree: 42, reservesOverflow: 0, overcrowded: false },
 }
 
 let handlers: Record<string, (p: unknown) => void>

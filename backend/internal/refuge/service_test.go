@@ -138,7 +138,7 @@ func TestUpdateGMOnlyAndValidation(t *testing.T) {
 	bads := []func(*Editable){
 		func(e *Editable) { e.Defense = 7 }, func(e *Editable) { e.Resources["water"] = -1 },
 		func(e *Editable) { e.Name = "" }, func(e *Editable) { e.Morale = -1 },
-		func(e *Editable) { e.Population.Level = 11 }, func(e *Editable) { e.Population.Max = 0 },
+		func(e *Editable) { e.Population.Level = -1 }, func(e *Editable) { e.Population.Max = 0 },
 		func(e *Editable) { e.Resources["gold"] = 1 }, func(e *Editable) { e.Region.Abundance["wood"] = "lots" },
 		func(e *Editable) { e.Region.Danger = 7 }, func(e *Editable) { e.Week = 0 }, func(e *Editable) { e.Mobility = -1 },
 	}
@@ -230,5 +230,16 @@ func TestMutateRollsBackOnErrorAndValidates(t *testing.T) {
 	r, err := svc.Mutate(ctx, "c", func(r *Refuge) error { r.Week++; return nil })
 	if err != nil || r.Week != 2 || len(ev.types) != 1 {
 		t.Errorf("mutate = %d %v %v", r.Week, err, ev.types)
+	}
+}
+
+func TestPopulationAboveCapIsOvercrowded(t *testing.T) {
+	s, _, _, _ := setup(sheet)
+	r, err := s.Update(ctx, gm, editable(func(e *Editable) { e.Population.Level = 12 }))
+	if err != nil || !r.Derived.Overcrowded || r.Derived.Inhabitants != 120 {
+		t.Fatalf("update = %+v %v", r.Derived, err)
+	}
+	if r, _ = s.Update(ctx, gm, editable(func(e *Editable) { e.Population.Level = 10 })); r.Derived.Overcrowded {
+		t.Error("at the cap is not overcrowded")
 	}
 }
