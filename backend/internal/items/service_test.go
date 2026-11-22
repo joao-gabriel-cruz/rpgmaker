@@ -8,6 +8,7 @@ import (
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/effects"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
 )
 
 var ctx = context.Background()
@@ -261,3 +262,14 @@ func TestPickupNeedsAdjacencyAndVisibility(t *testing.T) {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+func TestCleanAcceptsAllTwelveRefugeResources(t *testing.T) {
+	for _, key := range refuge.ResourceKeys {
+		it := validItem()
+		it.Kind = KindConsumable
+		it.Effects = ItemEffects{RefugeResource: &RefugeResource{Resource: key, Amount: 2}}
+		if _, err := Clean(it); err != nil {
+			t.Errorf("%s rejected: %v", key, err)
+		}
+	}
+}

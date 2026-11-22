@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import { useRealtime } from '../realtime/realtimeContext'
+import { RESOURCE_LABEL, type ResourceKey } from '../refuge/refuge'
 
 export type ItemKind = 'melee' | 'ranged' | 'tool' | 'consumable' | 'clothing' | 'resource' | 'key' | 'other'
 export type ActionCategory = 'combat' | 'exploration' | 'social' | 'survival'
 export type AttackAnimation = 'slash' | 'blunt' | 'shot' | 'arrow'
-export type RefugeResourceKey = 'water' | 'food' | 'wood'
+export type RefugeResourceKey = ResourceKey
 
 export interface ItemEffects {
   keptBonus?: { actionCategory: ActionCategory; amount: number }
@@ -38,7 +39,7 @@ export const CATEGORY_LABEL: Record<ActionCategory, string> = {
   combat: 'Combate', exploration: 'Exploração', social: 'Social', survival: 'Sobrevivência',
 }
 export const ANIMATION_LABEL: Record<AttackAnimation, string> = { slash: 'Corte', blunt: 'Impacto', shot: 'Tiro', arrow: 'Flecha' }
-export const RESOURCE_LABEL: Record<RefugeResourceKey, string> = { water: 'Água', food: 'Alimento', wood: 'Madeira' }
+export { RESOURCE_LABEL }
 
 // Must match the server's curated list (backend/internal/items/validate.go).
 export const ICON_NAMES = [

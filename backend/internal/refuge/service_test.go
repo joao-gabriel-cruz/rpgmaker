@@ -3,6 +3,7 @@ package refuge
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -21,8 +22,16 @@ type fakeRepo struct {
 }
 
 func (f *fakeRepo) Get(context.Context, string) (Refuge, error) { return f.r, nil }
-func (f *fakeRepo) Update(_ context.Context, _ string, d Details) (Refuge, error) {
-	f.r.Details = d
+func (f *fakeRepo) Mutate(_ context.Context, _ string, fn MutateFunc) (Refuge, error) {
+	next := f.r
+	next.Resources = map[string]int{}
+	for k, v := range f.r.Resources {
+		next.Resources[k] = v
+	}
+	if err := fn(&next); err != nil {
+		return Refuge{}, err
+	}
+	f.r = next
 	return f.r, nil
 }
 func (f *fakeRepo) Move(_ context.Context, _, _ string, fn MoveFunc) (Refuge, error) {
@@ -32,15 +41,6 @@ func (f *fakeRepo) Move(_ context.Context, _, _ string, fn MoveFunc) (Refuge, er
 	}
 	f.char.Sheet, f.r.Items = sheet, items
 	f.moves++
-	return f.r, nil
-}
-
-func (f *fakeRepo) AddItem(_ context.Context, _ string, item json.RawMessage) (Refuge, error) {
-	f.r.Items = append(f.r.Items, item)
-	return f.r, nil
-}
-func (f *fakeRepo) AddResource(_ context.Context, _, _ string, amount int) (Refuge, error) {
-	f.r.Water += amount
 	return f.r, nil
 }
 
@@ -56,7 +56,7 @@ func (f *fakeEvents) Broadcast(_ string, _ realtime.Filter, typ string, _ any) {
 
 func setup(sheet string) (*Service, *fakeRepo, *fakeChars, *fakeEvents) {
 	owner := "u-ana"
-	repo := &fakeRepo{r: Refuge{Items: []json.RawMessage{}}, char: CharState{OwnerID: &owner, Kind: "pc", Sheet: json.RawMessage(sheet)}}
+	repo := &fakeRepo{r: Refuge{Editable: Editable{Text: Text{Name: "Refúgio"}, Sheet: DefaultSheet()}, Items: []json.RawMessage{}}, char: CharState{OwnerID: &owner, Kind: "pc", Sheet: json.RawMessage(sheet)}}
 	ch, ev := &fakeChars{}, &fakeEvents{}
 	return NewService(repo, ch, ev), repo, ch, ev
 }
@@ -121,19 +121,73 @@ func TestMovePermissions(t *testing.T) {
 	}
 }
 
+func editable(mod func(*Editable)) Editable {
+	e := Editable{Text: Text{Name: "Refúgio"}, Sheet: DefaultSheet()}
+	if mod != nil {
+		mod(&e)
+	}
+	return e
+}
+
 func TestUpdateGMOnlyAndValidation(t *testing.T) {
 	s, _, _, ev := setup(sheet)
-	d := Details{Name: "Refúgio", Defense: 3, Water: 5}
-	if _, err := s.Update(ctx, ana, d); err == nil {
+	good := editable(func(e *Editable) { e.Defense = 3; e.Resources["water"] = 5; e.Region.Abundance["wood"] = "abundant" })
+	if _, err := s.Update(ctx, ana, good); err == nil {
 		t.Error("player updated refuge")
 	}
-	for _, bad := range []Details{{Name: "R", Defense: 11}, {Name: "R", Water: -1}, {Name: ""}, {Name: "R", Morale: -1}} {
-		if _, err := s.Update(ctx, gm, bad); err == nil {
-			t.Errorf("accepted %+v", bad)
+	bads := []func(*Editable){
+		func(e *Editable) { e.Defense = 7 }, func(e *Editable) { e.Resources["water"] = -1 },
+		func(e *Editable) { e.Name = "" }, func(e *Editable) { e.Morale = -1 },
+		func(e *Editable) { e.Population.Level = 11 }, func(e *Editable) { e.Population.Max = 0 },
+		func(e *Editable) { e.Resources["gold"] = 1 }, func(e *Editable) { e.Region.Abundance["wood"] = "lots" },
+		func(e *Editable) { e.Region.Danger = 7 }, func(e *Editable) { e.Week = 0 }, func(e *Editable) { e.Mobility = -1 },
+	}
+	for i, bad := range bads {
+		if _, err := s.Update(ctx, gm, editable(bad)); !errors.Is(err, ErrInvalid) {
+			t.Errorf("bad #%d err = %v", i, err)
 		}
 	}
-	if r, err := s.Update(ctx, gm, d); err != nil || r.Water != 5 || len(ev.types) != 1 {
+	if r, err := s.Update(ctx, gm, good); err != nil || r.Resources["water"] != 5 || r.Derived.DefenseLabel != "Muro de madeira" || len(ev.types) != 1 {
 		t.Errorf("update = %+v %v %v", r, err, ev.types)
+	}
+}
+
+func TestUpdateFillsMissingKeysAndKeepsLists(t *testing.T) {
+	s, repo, _, _ := setup(sheet)
+	repo.r.Buildings = []json.RawMessage{json.RawMessage(`{"id":"b"}`)}
+	e := Editable{Text: Text{Name: "R"}, Sheet: Sheet{Population: Population{Max: 10}, Week: 1}}
+	r, err := s.Update(ctx, gm, e)
+	if err != nil || len(r.Resources) != 12 || len(r.Region.Abundance) != 6 || len(r.Buildings) != 1 {
+		t.Fatalf("update = %+v %v", r, err)
+	}
+}
+
+func TestDerivedValues(t *testing.T) {
+	sh := DefaultSheet()
+	sh.Population.Level = 7
+	sh.Morale, sh.Belligerence = 6, 0
+	sh.Resources["water"], sh.Resources["ammo"] = 8, 5
+	d := sh.Derive()
+	if d.Inhabitants != 70 || d.Workers != 6 || d.ReservesTotal != 13 || d.ReservesOverflow != 3 || d.ReservesFree != 0 ||
+		d.MoraleLabel != "Exaltada" || d.BelligerenceLabel != "Pacifista" || d.DefenseLabel != "Nenhuma" {
+		t.Errorf("derived = %+v", d)
+	}
+	for lvl, want := range map[int]int{0: 0, 5: 5, 6: 5, 11: 10, 12: 10, 18: 15} {
+		if got := Workers(lvl); got != want {
+			t.Errorf("Workers(%d) = %d, want %d", lvl, got, want)
+		}
+	}
+	if len(DefenseLabels) != 7 || len(MoraleLabels) != 7 || len(BelligerenceLabels) != 7 || len(ResourceKeys) != 12 {
+		t.Error("label/resource tables must have 7 levels and 12 resources")
+	}
+}
+
+func TestCapReservesTakesFromLargest(t *testing.T) {
+	sh := DefaultSheet()
+	sh.Resources["water"], sh.Resources["food"], sh.Resources["fuel"] = 9, 6, 1
+	lost := sh.CapReserves()
+	if sh.ReservesTotal() != 10 || sh.Resources["water"] != 4 || sh.Resources["food"] != 5 || lost["water"] != 5 || lost["food"] != 1 {
+		t.Errorf("cap = %+v lost=%v", sh.Resources, lost)
 	}
 }
 
@@ -145,7 +199,36 @@ func TestAddItemAndResourceBroadcast(t *testing.T) {
 	if _, err := svc.AddResource(ctx, "c", "water", 0); err == nil {
 		t.Fatal("zero amount must be rejected")
 	}
-	if _, err := svc.AddResource(ctx, "c", "water", 2); err != nil || repo.r.Water != 2 || len(ev.types) != 2 {
-		t.Fatalf("add resource: %v %d %v", err, repo.r.Water, ev.types)
+	if _, err := svc.AddResource(ctx, "c", "gold", 1); err == nil {
+		t.Fatal("unknown resource must be rejected")
+	}
+	if _, err := svc.AddResource(ctx, "c", "buildingMaterial", 2); err != nil || repo.r.Resources["buildingMaterial"] != 2 || len(ev.types) != 2 {
+		t.Fatalf("add resource: %v %v %v", err, repo.r.Resources, ev.types)
+	}
+}
+
+func TestAddResourceDiscardsExcess(t *testing.T) {
+	svc, repo, _, _ := setup(sheet)
+	repo.r.Resources["food"] = 7
+	r, discarded, err := svc.AddResourceReport(ctx, "c", "ammo", 6)
+	if err != nil || discarded != 3 || r.Resources["ammo"] != 3 || r.Derived.ReservesTotal != 10 {
+		t.Fatalf("report = %+v %d %v", r.Resources, discarded, err)
+	}
+	if _, discarded, _ = svc.AddResourceReport(ctx, "c", "ammo", 2); discarded != 2 || repo.r.Resources["ammo"] != 3 {
+		t.Errorf("full reserves must discard everything, got %d", discarded)
+	}
+}
+
+func TestMutateRollsBackOnErrorAndValidates(t *testing.T) {
+	svc, repo, _, ev := setup(sheet)
+	if _, err := svc.Mutate(ctx, "c", func(r *Refuge) error { r.Week = 0; return nil }); !errors.Is(err, ErrInvalid) {
+		t.Errorf("invalid mutate = %v", err)
+	}
+	if repo.r.Week != 1 || len(ev.types) != 0 {
+		t.Errorf("state leaked: week=%d events=%v", repo.r.Week, ev.types)
+	}
+	r, err := svc.Mutate(ctx, "c", func(r *Refuge) error { r.Week++; return nil })
+	if err != nil || r.Week != 2 || len(ev.types) != 1 {
+		t.Errorf("mutate = %d %v %v", r.Week, err, ev.types)
 	}
 }

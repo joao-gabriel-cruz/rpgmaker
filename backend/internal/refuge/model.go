@@ -1,4 +1,5 @@
-// Package refuge owns the group's shared Refúgio: attributes, resources and a shared inventory.
+// Package refuge owns the group's shared Refúgio: attributes, population, reserves, resources,
+// region, week counter and a shared inventory.
 package refuge
 
 import (
@@ -12,7 +13,6 @@ const (
 	BodySlots     = 3
 	BackpackSlots = 6
 	maxItems      = 200
-	maxAttr       = 10
 	maxText       = 5000
 	maxName       = 100
 )
@@ -24,26 +24,61 @@ var (
 	ErrInvalid = errors.New("invalid input")
 )
 
-// Details are the GM-editable fields of the Refúgio.
-type Details struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Defense      int    `json:"defense"`
-	Morale       int    `json:"morale"`
-	Mobility     int    `json:"mobility"`
-	Belligerence int    `json:"belligerence"`
-	Water        int    `json:"water"`
-	Food         int    `json:"food"`
-	Wood         int    `json:"wood"`
-	Notes        string `json:"notes"`
+// Population is the group's size as a level (about 10 inhabitants each) bounded by Max.
+type Population struct {
+	Level int `json:"level"`
+	Max   int `json:"max"`
 }
 
-// Refuge is the campaign's Refúgio; items use the sheet's item format and are kept verbatim.
+// Region describes the surroundings: six 0-6 attributes plus abundance per natural resource.
+type Region struct {
+	Size             int               `json:"size"`
+	Danger           int               `json:"danger"`
+	Habitation       int               `json:"habitation"`
+	NaturalResources int               `json:"naturalResources"`
+	Contamination    int               `json:"contamination"`
+	Travel           int               `json:"travel"`
+	Abundance        map[string]string `json:"abundance"`
+}
+
+// Text holds the free-text fields of the Refúgio.
+type Text struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Notes       string `json:"notes"`
+}
+
+// Sheet is the numeric state a delivery may edit; stored in the refuges.state jsonb column.
+type Sheet struct {
+	Defense        int            `json:"defense"`
+	Morale         int            `json:"morale"`
+	Belligerence   int            `json:"belligerence"`
+	Mobility       int            `json:"mobility"`
+	Population     Population     `json:"population"`
+	ReservesMax    int            `json:"reservesMax"`
+	HasWaterSource bool           `json:"hasWaterSource"`
+	Resources      map[string]int `json:"resources"`
+	Region         Region         `json:"region"`
+	Week           int            `json:"week"`
+}
+
+// Editable is what the Mestre can replace through PUT: text plus the Sheet.
+type Editable struct {
+	Text
+	Sheet
+}
+
+// Refuge is the campaign's Refúgio. Buildings, Crises and Residents are reserved for the
+// next deliveries (kept verbatim, empty for now); items use the sheet's item format.
 type Refuge struct {
-	Details
-	CampaignID string            `json:"campaignId"`
-	Items      []json.RawMessage `json:"items"`
-	UpdatedAt  time.Time         `json:"updatedAt"`
+	CampaignID string `json:"campaignId"`
+	Editable
+	Buildings []json.RawMessage `json:"buildings"`
+	Crises    []json.RawMessage `json:"crises"`
+	Residents []json.RawMessage `json:"residents"`
+	Items     []json.RawMessage `json:"items"`
+	UpdatedAt time.Time         `json:"updatedAt"`
+	Derived   Derived           `json:"derived"`
 }
 
 // CharState is the part of a character the move rules need.
@@ -51,19 +86,4 @@ type CharState struct {
 	OwnerID *string
 	Kind    string
 	Sheet   json.RawMessage
-}
-
-func (d Details) validate() error {
-	for _, v := range []int{d.Defense, d.Morale, d.Mobility, d.Belligerence} {
-		if v < 0 || v > maxAttr {
-			return ErrInvalid
-		}
-	}
-	if d.Water < 0 || d.Food < 0 || d.Wood < 0 {
-		return ErrInvalid
-	}
-	if len(d.Name) == 0 || len(d.Name) > maxName || len(d.Description) > maxText || len(d.Notes) > maxText {
-		return ErrInvalid
-	}
-	return nil
 }
