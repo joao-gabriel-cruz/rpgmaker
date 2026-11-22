@@ -2,8 +2,10 @@ package mcp
 
 import (
 	"context"
+	"slices"
 
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/tokens"
 )
 
 type inverseStep func(ctx context.Context, t Table, s Session, e entry) error
@@ -58,8 +60,19 @@ func applyCondition(ctx context.Context, t Table, s Session, e entry) error {
 	return t.Ambience.SetCondition(ctx, s.Sender, s.CampaignID, k.CharacterID, k.Condition, k.Active)
 }
 
+// applyRemoveTokens skips tokens already gone, so one hand-removed token cannot strand the rest.
 func applyRemoveTokens(ctx context.Context, t Table, s Session, e entry) error {
+	if len(e.inv.RemoveTokens) == 0 {
+		return nil
+	}
+	live, err := t.Tokens.List(ctx, gmMember(s), e.view.SceneID)
+	if err != nil {
+		return err
+	}
 	for _, id := range e.inv.RemoveTokens {
+		if !slices.ContainsFunc(live, func(tk tokens.Token) bool { return tk.ID == id }) {
+			continue
+		}
 		if err := t.Tokens.Remove(ctx, s.Sender, s.CampaignID, id); err != nil {
 			return err
 		}

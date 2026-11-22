@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/realtime"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
 )
@@ -28,6 +29,8 @@ func toolError(err error) error {
 		return ue
 	case errors.Is(err, errNoActiveScene), errors.Is(err, errOpenDraft):
 		return err
+	case errors.Is(err, characters.ErrInvalidInput):
+		return newUserError("Dados inválidos para o personagem (nome longo demais?)")
 	case errors.Is(err, scenes.ErrNotFound):
 		return newUserError("Cena não encontrada")
 	case errors.Is(err, scenes.ErrInvalidPatch):

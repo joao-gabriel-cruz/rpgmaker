@@ -214,7 +214,13 @@ func (f *fakeCharacters) Save(_ context.Context, _ campaigns.Member, id string, 
 		f.saved = map[string]json.RawMessage{}
 	}
 	f.saved[id] = sheet
-	return characters.View{}, nil
+	for i, v := range f.list {
+		if v.ID == id {
+			f.list[i].Sheet = sheet
+			return f.list[i], nil
+		}
+	}
+	return characters.View{}, characters.ErrNotFound
 }
 
 func (f *fakeCharacters) List(context.Context, campaigns.Member) ([]characters.View, error) {

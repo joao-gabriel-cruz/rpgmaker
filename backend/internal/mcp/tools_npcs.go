@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -128,20 +129,22 @@ func makeNPCs(ctx context.Context, t Table, s Session, in createNPCInput) ([]cha
 			return made, err
 		}
 		if hasSheetFields(in) {
-			sheet, err := mergeNPCSheet(v.Sheet, in)
+			saved, err := saveNPC(ctx, t, m, v, in)
 			if err != nil {
-				return made, err
+				return append(made, v), err
 			}
-			if v, err = saveNPC(ctx, t, m, v, sheet); err != nil {
-				return made, err
-			}
+			v = saved
 		}
 		made = append(made, v)
 	}
 	return made, nil
 }
 
-func saveNPC(ctx context.Context, t Table, m campaigns.Member, v characters.View, sheet []byte) (characters.View, error) {
+func saveNPC(ctx context.Context, t Table, m campaigns.Member, v characters.View, in createNPCInput) (characters.View, error) {
+	sheet, err := mergeNPCSheet(v.Sheet, in)
+	if err != nil {
+		return v, err
+	}
 	saved, err := t.Characters.Save(ctx, m, v.ID, sheet)
 	var rej *characters.RejectedError
 	if errors.As(err, &rej) {
@@ -151,20 +154,19 @@ func saveNPC(ctx context.Context, t Table, m campaigns.Member, v characters.View
 		}
 		return v, newUserError("a ficha do NPC foi rejeitada: " + strings.Join(msgs, "; "))
 	}
-	if err != nil {
-		return v, err
-	}
-	if saved.ID == "" {
-		return v, nil
-	}
-	return saved, nil
+	return saved, err
 }
 
 // placeNPCs puts each NPC on the nearest free cell and journals the whole batch as one change.
 func placeNPCs(ctx context.Context, t Table, j *Journal, s Session, sp *npcSpot, made []characters.View) (placed, failed []string) {
 	for _, v := range made {
 		c, ok := nearestFree(sp.grid, sp.sc.Objects, sp.taken, sp.at)
-		if !ok || t.Tokens.Place(ctx, s.Sender, s.CampaignID, sp.sc.ID, v.ID, c.X, c.Z) != nil {
+		if !ok {
+			failed = append(failed, v.Name)
+			continue
+		}
+		if err := t.Tokens.Place(ctx, s.Sender, s.CampaignID, sp.sc.ID, v.ID, c.X, c.Z); err != nil {
+			slog.Warn("mcp place npc", "character", v.ID, "err", err)
 			failed = append(failed, v.Name)
 			continue
 		}
@@ -175,6 +177,9 @@ func placeNPCs(ctx context.Context, t Table, j *Journal, s Session, sp *npcSpot,
 		return nil, failed
 	}
 	ids := tokenIDsOf(ctx, t, s, sp.sc.ID, placed)
+	if len(ids) == 0 {
+		return placed, failed
+	}
 	summary := fmt.Sprintf("%d NPC(s) colocado(s) perto de (%d,%d)", len(placed), sp.at.X, sp.at.Z)
 	j.Record(s.CampaignID, sp.sc.ID, summary, Inverse{RemoveTokens: ids})
 	return placed, failed
@@ -184,6 +189,7 @@ func placeNPCs(ctx context.Context, t Table, j *Journal, s Session, sp *npcSpot,
 func tokenIDsOf(ctx context.Context, t Table, s Session, sceneID string, charIDs []string) []string {
 	list, err := sceneTokens(ctx, t, s, sceneID)
 	if err != nil {
+		slog.Warn("mcp token ids", "err", err)
 		return nil
 	}
 	var ids []string

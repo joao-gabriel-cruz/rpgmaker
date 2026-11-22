@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/campaigns"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/characters"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/maps"
 	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/scenes"
@@ -82,6 +81,8 @@ func TestCreateNPCValidation(t *testing.T) {
 		{"count 11", map[string]any{"name": "X", "count": 11}, "entre 1 e 10"},
 		{"outside grid", map[string]any{"name": "X", "at": at(50, 50)}, "fora da cena"},
 		{"bad instinct", map[string]any{"name": "X", "instincts": map[string]any{"luck": 1}}, "luck"},
+		{"accented long name", map[string]any{"name": strings.Repeat("é", 60)}, "entre 1 e 100"},
+		{"suffix overflow", map[string]any{"name": strings.Repeat("a", 98), "count": 10}, "entre 1 e 100"},
 		{"aptitude 100", map[string]any{"name": "X", "practices": map[string]any{"weapons": 100}}, "0 e 99"},
 	}
 	for _, c := range cases {
@@ -131,7 +132,7 @@ func TestPlaceTokenRefusesOccupiedOrBlocked(t *testing.T) {
 	sc := r.sc.scenes["s1"]
 	sc.Objects = []maps.Object{{ID: "w", Prefab: "wall", X: 5, Z: 5}}
 	text, isErr = callTool(t, r.t, r.j, "place_token", map[string]any{"character": "c-orc", "x": 5, "z": 5})
-	if !isErr || text == "" {
+	if !isErr || !strings.Contains(text, "bloqueando") {
 		t.Fatalf("blocked: err=%v text=%q", isErr, text)
 	}
 	text, isErr = callTool(t, r.t, r.j, "place_token", map[string]any{"character": "c-orc", "x": 99, "z": 0})
@@ -187,4 +188,18 @@ func TestNPCToolsRefuseDraft(t *testing.T) {
 	}
 }
 
-var _ = campaigns.RoleGM
+func TestUndoCreateNPCSurvivesManuallyRemovedToken(t *testing.T) {
+	r := liveRig(1)
+	if _, isErr := callTool(t, r.t, r.j, "create_npc", map[string]any{"name": "Inf", "count": 3, "at": at(4, 4)}); isErr {
+		t.Fatal("create failed")
+	}
+	if err := r.tk.Remove(t.Context(), r.s.Sender, "c1", r.tk.list[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.j.Undo(t.Context(), r.t, r.s, ""); err != nil {
+		t.Fatalf("undo: %v", err)
+	}
+	if len(r.tk.list) != 0 || len(r.tk.removed) != 3 {
+		t.Fatalf("tokens=%d removed=%v", len(r.tk.list), r.tk.removed)
+	}
+}

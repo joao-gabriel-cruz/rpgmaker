@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode/utf8"
 )
 
 const (
@@ -47,11 +46,16 @@ func validateGroup(label string, vals map[string]int, keys []string) error {
 }
 
 func validateCreateNPC(in createNPCInput) error {
-	if n := utf8.RuneCountInString(strings.TrimSpace(in.Name)); n == 0 || n > maxNPCNameLen {
-		return newUserError("o nome do NPC deve ter entre 1 e 100 caracteres")
-	}
 	if in.Count != 0 && (in.Count < 1 || in.Count > maxNPCCount) {
 		return newUserError("a quantidade deve ficar entre 1 e 10")
+	}
+	// characters.Create limits bytes, and count > 1 appends " N" to each name.
+	n := len(strings.TrimSpace(in.Name))
+	if in.Count > 1 {
+		n += len(fmt.Sprintf(" %d", in.Count))
+	}
+	if n == 0 || n > maxNPCNameLen {
+		return newUserError("o nome do NPC deve ter entre 1 e 100 caracteres (com o número, se houver mais de um)")
 	}
 	for _, g := range []struct {
 		label string
