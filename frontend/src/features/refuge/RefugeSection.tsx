@@ -5,8 +5,11 @@ import { useCharacters } from '../characters/characters'
 import { useRealtime } from '../realtime/realtimeContext'
 import { RefugeItems, type Place } from './RefugeItems'
 import { RefugeStats } from './RefugeStats'
+import { BuildingsSection } from './BuildingsSection'
 import { RegionPanel } from './RegionPanel'
 import { ReservesPanel } from './ReservesPanel'
+import { WeekPanel } from './WeekPanel'
+import { WorkAllocation } from './WorkAllocation'
 import { editableOf, refugeKey, saveRefuge, useRefuge, type Refuge, type RefugeEditable } from './refuge'
 
 function useLiveRefuge(campaignId: string) {
@@ -73,6 +76,9 @@ export function RefugeSection({ campaignId, isGm }: { campaignId: string; isGm: 
       <RefugeStats refuge={refuge} isGm={isGm} onChange={change} />
       <ReservesPanel refuge={refuge} isGm={isGm} onChange={change} />
       <RegionPanel refuge={refuge} isGm={isGm} onChange={change} />
+      <WeekPanel campaignId={campaignId} refuge={refuge} isGm={isGm} />
+      <BuildingsSection refuge={refuge} isGm={isGm} />
+      <WorkAllocation refuge={refuge} isGm={isGm} />
       <Notes refuge={refuge} isGm={isGm} onSave={(notes) => change({ notes })} />
       {save.isError && <p role="alert" className="text-sm text-red-400">{save.error.message}</p>}
       <RefugeItems items={refuge.items} characters={mine} error={error} onTake={take} />

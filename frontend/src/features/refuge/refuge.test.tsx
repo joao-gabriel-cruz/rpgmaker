@@ -14,7 +14,7 @@ const refuge: Refuge = {
   resources: { ...resources, water: 8, food: 5 },
   region: { size: 2, danger: 4, habitation: 0, naturalResources: 1, contamination: 0, travel: 0,
     abundance: { water: 'none', plants: 'medium', animals: 'none', wood: 'abundant', minerals: 'none', biomass: 'none' } },
-  buildings: [], crises: [], residents: [],
+  buildings: [], proposals: [], history: [], crises: [], residents: [],
   derived: { defenseLabel: 'Muro de madeira', moraleLabel: 'Amotinada', belligerenceLabel: 'Arrasadora', inhabitants: 70, workers: 6, reservesTotal: 13, reservesFree: 0, reservesOverflow: 3 },
   items: [{ name: 'Faca', quality: 1, scarcity: 2, pressure: 0, traits: [] }],
 }

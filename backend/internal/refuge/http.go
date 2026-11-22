@@ -29,6 +29,9 @@ func Register(mux *http.ServeMux, hub *realtime.Hub, svc *Service, h *campaigns.
 		respond(w, out, err)
 	})))
 	registerCommands(hub, svc)
+	registerBuildingCommands(hub, svc)
+	registerWeekCommands(hub, svc)
+	registerWeekHTTP(mux, svc, h)
 }
 
 type moveCmd struct {
@@ -69,6 +72,8 @@ func respond(w http.ResponseWriter, v Refuge, err error) {
 		writeJSON(w, http.StatusOK, v)
 	case errors.Is(err, ErrInvalid):
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Dados inválidos: níveis de 0 a 6, população dentro do teto e recursos não negativos"})
+	case userMsg(err) != "":
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": userMsg(err)})
 	default:
 		slog.Error("refuge request failed", "err", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Erro interno. Tente novamente"})
@@ -79,4 +84,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func userMsg(err error) string {
+	msg, _ := realtime.UserMessage(err)
+	return msg
 }

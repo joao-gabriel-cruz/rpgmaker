@@ -154,7 +154,7 @@ func TestUpdateGMOnlyAndValidation(t *testing.T) {
 
 func TestUpdateFillsMissingKeysAndKeepsLists(t *testing.T) {
 	s, repo, _, _ := setup(sheet)
-	repo.r.Buildings = []json.RawMessage{json.RawMessage(`{"id":"b"}`)}
+	repo.r.Buildings = []Building{{ID: "b", Kind: KindSawmill, Level: 1}}
 	e := Editable{Text: Text{Name: "R"}, Sheet: Sheet{Population: Population{Max: 10}, Week: 1}}
 	r, err := s.Update(ctx, gm, e)
 	if err != nil || len(r.Resources) != 12 || len(r.Region.Abundance) != 6 || len(r.Buildings) != 1 {

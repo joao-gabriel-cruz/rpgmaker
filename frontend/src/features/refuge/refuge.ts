@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import type { Item } from '../sheet-assimilacao/types'
+import type { Building, Proposal, WeekReport } from './buildings'
 
 export type ResourceKey = 'water' | 'food' | 'medicine' | 'clothing' | 'plants' | 'animals' | 'wood' | 'biomass' | 'minerals' | 'fuel' | 'ammo' | 'buildingMaterial'
 export type NaturalKey = 'water' | 'plants' | 'animals' | 'wood' | 'minerals' | 'biomass'
@@ -43,7 +44,9 @@ export interface Derived {
 export interface Refuge extends RefugeEditable {
   campaignId: string
   items: Item[]
-  buildings: unknown[]
+  buildings: Building[]
+  proposals: Proposal[]
+  history: WeekReport[]
   crises: unknown[]
   residents: unknown[]
   updatedAt: string
