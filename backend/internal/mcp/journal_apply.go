@@ -60,20 +60,20 @@ func applyCondition(ctx context.Context, t Table, s Session, e entry) error {
 	return t.Ambience.SetCondition(ctx, s.Sender, s.CampaignID, k.CharacterID, k.Condition, k.Active)
 }
 
-// applyRemoveTokens skips tokens already gone, so one hand-removed token cannot strand the rest.
+// applyRemoveTokens removes the scene token of each listed character, skipping absent ones.
 func applyRemoveTokens(ctx context.Context, t Table, s Session, e entry) error {
-	if len(e.inv.RemoveTokens) == 0 {
+	if len(e.inv.RemoveCharacters) == 0 {
 		return nil
 	}
 	live, err := t.Tokens.List(ctx, gmMember(s), e.view.SceneID)
 	if err != nil {
 		return err
 	}
-	for _, id := range e.inv.RemoveTokens {
-		if !slices.ContainsFunc(live, func(tk tokens.Token) bool { return tk.ID == id }) {
+	for _, tk := range live {
+		if !slices.Contains(e.inv.RemoveCharacters, tk.CharacterID) {
 			continue
 		}
-		if err := t.Tokens.Remove(ctx, s.Sender, s.CampaignID, id); err != nil {
+		if err := t.Tokens.Remove(ctx, s.Sender, s.CampaignID, tk.ID); err != nil {
 			return err
 		}
 	}
@@ -81,7 +81,17 @@ func applyRemoveTokens(ctx context.Context, t Table, s Session, e entry) error {
 }
 
 func applyPlaceTokens(ctx context.Context, t Table, s Session, e entry) error {
+	if len(e.inv.PlaceTokens) == 0 {
+		return nil
+	}
+	live, err := t.Tokens.List(ctx, gmMember(s), e.view.SceneID)
+	if err != nil {
+		return err
+	}
 	for _, sp := range e.inv.PlaceTokens {
+		if slices.ContainsFunc(live, func(tk tokens.Token) bool { return tk.CharacterID == sp.CharacterID }) {
+			continue
+		}
 		if err := t.Tokens.Place(ctx, s.Sender, s.CampaignID, e.view.SceneID, sp.CharacterID, sp.X, sp.Z); err != nil {
 			return err
 		}

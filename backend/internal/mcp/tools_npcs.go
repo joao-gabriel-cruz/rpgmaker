@@ -176,29 +176,7 @@ func placeNPCs(ctx context.Context, t Table, j *Journal, s Session, sp *npcSpot,
 	if len(placed) == 0 {
 		return nil, failed
 	}
-	ids := tokenIDsOf(ctx, t, s, sp.sc.ID, placed)
-	if len(ids) == 0 {
-		return placed, failed
-	}
 	summary := fmt.Sprintf("%d NPC(s) colocado(s) perto de (%d,%d)", len(placed), sp.at.X, sp.at.Z)
-	j.Record(s.CampaignID, sp.sc.ID, summary, Inverse{RemoveTokens: ids})
+	j.Record(s.CampaignID, sp.sc.ID, summary, Inverse{RemoveCharacters: placed})
 	return placed, failed
-}
-
-// tokenIDsOf finds the tokens Place created, since Place does not return them.
-func tokenIDsOf(ctx context.Context, t Table, s Session, sceneID string, charIDs []string) []string {
-	list, err := sceneTokens(ctx, t, s, sceneID)
-	if err != nil {
-		slog.Warn("mcp token ids", "err", err)
-		return nil
-	}
-	var ids []string
-	for _, tk := range list {
-		for _, c := range charIDs {
-			if tk.CharacterID == c {
-				ids = append(ids, tk.ID)
-			}
-		}
-	}
-	return ids
 }

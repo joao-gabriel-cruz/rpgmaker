@@ -203,3 +203,21 @@ func TestUndoCreateNPCSurvivesManuallyRemovedToken(t *testing.T) {
 		t.Fatalf("tokens=%d removed=%v", len(r.tk.list), r.tk.removed)
 	}
 }
+
+func TestUndoInReverseRestoresEmptyMap(t *testing.T) {
+	r := liveRig(1)
+	if _, isErr := callTool(t, r.t, r.j, "create_npc", map[string]any{"name": "Inf", "count": 3, "at": at(4, 4)}); isErr {
+		t.Fatal("create failed")
+	}
+	if _, isErr := callTool(t, r.t, r.j, "remove_token", map[string]any{"token": "npc2"}); isErr {
+		t.Fatal("remove failed")
+	}
+	for range 2 {
+		if _, err := r.j.Undo(t.Context(), r.t, r.s, ""); err != nil {
+			t.Fatalf("undo: %v", err)
+		}
+	}
+	if len(r.tk.list) != 0 || len(r.chr.list) != 3 || len(r.j.List("c1")) != 0 {
+		t.Fatalf("tokens=%+v chars=%d journal=%d", r.tk.list, len(r.chr.list), len(r.j.List("c1")))
+	}
+}

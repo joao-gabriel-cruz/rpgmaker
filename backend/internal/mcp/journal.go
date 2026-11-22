@@ -42,9 +42,10 @@ type Inverse struct {
 	Token     *TokenPos
 	Ambience  *ambience.Ambience
 	Condition *ConditionState
-	// RemoveTokens (token ids) and PlaceTokens revert token placement; applied after the fields above.
-	RemoveTokens []string
-	PlaceTokens  []TokenSpot
+	// RemoveCharacters (character ids) and PlaceTokens revert token placement by character, since a
+	// character has one token per scene but its token id changes when re-placed; applied after the fields above.
+	RemoveCharacters []string
+	PlaceTokens      []TokenSpot
 }
 
 // ChangeView is the public face of a journal entry.

@@ -61,9 +61,7 @@ func placeToken(ctx context.Context, t Table, j *Journal, s Session, in placeTok
 		return "", err
 	}
 	summary := fmt.Sprintf("%s colocado em (%d,%d)", ch.Name, in.X, in.Z)
-	if ids := tokenIDsOf(ctx, t, s, sc.ID, []string{ch.ID}); len(ids) > 0 {
-		j.Record(s.CampaignID, sc.ID, summary, Inverse{RemoveTokens: ids})
-	}
+	j.Record(s.CampaignID, sc.ID, summary, Inverse{RemoveCharacters: []string{ch.ID}})
 	return summary, nil
 }
 
