@@ -34,9 +34,13 @@ func NewHandler(l *Links, t Table, j *Journal) http.Handler {
 	})
 }
 
+// serverVersion is announced to clients; bump it whenever the tool list changes so
+// connectors that cache tools (claude.ai) know to fetch them again.
+const serverVersion = "2"
+
 // newServer builds the per-request MCP server; each tools file adds one register call here.
 func newServer(t Table, j *Journal, s Session) *sdk.Server {
-	srv := sdk.NewServer(&sdk.Implementation{Name: "rpgmaker-mesa", Version: "1"}, nil)
+	srv := sdk.NewServer(&sdk.Implementation{Name: "rpgmaker-mesa", Version: serverVersion}, nil)
 	registerReadTools(srv, t, j, s)
 	registerTerrainTools(srv, t, j, s)
 	registerObjectTools(srv, t, j, s)
