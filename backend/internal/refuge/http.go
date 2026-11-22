@@ -19,7 +19,7 @@ func Register(mux *http.ServeMux, hub *realtime.Hub, svc *Service, h *campaigns.
 		respond(w, out, err)
 	})))
 	mux.Handle("PUT /api/campaigns/{id}/refuge", h.RequireGM(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var d Details
+		var d Editable
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&d); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Requisição inválida"})
 			return
@@ -68,7 +68,7 @@ func respond(w http.ResponseWriter, v Refuge, err error) {
 	case err == nil:
 		writeJSON(w, http.StatusOK, v)
 	case errors.Is(err, ErrInvalid):
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Dados inválidos: atributos de 0 a 10 e recursos não negativos"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Dados inválidos: níveis de 0 a 6, população dentro do teto e recursos não negativos"})
 	default:
 		slog.Error("refuge request failed", "err", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Erro interno. Tente novamente"})

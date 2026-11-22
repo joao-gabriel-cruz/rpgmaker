@@ -5,7 +5,9 @@ import { useCharacters } from '../characters/characters'
 import { useRealtime } from '../realtime/realtimeContext'
 import { RefugeItems, type Place } from './RefugeItems'
 import { RefugeStats } from './RefugeStats'
-import { detailsOf, refugeKey, saveRefuge, useRefuge, type NumericField, type Refuge } from './refuge'
+import { RegionPanel } from './RegionPanel'
+import { ReservesPanel } from './ReservesPanel'
+import { editableOf, refugeKey, saveRefuge, useRefuge, type Refuge, type RefugeEditable } from './refuge'
 
 function useLiveRefuge(campaignId: string) {
   const queryClient = useQueryClient()
@@ -13,6 +15,14 @@ function useLiveRefuge(campaignId: string) {
   useEffect(() => subscribe('refuge.updated', (p) => {
     queryClient.setQueryData(refugeKey(campaignId), (p as { refuge: Refuge }).refuge)
   }), [subscribe, queryClient, campaignId])
+}
+
+function useSaveRefuge(campaignId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (d: RefugeEditable) => saveRefuge(campaignId, d),
+    onSuccess: (r) => queryClient.setQueryData(refugeKey(campaignId), r),
+  })
 }
 
 function Notes({ refuge, isGm, onSave }: { refuge: Refuge; isGm: boolean; onSave: (notes: string) => void }) {
@@ -27,30 +37,42 @@ function Notes({ refuge, isGm, onSave }: { refuge: Refuge; isGm: boolean; onSave
   )
 }
 
+function Header({ refuge, isGm, onChange }: { refuge: Refuge; isGm: boolean; onChange: (p: Partial<RefugeEditable>) => void }) {
+  const field = (key: 'name' | 'description', label: string, cls: string) => (
+    <input aria-label={label} readOnly={!isGm} defaultValue={refuge[key]} placeholder={isGm ? label : ''} key={refuge[key]}
+      onBlur={(e) => { if ((key === 'description' || e.target.value.trim()) && e.target.value !== refuge[key]) onChange({ [key]: e.target.value }) }}
+      className={`w-full max-w-3xl bg-transparent ${isGm ? 'rounded px-1 hover:bg-zinc-900 focus:bg-zinc-900' : ''} ${cls}`} />
+  )
+  return (
+    <div className="flex flex-col gap-1">
+      {field('name', 'Nome do Refúgio', 'text-xl font-semibold')}
+      {(isGm || refuge.description) && field('description', 'Descrição do Refúgio', 'text-sm text-zinc-400')}
+      <p className="px-1 text-xs text-zinc-500">Semana {refuge.week}</p>
+    </div>
+  )
+}
+
 export function RefugeSection({ campaignId, isGm }: { campaignId: string; isGm: boolean }) {
   const { data: refuge } = useRefuge(campaignId)
   const { data: chars } = useCharacters(campaignId)
   const { data: me } = useMe()
   const { send } = useRealtime()
-  const queryClient = useQueryClient()
   const [error, setError] = useState('')
   useLiveRefuge(campaignId)
-  const save = useMutation({
-    mutationFn: (d: ReturnType<typeof detailsOf>) => saveRefuge(campaignId, d),
-    onSuccess: (r) => queryClient.setQueryData(refugeKey(campaignId), r),
-  })
+  const save = useSaveRefuge(campaignId)
   if (!refuge || !Array.isArray(refuge.items)) return null
   const mine = (Array.isArray(chars) ? chars : []).filter((c) => c.kind === 'pc' && (isGm || c.ownerId === me?.id))
-  const change = (patch: Partial<Refuge>) => save.mutate(detailsOf({ ...refuge, ...patch }))
+  const change = (patch: Partial<RefugeEditable>) => save.mutate({ ...editableOf(refuge), ...patch })
   const take = (characterId: string, to: Place, refugeIndex: number) => {
     setError('')
     send('refuge.item.withdraw', { characterId, to, refugeIndex }).catch((e: Error) => setError(e.message))
   }
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-xl font-semibold">Refúgio</h2>
-      <p className="text-sm text-zinc-400">{refuge.name}{refuge.description && ` — ${refuge.description}`}</p>
-      <RefugeStats refuge={refuge} isGm={isGm} onChange={(f: NumericField, v) => change({ [f]: v })} />
+      <Header refuge={refuge} isGm={isGm} onChange={change} />
+      <RefugeStats refuge={refuge} isGm={isGm} onChange={change} />
+      <ReservesPanel refuge={refuge} isGm={isGm} onChange={change} />
+      <RegionPanel refuge={refuge} isGm={isGm} onChange={change} />
       <Notes refuge={refuge} isGm={isGm} onSave={(notes) => change({ notes })} />
       {save.isError && <p role="alert" className="text-sm text-red-400">{save.error.message}</p>}
       <RefugeItems items={refuge.items} characters={mine} error={error} onTake={take} />

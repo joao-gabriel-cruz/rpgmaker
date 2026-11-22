@@ -3,6 +3,8 @@ package items
 import (
 	"regexp"
 	"strings"
+
+	"github.com/joao-gabriel-cruz/rpgmaker/backend/internal/refuge"
 )
 
 // Icons is the curated list of lucide icon names a compendium item may use.
@@ -18,7 +20,6 @@ var (
 	kinds     = map[string]bool{KindMelee: true, KindRanged: true, KindTool: true, KindConsumable: true, KindClothing: true, KindResource: true, KindKey: true, KindOther: true}
 	anims     = map[string]bool{"slash": true, "blunt": true, "shot": true, "arrow": true}
 	categorys = map[string]bool{"combat": true, "exploration": true, "social": true, "survival": true}
-	resources = map[string]bool{"water": true, "food": true, "wood": true}
 )
 
 // inputError is a validation failure whose PT-BR message may be shown to the Mestre.
@@ -105,8 +106,8 @@ func cleanEffects(in Item) error {
 	if e.Heal != 0 && !inRange(e.Heal, 1, 6) {
 		return bad("A cura vai de 1 a 6")
 	}
-	if r := e.RefugeResource; r != nil && (!resources[r.Resource] || !inRange(r.Amount, 1, 10)) {
-		return bad("Recurso do Refúgio inválido (água, alimento ou madeira, de 1 a 10)")
+	if r := e.RefugeResource; r != nil && (!refuge.IsResource(r.Resource) || !inRange(r.Amount, 1, 10)) {
+		return bad("Recurso do Refúgio inválido (um dos 12 recursos, de 1 a 10)")
 	}
 	if (e.Heal != 0 || e.RefugeResource != nil) && in.Kind != KindConsumable {
 		return bad("Apenas consumíveis curam ou dão recursos ao Refúgio")
