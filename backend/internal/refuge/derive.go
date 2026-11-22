@@ -110,3 +110,9 @@ func (s *Sheet) CapReserves() map[string]int {
 	}
 	return lost
 }
+
+// ResourceLabel is the PT-BR name of each resource.
+var ResourceLabel = map[string]string{
+	"water": "Água", "food": "Alimento", "medicine": "Remédios", "clothing": "Vestuário", "plants": "Plantas", "animals": "Animais",
+	"wood": "Madeira", "biomass": "Biomassa", "minerals": "Minerais", "fuel": "Combustível", "ammo": "Munição", "buildingMaterial": "Material de Construção",
+}

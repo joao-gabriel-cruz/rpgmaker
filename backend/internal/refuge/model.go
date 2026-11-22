@@ -68,12 +68,14 @@ type Editable struct {
 	Sheet
 }
 
-// Refuge is the campaign's Refúgio. Buildings, Crises and Residents are reserved for the
-// next deliveries (kept verbatim, empty for now); items use the sheet's item format.
+// Refuge is the campaign's Refúgio. Crises and Residents are reserved for the next delivery
+// (kept verbatim, empty for now); items use the sheet's item format.
 type Refuge struct {
 	CampaignID string `json:"campaignId"`
 	Editable
-	Buildings []json.RawMessage `json:"buildings"`
+	Buildings []Building        `json:"buildings"`
+	Proposals []Proposal        `json:"proposals"`
+	History   []WeekReport      `json:"history"`
 	Crises    []json.RawMessage `json:"crises"`
 	Residents []json.RawMessage `json:"residents"`
 	Items     []json.RawMessage `json:"items"`

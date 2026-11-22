@@ -37,6 +37,7 @@ type Service struct {
 	repo   Repository
 	chars  Characters
 	events Events
+	hooks  []func(ctx context.Context, campaignID string, report WeekReport)
 }
 
 // NewService builds a Service.
