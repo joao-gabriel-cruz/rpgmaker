@@ -46,7 +46,7 @@ func (s Sheet) validate() error {
 		}
 	}
 	p := s.Population
-	if !inRange(s.Mobility, 0, maxMobility) || !inRange(p.Max, 1, maxPopMax) || !inRange(p.Level, 0, p.Max) ||
+	if !inRange(s.Mobility, 0, maxMobility) || !inRange(p.Max, 1, maxPopMax) || !inRange(p.Level, 0, maxCount) ||
 		!inRange(s.ReservesMax, 0, maxCount) || !inRange(s.Week, 1, maxWeekValue) {
 		return ErrInvalid
 	}

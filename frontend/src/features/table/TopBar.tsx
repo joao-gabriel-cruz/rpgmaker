@@ -4,6 +4,7 @@ import type { Campaign } from '../campaigns/campaigns'
 import { roleLabel } from '../campaigns/campaigns'
 import { SoundControl } from '../sound/SoundControl'
 import { spotlight, useSpotlight } from '../fx/spotlight'
+import { DiseaseAlert } from '../refuge/DiseaseAlert'
 import { RoundTracker } from '../rounds/RoundTracker'
 import type { SceneControls } from '../scenes/useSceneControls'
 import { SessionBar } from '../sessions/SessionBar'
@@ -64,6 +65,7 @@ export function TopBar({ campaign, scenes, onOpenSettings, onOpenHelp }: Props) 
       <SessionBar campaignId={campaign.id} isGm={isGm} />
       <Divider />
       <RoundTracker campaignId={campaign.id} isGm={isGm} />
+      <DiseaseAlert campaignId={campaign.id} />
       <TopActions campaignId={campaign.id} isGm={isGm} onOpenHelp={onOpenHelp} onOpenSettings={onOpenSettings} />
     </header>
   )

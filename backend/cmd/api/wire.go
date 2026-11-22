@@ -134,7 +134,10 @@ func wireTokens(d deps) {
 
 func wireRefuge(d deps) {
 	chars := characters.NewService(characters.NewStore(d.pool), d.campaignSvc, d.systems, d.hub)
-	refuge.Register(d.mux, d.hub, refuge.NewService(refuge.NewStore(d.pool), chars, d.hub), d.campaigns)
+	rf := refuge.NewService(refuge.NewStore(d.pool), chars, d.hub)
+	rf.Link(refuge.Links{Rolls: d.rolls, Effects: d.effects, Chars: chars, Compendium: compendiumSource(d, chars, rf)})
+	d.rolls.OnFinalized(rf.ExpeditionFinalized)
+	refuge.Register(d.mux, d.hub, rf, d.campaigns)
 }
 
 func wireDrawings(d deps) {

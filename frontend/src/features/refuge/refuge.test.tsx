@@ -14,8 +14,8 @@ const refuge: Refuge = {
   resources: { ...resources, water: 8, food: 5 },
   region: { size: 2, danger: 4, habitation: 0, naturalResources: 1, contamination: 0, travel: 0,
     abundance: { water: 'none', plants: 'medium', animals: 'none', wood: 'abundant', minerals: 'none', biomass: 'none' } },
-  buildings: [], proposals: [], history: [], crises: [], residents: [],
-  derived: { defenseLabel: 'Muro de madeira', moraleLabel: 'Amotinada', belligerenceLabel: 'Arrasadora', inhabitants: 70, workers: 6, reservesTotal: 13, reservesFree: 0, reservesOverflow: 3 },
+  buildings: [], proposals: [], history: [], crises: [], residents: [], expeditions: [], crisisSettings: { moralePenalty: true }, conditions: [],
+  derived: { defenseLabel: 'Muro de madeira', moraleLabel: 'Amotinada', belligerenceLabel: 'Arrasadora', inhabitants: 70, workers: 6, reservesTotal: 13, reservesFree: 0, reservesOverflow: 3, overcrowded: false },
   items: [{ name: 'Faca', quality: 1, scarcity: 2, pressure: 0, traits: [] }],
 }
 const pc = { id: 'p1', name: 'Rita', kind: 'pc', ownerId: 'me', ownerName: 'Ana' }
@@ -132,4 +132,11 @@ it('take sends withdraw with the chosen character and destination', async () => 
   fireEvent.change(screen.getByLabelText('Destino'), { target: { value: 'body' } })
   fireEvent.click(screen.getByText('Pegar'))
   expect(send).toHaveBeenCalledWith('refuge.item.withdraw', { characterId: 'p1', to: 'body', refugeIndex: 0 })
+})
+
+it('warns when the population level is above the cap', async () => {
+  const over = { ...refuge, population: { level: 12, max: 10 }, derived: { ...refuge.derived, overcrowded: true } }
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify(over), { status: 200 })))
+  renderIt(false)
+  expect(await screen.findByText(/Superlotação: a População \(12\) passa do teto \(10\)/)).toBeInTheDocument()
 })

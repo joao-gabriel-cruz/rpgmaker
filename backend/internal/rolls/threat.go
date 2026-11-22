@@ -50,6 +50,20 @@ func (s *Service) Final(ctx context.Context, campaignID, rollID string) (Final, 
 
 // Threat rolls a threat pool for the Mestre, logs it publicly and returns the symbols drawn.
 func (s *Service) Threat(ctx context.Context, campaignID string, sender realtime.Sender, name string, pool ThreatPool) (assimilacao.Symbols, error) {
+	e, err := s.PoolEntry(ctx, campaignID, sender, name, pool)
+	return diceSymbols(e.Dice), err
+}
+
+func diceSymbols(dice []assimilacao.Die) assimilacao.Symbols {
+	var total assimilacao.Symbols
+	for _, d := range dice {
+		total = total.Add(assimilacao.FaceSymbols(d.Kind, d.Face))
+	}
+	return total
+}
+
+// PoolEntry is Threat returning the broadcast entry (its dice faces and RollID).
+func (s *Service) PoolEntry(ctx context.Context, campaignID string, sender realtime.Sender, name string, pool ThreatPool) (Entry, error) {
 	var spec assimilacao.RollSpec
 	for _, p := range []struct {
 		kind string
@@ -60,14 +74,9 @@ func (s *Service) Threat(ctx context.Context, campaignID string, sender realtime
 		}
 	}
 	roll := assimilacao.Resolve(spec, s.rng)
-	var total assimilacao.Symbols
-	for _, d := range roll.Dice {
-		total = total.Add(assimilacao.FaceSymbols(d.Kind, d.Face))
-	}
-	result, _ := json.Marshal(assimilacao.Result{Symbols: total, Kept: []int{}})
-	_, err := s.store(ctx, campaignID, sender, Record{Visibility: VisPublic, Kind: KindThreat, Status: StatusFinal, Result: result},
+	result, _ := json.Marshal(assimilacao.Result{Symbols: diceSymbols(roll.Dice), Kept: []int{}})
+	return s.store(ctx, campaignID, sender, Record{Visibility: VisPublic, Kind: KindThreat, Status: StatusFinal, Result: result},
 		threatSpec{Name: name, Pool: pool}, roll.Dice, nil)
-	return total, err
 }
 
 // maxPoolDice caps each die kind of a Mestre pool.

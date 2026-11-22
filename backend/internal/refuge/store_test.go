@@ -85,7 +85,7 @@ func TestStoreMutateKeepsEverythingAndRollsBack(t *testing.T) {
 	if _, err := st.Mutate(ctx, campID, func(r *Refuge) error {
 		r.Name, r.Defense, r.Resources["wood"], r.Region.Abundance["water"] = "Base", 2, 4, "abundant"
 		r.Items = append(r.Items, json.RawMessage(`{"name":"Faca","itemId":"x"}`))
-		r.Crises = []json.RawMessage{json.RawMessage(`{"id":"c1"}`)}
+		r.Crises = []Crisis{{ID: "c1", Name: "Briga", Kind: "custom", Status: StatusActive}}
 		return nil
 	}); err != nil {
 		t.Fatal(err)

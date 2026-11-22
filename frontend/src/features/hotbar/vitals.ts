@@ -1,6 +1,5 @@
 import type { CharacterView } from '../characters/characters'
-import { asNpc } from '../characters/npc'
-import { boxesPerLevel, HEALTH_LEVELS } from '../sheet-assimilacao/derive'
+import { HEALTH_LEVELS } from '../sheet-assimilacao/derive'
 import { HEALTH_LEVEL_NAMES } from '../sheet-assimilacao/labels'
 import type { TugOfWar } from '../sheet-assimilacao/types'
 
@@ -20,13 +19,24 @@ export interface Vitals {
   susceptible: boolean
 }
 
+const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+
+/** Reads the tug of war of a possibly incomplete sheet; absent when the sheet has none. */
+function tugOf(sheet: { tugOfWar?: Partial<TugOfWar> }): TugOfWar | undefined {
+  const t = sheet.tugOfWar
+  if (!t || typeof t !== 'object') return undefined
+  return { determinationLevel: num(t.determinationLevel, 0), determinationPoints: num(t.determinationPoints, 0),
+    assimilationLevel: num(t.assimilationLevel, 0), assimilationPoints: num(t.assimilationPoints, 0) }
+}
+
 /** Health and tug-of-war of a PC or NPC character, ready to render. */
 export function vitalsOf(c: CharacterView): Vitals {
   const npc = c.kind === 'npc'
-  const boxes = npc ? Math.max(1, asNpc(c.sheet).health.boxesPerLevel) : boxesPerLevel(c.sheet)
-  const damage = c.sheet.health.damage
+  const sheet = (c.sheet ?? {}) as unknown as Partial<{ health: Partial<{ damage: number; boxesPerLevel: number }>; instincts: Partial<{ potency: number; resolution: number }> }>
+  const boxes = npc ? Math.max(1, num(sheet.health?.boxesPerLevel, 1)) : 1 + num(sheet.instincts?.potency, 0) + num(sheet.instincts?.resolution, 0)
+  const damage = Math.max(0, num(sheet.health?.damage, 0))
   const level = Math.max(0, Math.min(HEALTH_LEVELS - 1, Math.floor(damage / boxes)))
-  const tug = npc ? undefined : c.sheet.tugOfWar
+  const tug = npc ? undefined : tugOf((c.sheet ?? {}) as { tugOfWar?: Partial<TugOfWar> })
   return {
     level, levelName: HEALTH_LEVEL_NAMES[level], penalty: PENALTIES[level], boxes, damage,
     filled: Array.from({ length: HEALTH_LEVELS }, (_, l) => Math.max(0, Math.min(boxes, damage - l * boxes))),

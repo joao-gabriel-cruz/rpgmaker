@@ -41,7 +41,7 @@ type queryer interface {
 }
 
 func ensure(ctx context.Context, q queryer, campaignID, lock string) (Refuge, error) {
-	state, _ := encodeState(Refuge{Editable: Editable{Sheet: DefaultSheet()}})
+	state, _ := encodeState(Refuge{Editable: Editable{Sheet: DefaultSheet()}, CrisisSettings: DefaultCrisisSettings()})
 	if err := q.QueryRow(ctx, `INSERT INTO refuges (campaign_id, state) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING 1`,
 		campaignID, state).Scan(new(int)); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return Refuge{}, err

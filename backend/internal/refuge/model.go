@@ -76,11 +76,16 @@ type Refuge struct {
 	Buildings []Building        `json:"buildings"`
 	Proposals []Proposal        `json:"proposals"`
 	History   []WeekReport      `json:"history"`
-	Crises    []json.RawMessage `json:"crises"`
-	Residents []json.RawMessage `json:"residents"`
+	Crises    []Crisis          `json:"crises"`
+	Residents []Resident        `json:"residents"`
 	Items     []json.RawMessage `json:"items"`
 	UpdatedAt time.Time         `json:"updatedAt"`
 	Derived   Derived           `json:"derived"`
+
+	Expeditions    []Expedition   `json:"expeditions"`
+	CrisisSettings CrisisSettings `json:"crisisSettings"`
+	// Conditions are derived alerts (e.g. "disease"), never stored.
+	Conditions []string `json:"conditions"`
 }
 
 // CharState is the part of a character the move rules need.

@@ -32,6 +32,9 @@ func Register(mux *http.ServeMux, hub *realtime.Hub, svc *Service, h *campaigns.
 	registerBuildingCommands(hub, svc)
 	registerWeekCommands(hub, svc)
 	registerWeekHTTP(mux, svc, h)
+	registerCrisisCommands(hub, svc)
+	registerResidentCommands(hub, svc)
+	registerExpeditionCommands(hub, svc)
 }
 
 type moveCmd struct {
